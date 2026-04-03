@@ -23,11 +23,11 @@ The key estimand is sigma_gamma: the global standard deviation of the post-LLM m
 
 | Quantity | Value |
 |---|---|
-| Divergent transitions | {{DIVERGENCES}} |
-| sigma_beta Rhat | {{RHAT_SIGMA_BETA}} |
-| sigma_gamma Rhat | {{RHAT_SIGMA_GAMMA}} |
-| sigma_beta ESS | {{ESS_SIGMA_BETA}} |
-| sigma_gamma ESS | {{ESS_SIGMA_GAMMA}} |
+| Divergent transitions | 0 |
+| sigma_beta Rhat | 1.0108 |
+| sigma_gamma Rhat | 1.0016 |
+| sigma_beta ESS | 414 |
+| sigma_gamma ESS | 1268 |
 | Runtime (minutes) | {{RUNTIME_MIN}} |
 
 Rhat < 1.01 and ESS > 400 are the thresholds for acceptable convergence. Zero divergences is required; if non-zero, increase adapt_delta or inspect geometry.
@@ -36,11 +36,11 @@ Rhat < 1.01 and ESS > 400 are the thresholds for acceptable convergence. Zero di
 
 | Parameter | Posterior mean | 95% CI |
 |---|---|---|
-| sigma_beta | {{SIGMA_BETA_MEAN}} | {{SIGMA_BETA_CI}} |
-| sigma_gamma | {{SIGMA_GAMMA_MEAN}} | {{SIGMA_GAMMA_CI}} |
-| ratio gamma/beta | {{RATIO}} | — |
+| sigma_beta | 0.0965 | [0.0085, 0.1819] |
+| sigma_gamma | 0.0563 | [0.0018, 0.1671] |
+| ratio gamma/beta | 0.584 | — |
 
-Interpretation: the post-LLM shift scale (sigma_gamma = {{SIGMA_GAMMA_MEAN}}, 95% CI {{SIGMA_GAMMA_CI}}) is {{RATIO}} times the baseline trend scale (sigma_beta = {{SIGMA_BETA_MEAN}}, 95% CI {{SIGMA_BETA_CI}}). A ratio credibly below 1 is expected given the shorter post-LLM window; what matters is whether sigma_gamma is itself credibly above zero, indicating real heterogeneous shifts in technique shares after 2023.
+Interpretation: the post-LLM shift scale (sigma_gamma = 0.0563, 95% CI [0.0018, 0.1671]) is 0.584 times the baseline trend scale (sigma_beta = 0.0965, 95% CI [0.0085, 0.1819]). A ratio credibly below 1 is expected given the shorter post-LLM window; what matters is whether sigma_gamma is itself credibly above zero, indicating real heterogeneous shifts in technique shares after 2023.
 
 ## Plots
 
