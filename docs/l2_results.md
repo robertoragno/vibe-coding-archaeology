@@ -36,11 +36,11 @@ The inline Stan code in `R/03_l2_analysis.R` is structurally identical to `stan/
 
 | Quantity | Value |
 |---|---|
-| Divergent transitions | {{DIVERGENCES_L2}} |
-| sigma_beta Rhat | {{RHAT_SIGMA_BETA_L2}} |
-| sigma_gamma Rhat | {{RHAT_SIGMA_GAMMA_L2}} |
-| sigma_beta ESS | {{ESS_SIGMA_BETA_L2}} |
-| sigma_gamma ESS | {{ESS_SIGMA_GAMMA_L2}} |
+| Divergent transitions | 0 |
+| sigma_beta Rhat | 1.0019 |
+| sigma_gamma Rhat | 0.9994 |
+| sigma_beta ESS | 1060 |
+| sigma_gamma ESS | 2197 |
 | Runtime (minutes) | {{RUNTIME_MIN_L2}} |
 
 Rhat < 1.01 and ESS > 400 are the thresholds for acceptable convergence. Zero divergences is required.
@@ -49,11 +49,11 @@ Rhat < 1.01 and ESS > 400 are the thresholds for acceptable convergence. Zero di
 
 | Parameter | Posterior mean | 95% CI |
 |---|---|---|
-| sigma_beta | {{SIGMA_BETA_MEAN_L2}} | {{SIGMA_BETA_CI_L2}} |
-| sigma_gamma | {{SIGMA_GAMMA_MEAN_L2}} | {{SIGMA_GAMMA_CI_L2}} |
-| ratio gamma/beta | {{RATIO_L2}} | — |
+| sigma_beta | 0.1061 | [0.009, 0.2214] |
+| sigma_gamma | 0.0724 | [0.0027, 0.2166] |
+| ratio gamma/beta | 0.682 | — |
 
-Interpretation: the post-LLM shift scale at L2 (sigma_gamma = {{SIGMA_GAMMA_MEAN_L2}}, 95% CI {{SIGMA_GAMMA_CI_L2}}) is {{RATIO_L2}} times the baseline trend scale (sigma_beta = {{SIGMA_BETA_MEAN_L2}}, 95% CI {{SIGMA_BETA_CI_L2}}). Compare these values with the L3 analysis in docs/l3_results.md to assess whether the post-LLM signal is consistent across taxonomic levels. Qualitative agreement (both sigma_gamma credibly above zero, similar ratio) supports robustness of the main finding.
+Interpretation: the post-LLM shift scale at L2 (sigma_gamma = 0.0724, 95% CI [0.0027, 0.2166]) is 0.682 times the baseline trend scale (sigma_beta = 0.1061, 95% CI [0.009, 0.2214]). Compare these values with the L3 analysis in docs/l3_results.md to assess whether the post-LLM signal is consistent across taxonomic levels. Qualitative agreement (both sigma_gamma credibly above zero, similar ratio) supports robustness of the main finding.
 
 ## Plots
 
@@ -67,4 +67,4 @@ Posterior densities of sigma_beta (baseline trend scale, blue) and sigma_gamma (
 Posterior mean and 90% CI for gamma_method for each L2 sub-discipline whose CI excludes zero. Red = gaining share post-2023, blue = losing share.
 
 ![Raw counts](../data/output/l2/l2_plot_raw_counts.png)
-Observed paper counts for the same top 10 sub-disciplines. Loess smoother overlaid as a sanity check.
+Raw observed paper counts for the same top 10 sub-disciplines. The orange curve is a non-parametric loess smoother fitted directly to the observed counts — not derived from the Bayesian model. Sanity check that the sub-disciplines flagged by the model show plausible trends in the raw data.
