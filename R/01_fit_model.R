@@ -1,0 +1,142 @@
+cat("=== 01_fit_model.R ===\n")
+
+library(rstan)
+
+options(mc.cores = parallel::detectCores())
+rstan_options(auto_write = TRUE)
+
+# ── Paths ─────────────────────────────────────────────────────────────────────
+STAN_DATA_RDS <- "data/output/stan_data.rds"
+VOCAB_RDS     <- "data/output/vocab.rds"
+STAN_FILE     <- "stan/diversity_model.stan"
+FIT_RDS       <- "data/output/fit.rds"
+
+# ── Load data ─────────────────────────────────────────────────────────────────
+cat("Loading stan_data...\n")
+stan_data <- readRDS(STAN_DATA_RDS)
+vocab     <- readRDS(VOCAB_RDS)
+
+cat("N_groups:", stan_data$N_groups, "\n")
+cat("N_years: ", stan_data$N_years,  "\n")
+cat("K_max:   ", stan_data$K_max,    "\n")
+cat("post_llm:", stan_data$post_llm, "\n")
+
+# ── Fit (guarded) ─────────────────────────────────────────────────────────────
+if (!file.exists(FIT_RDS)) {
+  cat("Compiling and sampling (this will take a while)...\n")
+  t_start <- proc.time()
+
+  fit <- suppressWarnings(stan(
+    file    = STAN_FILE,
+    data    = stan_data,
+    chains  = 4,
+    iter    = 2000,
+    warmup  = 1000,
+    cores   = 4,
+    seed    = 42,
+    control = list(
+      adapt_delta   = 0.95,
+      max_treedepth = 15
+    ),
+    refresh = 100
+  ))
+
+  t_elapsed   <- proc.time() - t_start
+  elapsed_min <- round(t_elapsed["elapsed"] / 60, 1)
+  cat("Sampling done. Elapsed:", elapsed_min, "minutes\n")
+
+  # ── HMC diagnostics (console) ───────────────────────────────────────────────
+  cat("\n--- HMC diagnostics ---\n")
+  check_hmc_diagnostics(fit)
+
+  cat("\n--- sigma_beta summary ---\n")
+  print(summary(fit, pars = "sigma_beta")$summary)
+
+  cat("\n--- sigma_gamma summary ---\n")
+  print(summary(fit, pars = "sigma_gamma")$summary)
+
+  saveRDS(fit, FIT_RDS)
+  cat("Fit saved to:", FIT_RDS, "\n")
+
+} else {
+  message("fit.rds already exists — skipping Stan run. Delete it to refit.")
+  fit <- readRDS(FIT_RDS)
+}
+
+# ── Telegram diagnostics ──────────────────────────────────────────────────────
+token   <- "TELEGRAM_BOT_TOKEN_REDACTED"
+chat_id <- Sys.getenv("TELEGRAM_CHAT_ID")
+
+tryCatch({
+  library(httr)
+
+  # Divergences
+  n_div    <- sum(rstan::get_divergent_iterations(fit))
+  div_flag <- if (n_div == 0) "Divergences: 0" else paste0("Divergences: ", n_div, " !!!")
+
+  # Rhat and ESS for sigma_beta and sigma_gamma
+  sm <- rstan::summary(fit, pars = c("sigma_beta", "sigma_gamma"))$summary
+
+  rhat_sb <- round(sm["sigma_beta",  "Rhat"],  3)
+  rhat_sg <- round(sm["sigma_gamma", "Rhat"],  3)
+  ess_sb  <- round(sm["sigma_beta",  "n_eff"])
+  ess_sg  <- round(sm["sigma_gamma", "n_eff"])
+
+  rhat_sb_flag <- if (rhat_sb > 1.01) {
+    paste0("sigma_beta Rhat = ", rhat_sb, " [BAD > 1.01]")
+  } else {
+    paste0("sigma_beta Rhat = ", rhat_sb, " [OK]")
+  }
+  rhat_sg_flag <- if (rhat_sg > 1.01) {
+    paste0("sigma_gamma Rhat = ", rhat_sg, " [BAD > 1.01]")
+  } else {
+    paste0("sigma_gamma Rhat = ", rhat_sg, " [OK]")
+  }
+  ess_sb_flag <- if (ess_sb < 400) {
+    paste0("sigma_beta ESS = ", ess_sb, " [BAD < 400]")
+  } else {
+    paste0("sigma_beta ESS = ", ess_sb, " [OK]")
+  }
+  ess_sg_flag <- if (ess_sg < 400) {
+    paste0("sigma_gamma ESS = ", ess_sg, " [BAD < 400]")
+  } else {
+    paste0("sigma_gamma ESS = ", ess_sg, " [OK]")
+  }
+
+  # sigma_gamma: key scientific quantity
+  sg_mean <- round(sm["sigma_gamma", "mean"], 4)
+  sg_lo   <- round(sm["sigma_gamma", "5%"],   4)
+  sg_hi   <- round(sm["sigma_gamma", "95%"],  4)
+  sg_line <- paste0("sigma_gamma (KEY - post-LLM shift scale): mean = ", sg_mean,
+                    ", 90% CI [", sg_lo, ", ", sg_hi, "]")
+
+  msg <- paste(
+    "Stan diagnostics: diversity_model (two-slope)",
+    div_flag,
+    rhat_sb_flag,
+    rhat_sg_flag,
+    ess_sb_flag,
+    ess_sg_flag,
+    sg_line,
+    sep = "\n"
+  )
+
+  print("Sending Telegram diagnostics...")
+  resp   <- httr::POST(
+    url    = paste0("https://api.telegram.org/bot", token, "/sendMessage"),
+    body   = list(chat_id = chat_id, text = msg),
+    encode = "form"
+  )
+  status <- httr::status_code(resp)
+  cat("Telegram response status:", status, "\n")
+  if (status != 200) {
+    cat("Telegram response content:\n")
+    print(httr::content(resp, as = "text", encoding = "UTF-8"))
+  }
+}, error = function(e) {
+  message("Telegram diagnostics error: ", conditionMessage(e))
+}, warning = function(w) {
+  message("Telegram diagnostics warning: ", conditionMessage(w))
+})
+
+cat("=== 01_fit_model.R DONE ===\n")

@@ -1,0 +1,19 @@
+# Did LLMs make archaeologists think alike?
+
+Imagine that every graduate student in a department suddenly started asking the same AI assistant for methodological advice. The assistant, trained on the same corpus, would naturally recommend the same handful of techniques — not because those techniques are best, but because they are most represented in its training data. Over time, the department's research would start to look eerily similar. This paper asks whether something like that is happening across computational archaeology.
+
+We assembled roughly 68,000 archaeology papers published between 2010 and 2025 and classified each one's methodology into a three-level taxonomy: broad families (L1), sub-disciplines (L2), and specific techniques (L3). The taxonomy was built with Qwen, a large language model, applied consistently to all abstracts. This gives us a record of how the methodological menu of the discipline has changed, year by year, at fine granularity.
+
+The core question is whether that menu got more generic after 2023, the year ChatGPT entered serious academic use. Think of it like watching a restaurant's menu evolve over a decade, and then asking whether the dishes got blander — more convergent on a safe average — once the chef started relying on recipe apps rather than creative intuition.
+
+We measure diversity within each L2 sub-discipline using the Inverse Simpson index, which counts the effective number of distinct L3 methods in use. A score of 1 means one technique dominates completely; higher scores mean methods are more evenly spread. We model how this effective count changes over time using a Bayesian Dirichlet-Multinomial regression fit with Stan.
+
+The model has a two-slope structure. The first slope, beta, captures each method's underlying linear trajectory from 2010 to 2025: some techniques were already rising or falling before LLMs existed. The second slope, gamma, captures any additional deviation that began in 2023 and thereafter. By separating these two components, we can ask not just whether methods changed after 2023, but whether that change was over and above what the pre-existing trend would have predicted. The key estimand is sigma_gamma, the global scale of across-method variation in the post-2023 slope. If sigma_gamma is credibly above zero, there is real post-LLM heterogeneity in methodological trajectories — some methods accelerating, others declining — consistent with AI-driven recommendation effects.
+
+We run this analysis twice. The primary analysis operates at the L2-to-L3 level: within each sub-discipline, we watch the fine-grained technique mix evolve. A complementary sensitivity analysis operates at the L1-to-L2 level: within each broad family, we watch the sub-discipline mix. If both levels tell a consistent story, the finding is robust.
+
+The bibliometric analysis is paired with a planned prompting experiment. We will systematically query five or six major LLMs — at three simulated expertise levels and with three types of methodological question — and classify each response into the same L3 taxonomy using Qwen. This gives us a direct estimate of what methods LLMs currently recommend. We then correlate recommendation frequency with the posterior mean gamma for each method. If LLMs are driving convergence, the methods they recommend most often should be the ones whose post-2023 share increased most in the published literature.
+
+## Repository structure
+
+`R/` contains the four analysis scripts, run in order from the project root. `stan/` contains the Stan model. `data/output/l3/` holds plots from the primary L2-to-L3 analysis; `data/output/l2/` holds plots from the L1-to-L2 sensitivity check. `docs/` contains result summaries that are automatically updated and pushed after each model run. `experiment/` scaffolds the prompting study, with subdirectories for prompt templates, raw LLM responses, and classification scripts.
