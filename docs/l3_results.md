@@ -81,4 +81,4 @@ Posterior densities of sigma_beta (baseline trend scale, blue) and sigma_gamma (
 Posterior mean and 90% CI for gamma_method for each L3 technique whose CI excludes zero. Red = gaining share post-2023, blue = losing share.
 
 ![Raw counts](../data/output/l3/plot_raw_counts.png)
-Observed paper counts for the same top 15 methods. Loess smoother overlaid as a sanity check that the model is tracking real signal.
+Raw observed paper counts for the same top 15 methods. The orange curve is a non-parametric loess smoother fitted directly to the observed counts — it is not derived from the Bayesian model. Its purpose is a sanity check: do the methods the model flags as having large post-2023 shifts show visually plausible trends in the raw data?
