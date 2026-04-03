@@ -2,22 +2,49 @@
 
 ## The Model
 
-We are modelling how the composition of archaeological methods changes over time within each L2 sub-discipline. The data for each group g and year t is a vector of paper counts across K_g L3 techniques. We treat these counts as drawn from a Dirichlet-Multinomial distribution: a Multinomial where the category probabilities are themselves uncertain, smoothed by a concentration parameter kappa fixed at 10.
-
-The expected probability of each technique is computed via softmax over a linear predictor:
+We model how the composition of L3 techniques changes over time within each L2 sub-discipline. The full generative model is:
 
 ```
-eta[g, k, t] = mu[g, k] + beta_method[g, k] * year_std[t] + gamma_method[g, k] * post_llm[t]
-p[g, k, t]   = softmax(eta[g, k, t])
+y[g, t]          ~ Dirichlet-Multinomial(α[g, t])
+α[g, t]           = softmax(η[g, t]) × κ
+
+η[g, k, t]        = μ[g, k]
+                   + β[g, k]  × year_std[t]
+                   + γ[g, k]  × I(year[t] ≥ 2023)
+
+μ[g, k]          ~ Normal(0, 1)
+∑_k μ[g, k]      ~ Normal(0, 0.001 × K_g)      [soft sum-to-zero]
+
+β[g, k]           = σ_β × β_raw[g, k]
+β_raw[g, k]      ~ Normal(0, 1)
+σ_β              ~ Exponential(2)
+
+γ[g, k]           = σ_γ × γ_raw[g, k]
+γ_raw[g, k]      ~ Normal(0, 1)
+σ_γ              ~ Exponential(4)
+
+κ = 10            [fixed concentration]
 ```
 
-Here mu[g, k] is the baseline log-share of technique k in group g; beta_method[g, k] is its linear trend across the full 2010-2025 period (year_std is standardised to mean 0, sd 1); and gamma_method[g, k] is an additional slope that turns on from 2023 onward (post_llm = 1 for year >= 2023, 0 otherwise).
+**Line by line.**
 
-Because the softmax is invariant to adding a constant to all elements of eta, the model is only identified up to a group-level mean. We enforce a sum-to-zero constraint on mu, beta_method, and gamma_method within each group. This pins the reference level and ensures the parameters are interpretable as deviations from the group mean, not arbitrary shifts.
+`y[g, t] ~ Dirichlet-Multinomial(α[g, t])` — The data for group g in year t are integer vectors of paper counts across K_g techniques. We use a Dirichlet-Multinomial rather than a plain Multinomial because the category probabilities are themselves uncertain around their expected values. This handles overdispersion: years where usage is noisier than the expected shares alone would predict do not force the model to fit noise.
 
-The method-level slopes are given hierarchical priors via a non-centred parameterisation: beta_method[g, k] = sigma_beta * beta_raw[g, k], where beta_raw ~ Normal(0, 1) and sigma_beta ~ Exponential(2). The same structure applies to gamma_method. This reparameterisation improves HMC geometry by separating the scale (sigma) from the shape (the raw draws).
+`α[g, t] = softmax(η[g, t]) × κ` — The Dirichlet concentration parameters are the softmax-transformed linear predictor, scaled by κ. softmax maps the unrestricted real-valued η to a valid probability simplex (all entries positive, summing to 1), then κ controls how tightly each year's observed counts are expected to track those probabilities. Small κ → high within-year variance around expected shares; large κ → counts closely reflect the expected proportions. We fix κ = 10, expressing moderate overdispersion.
 
-The key estimand is sigma_gamma: the global standard deviation of the post-LLM method-level slopes. If sigma_gamma is credibly above zero, the post-2023 period produced real, heterogeneous shifts in technique shares across methods.
+`η[g, k, t] = μ[g, k] + β[g, k] × year_std[t] + γ[g, k] × I(year[t] ≥ 2023)` — The linear predictor has three additive components operating on the log-share scale:
+
+- **μ[g, k]**: baseline log-weight of technique k in group g, representing the method's average standing share when year_std = 0 (the midpoint of the time series).
+- **β[g, k] × year_std[t]**: a linear trend over the full 2010–2025 period. year_std is standardised to mean 0 and SD 1 (one unit ≈ 7.5 calendar years), so β is measured in log-share-units per SD of year.
+- **γ[g, k] × I(year[t] ≥ 2023)**: an additional slope that turns on from 2023 onward. This is not a level shift but an extra rate of change: the method's log-share trajectory steepens (positive γ) or flattens/reverses (negative γ) relative to its pre-2023 trend.
+
+`μ[g, k] ~ Normal(0, 1)` — Weakly informative prior on baseline log-weights. A Normal(0, 1) allows techniques to span roughly an order of magnitude in expected share relative to one another without strongly pulling any technique toward a particular value.
+
+`∑_k μ[g, k] ~ Normal(0, 0.001 × K_g)` — Soft sum-to-zero constraint. Because softmax is invariant to adding a constant to all elements of η, the model is only identified up to a group-level mean. Without this penalty, μ, β, and γ each wander by an additive constant and the sampler cannot explore the posterior efficiently. Penalising the sum to be near zero pins the reference level and makes parameters interpretable as deviations from the group mean. The same constraint is applied to β_raw and γ_raw within each group.
+
+`β[g, k] = σ_β × β_raw[g, k]`, `β_raw[g, k] ~ Normal(0, 1)`, `σ_β ~ Exponential(2)` — Non-centred parameterisation for baseline slopes. Factorising β into a shared scale σ_β and unit-scale deviations β_raw separates two distinct questions: *how much* do methods differ in their long-run trend (σ_β), and *which* methods trend up or down (β_raw). This removes the funnel geometry that arises in the centred formulation when σ is small, which is typical here. The Exponential(2) prior on σ_β has mean 0.5 and places most mass below 1, expressing prior skepticism of very large compositional shifts over 2010–2022.
+
+`γ[g, k] = σ_γ × γ_raw[g, k]`, `γ_raw[g, k] ~ Normal(0, 1)`, `σ_γ ~ Exponential(4)` — Identical structure for post-LLM slopes. The Exponential(4) prior on σ_γ (mean 0.25) is tighter than for σ_β for two reasons: the post-LLM window spans only 2–3 years versus 13 for the baseline, making large values of σ_γ less plausible a priori; and the prior encodes genuine skepticism that LLM adoption caused dramatic compositional upheaval. **σ_γ is the primary estimand**: if its posterior is credibly above zero, the post-2023 period produced real, heterogeneous shifts in technique shares across methods — not just noise amplified by a short window.
 
 ## Diagnostics
 
@@ -52,9 +79,6 @@ Posterior densities of sigma_beta (baseline trend scale, blue) and sigma_gamma (
 
 ![Gamma dotplot](../data/output/l3/plot_gamma_dotplot.png)
 Posterior mean and 90% CI for gamma_method for each L3 technique whose CI excludes zero. Red = gaining share post-2023, blue = losing share.
-
-![Top 15 trajectories](../data/output/l3/plot_top_gamma_trajectories.png)
-Fitted softmax share trajectories 2010-2025 for the 15 methods with largest absolute gamma. Mean line + 50% and 90% CI from 200 posterior draws.
 
 ![Raw counts](../data/output/l3/plot_raw_counts.png)
 Observed paper counts for the same top 15 methods. Loess smoother overlaid as a sanity check that the model is tracking real signal.

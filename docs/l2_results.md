@@ -2,20 +2,35 @@
 
 ## The Model
 
-This is a sensitivity check running the same model at one taxonomic level coarser. Rather than watching technique shares within sub-disciplines, we watch sub-discipline shares within broad methodological families. The data for each L1 group g and year t is a vector of paper counts across K_g L2 sub-disciplines. As before, we use a Dirichlet-Multinomial likelihood with kappa fixed at 10.
-
-The linear predictor has the same two-slope structure:
+This is a sensitivity check running the same model at one taxonomic level coarser. Rather than watching technique shares within L2 sub-disciplines, we watch L2 sub-discipline shares within broad L1 methodological families. The generative model is:
 
 ```
-eta[g, k, t] = mu[g, k] + beta_method[g, k] * year_std[t] + gamma_method[g, k] * post_llm[t]
-p[g, k, t]   = softmax(eta[g, k, t])
+y[g, t]          ~ Dirichlet-Multinomial(α[g, t])
+α[g, t]           = softmax(η[g, t]) × κ
+
+η[g, k, t]        = μ[g, k]
+                   + β[g, k]  × year_std[t]
+                   + γ[g, k]  × I(year[t] ≥ 2023)
+
+μ[g, k]          ~ Normal(0, 1)
+∑_k μ[g, k]      ~ Normal(0, 0.001 × K_g)      [soft sum-to-zero]
+
+β[g, k]           = σ_β × β_raw[g, k]
+β_raw[g, k]      ~ Normal(0, 1)
+σ_β              ~ Exponential(2)
+
+γ[g, k]           = σ_γ × γ_raw[g, k]
+γ_raw[g, k]      ~ Normal(0, 1)
+σ_γ              ~ Exponential(4)
+
+κ = 10            [fixed concentration]
 ```
 
-Here mu[g, k] is the baseline log-share of sub-discipline k within L1 family g; beta_method[g, k] is its linear trend 2010-2025; and gamma_method[g, k] is the additional post-2023 shift. The sum-to-zero constraint, non-centred parameterisation, and hierarchical priors on sigma_beta and sigma_gamma are identical to the L3 analysis. See docs/l3_results.md for full model documentation.
+Here g indexes L1 families (e.g., Remote Sensing, Geophysical Methods) and k indexes L2 sub-disciplines within each family. Everything else is identical to the L3 analysis: same Dirichlet-Multinomial likelihood, same two-slope linear predictor, same non-centred parameterisation, same soft sum-to-zero constraint, same priors. See [docs/l3_results.md](l3_results.md) for a full line-by-line deconstruction of the model.
 
-The inline Stan code in R/03_l2_analysis.R is identical in structure to stan/diversity_model.stan. Any changes to the model specification should be applied to both.
+The inline Stan code in `R/03_l2_analysis.R` is structurally identical to `stan/diversity_model.stan`. Any changes to the model specification should be applied to both.
 
-The key estimand is again sigma_gamma_L2: the global scale of post-2023 sub-discipline-level variation within L1 families. Comparing this to sigma_gamma from the L3 analysis tells us whether the convergence signal is consistent across taxonomic levels.
+**σ_γ is again the primary estimand**, now measuring the global scale of post-2023 sub-discipline-level variation within L1 families. Comparing it to σ_γ from the L3 analysis is the core sensitivity check: qualitative agreement (both credibly above zero, similar ratio to σ_β) supports robustness of the main finding across taxonomic levels.
 
 ## Diagnostics
 
@@ -50,9 +65,6 @@ Posterior densities of sigma_beta (baseline trend scale, blue) and sigma_gamma (
 
 ![Gamma dotplot](../data/output/l2/l2_plot_gamma_dotplot.png)
 Posterior mean and 90% CI for gamma_method for each L2 sub-discipline whose CI excludes zero. Red = gaining share post-2023, blue = losing share.
-
-![Top 10 trajectories](../data/output/l2/l2_plot_top_gamma_trajectories.png)
-Fitted softmax share trajectories 2010-2025 for the 10 L2 sub-disciplines with largest absolute gamma. Mean line + 80% and 90% CI from 200 posterior draws.
 
 ![Raw counts](../data/output/l2/l2_plot_raw_counts.png)
 Observed paper counts for the same top 10 sub-disciplines. Loess smoother overlaid as a sanity check.

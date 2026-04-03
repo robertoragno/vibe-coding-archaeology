@@ -13,9 +13,11 @@ SUMMARY_CSV    <- "data/output/inv_simpson_summary.csv"
 PLOT_DIVERSITY <- "data/output/l3/plot_diversity_by_group.png"
 PLOT_SIGMA     <- "data/output/l3/plot_sigma_posteriors.png"
 PLOT_GAMMA_DOT <- "data/output/l3/plot_gamma_dotplot.png"
-PLOT_TOP_TRAJ  <- "data/output/l3/plot_top_gamma_trajectories.png"
 PLOT_RAW       <- "data/output/l3/plot_raw_counts.png"
 DRAWS_RDS      <- "data/output/inv_simpson_draws.rds"
+
+token   <- "TELEGRAM_BOT_TOKEN_REDACTED"
+chat_id <- Sys.getenv("TELEGRAM_CHAT_ID")
 
 dir.create("data/output/l3", recursive = TRUE, showWarnings = FALSE)
 
@@ -160,6 +162,37 @@ sigma_beta_ci_str  <- paste0("[", round(sm_diag["sigma_beta",  "2.5%"],  4),
 sigma_gamma_ci_str <- paste0("[", round(sm_diag["sigma_gamma", "2.5%"],  4),
                               ", ", round(sm_diag["sigma_gamma", "97.5%"], 4), "]")
 
+# ── Telegram: send diagnostics text ──────────────────────────────────────────
+tryCatch({
+  div_flag    <- if (n_divergences == 0) "Divergences: 0 [OK]" else paste0("Divergences: ", n_divergences, " [!!!]")
+  rhat_sb_flag <- if (rhat_sigma_beta  > 1.01) paste0("sigma_beta Rhat = ",  round(rhat_sigma_beta,  3), " [BAD]") else paste0("sigma_beta Rhat = ",  round(rhat_sigma_beta,  3), " [OK]")
+  rhat_sg_flag <- if (rhat_sigma_gamma > 1.01) paste0("sigma_gamma Rhat = ", round(rhat_sigma_gamma, 3), " [BAD]") else paste0("sigma_gamma Rhat = ", round(rhat_sigma_gamma, 3), " [OK]")
+  ess_sb_flag  <- if (ess_sigma_beta   < 400)  paste0("sigma_beta ESS = ",   round(ess_sigma_beta),        " [BAD]") else paste0("sigma_beta ESS = ",  round(ess_sigma_beta),        " [OK]")
+  ess_sg_flag  <- if (ess_sigma_gamma  < 400)  paste0("sigma_gamma ESS = ",  round(ess_sigma_gamma),       " [BAD]") else paste0("sigma_gamma ESS = ", round(ess_sigma_gamma),       " [OK]")
+  sg_line <- paste0("sigma_gamma (post-LLM shift): mean = ", round(sigma_gamma_mean, 4),
+                    ", 95% CI ", sigma_gamma_ci_str)
+  sb_line <- paste0("sigma_beta  (baseline trend): mean = ", round(sigma_beta_mean,  4),
+                    ", 95% CI ", sigma_beta_ci_str)
+  n_sig_methods <- sum(gamma_df$sig, na.rm = TRUE)
+
+  msg <- paste(
+    "L3 Stan diagnostics (diversity_model)",
+    div_flag, rhat_sb_flag, rhat_sg_flag, ess_sb_flag, ess_sg_flag,
+    sg_line, sb_line,
+    paste0("Methods with credible post-LLM shift: ", n_sig_methods),
+    sep = "\n"
+  )
+
+  httr::POST(
+    url    = paste0("https://api.telegram.org/bot", token, "/sendMessage"),
+    body   = list(chat_id = chat_id, text = msg),
+    encode = "form"
+  )
+  cat("Telegram diagnostics sent.\n")
+}, error = function(e) {
+  cat("WARNING: Telegram diagnostics failed:", conditionMessage(e), "\n")
+})
+
 # ── Extract gamma_method posteriors ───────────────────────────────────────────
 # gamma_method_arr shape: [S, N_groups, K_max]
 # Use matrix(..., nrow=S, ncol=K) to guard against K==1 dimension drop.
@@ -249,99 +282,7 @@ top15 <- gamma_df |>
 cat("\nTop 15 methods by |mean_gamma|:\n")
 print(top15 |> select(level_2_mid, level_3_fine, mean_gamma, lo90, hi90))
 
-# ── Plot 4: fitted share trajectories for top 15 ─────────────────────────────
-cat("Plotting fitted share trajectories for top 15 methods...\n")
-
-# Use 200 random draws for ribbons
-draw_idx <- sample(seq_len(S), min(200, S))
-
-traj_list <- vector("list", nrow(top15))
-
-for (i in seq_len(nrow(top15))) {
-  g_i <- top15$g[i]
-  k_i <- top15$k[i]
-  K_i <- K_g_vec[g_i]
-
-  # matrix() guards against K==1 dimension drop
-  mu_g  <- matrix(mu_raw_arr[, g_i, 1:K_i],      nrow = S, ncol = K_i)  # [S, K_i]
-  bm_g  <- matrix(beta_method_arr[, g_i, 1:K_i],  nrow = S, ncol = K_i)  # [S, K_i]
-  gm_g  <- matrix(gamma_method_arr[, g_i, 1:K_i], nrow = S, ncol = K_i)  # [S, K_i]
-
-  # Posterior mean trajectory (mean line)
-  mu_mean <- colMeans(mu_g)
-  bm_mean <- colMeans(bm_g)
-  gm_mean <- colMeans(gm_g)
-
-  eta_mean_mat <- outer(bm_mean, year_std, "*") + outer(gm_mean, post_llm, "*")
-  # eta_mean_mat is [K_i, N_years]; add mu baseline
-  eta_mean_mat <- sweep(eta_mean_mat, 1, mu_mean, "+")
-
-  # Softmax for mean line
-  p_mean_mat <- apply(eta_mean_mat, 2, function(e) {
-    e <- e - max(e)
-    exp(e) / sum(exp(e))
-  })  # [K_i, N_years]
-  p_mean_k <- p_mean_mat[k_i, ]  # [N_years]
-
-  # Draw-level trajectories for ribbon (200 draws)
-  p_draws_k <- matrix(NA_real_, nrow = length(draw_idx), ncol = N_years)
-  for (di in seq_along(draw_idx)) {
-    s <- draw_idx[di]
-    for (ti in seq_len(N_years)) {
-      eta_s <- mu_g[s, ] + bm_g[s, ] * year_std[ti] + gm_g[s, ] * post_llm[ti]
-      eta_s <- eta_s - max(eta_s)
-      p_s   <- exp(eta_s) / sum(exp(eta_s))
-      p_draws_k[di, ti] <- p_s[k_i]
-    }
-  }
-
-  method_label <- paste0(
-    sub("^L2-\\d+: ", "", l2_levels[g_i]), ": ", top15$level_3_fine[i]
-  )
-
-  mean_df <- data.frame(
-    method_id = method_label,
-    year      = year_levels,
-    p_mean    = p_mean_k,
-    lo90      = apply(p_draws_k, 2, quantile, 0.05),
-    hi90      = apply(p_draws_k, 2, quantile, 0.95),
-    lo50      = apply(p_draws_k, 2, quantile, 0.25),
-    hi50      = apply(p_draws_k, 2, quantile, 0.75)
-  )
-
-  traj_list[[i]] <- mean_df
-}
-
-traj_all <- bind_rows(traj_list) |>
-  mutate(method_id = factor(
-    method_id,
-    levels = paste0(
-      sub("^L2-\\d+: ", "", l2_levels[top15$g]),
-      ": ", top15$level_3_fine
-    )
-  ))
-
-p4 <- ggplot(traj_all, aes(x = year)) +
-  geom_ribbon(aes(ymin = lo90, ymax = hi90), alpha = 0.12, fill = "steelblue") +
-  geom_ribbon(aes(ymin = lo50, ymax = hi50), alpha = 0.22, fill = "steelblue") +
-  geom_line(aes(y = p_mean), colour = "steelblue4", linewidth = 0.5) +
-  geom_vline(xintercept = 2023, linetype = "dashed", colour = "firebrick",
-             linewidth = 0.4) +
-  annotate("text", x = 2023, y = Inf, label = "LLM adoption",
-           hjust = -0.05, vjust = 1.5, size = 2, colour = "firebrick") +
-  facet_wrap(~ method_id, scales = "free_y", ncol = 3) +
-  labs(
-    x = "Year", y = "Fitted softmax share",
-    title    = "Top 15 methods by |gamma|: fitted share trajectories 2010-2025",
-    subtitle = "Mean line + 50%/90% CI from 200 random draws; dashed = 2023 (LLM adoption)"
-  ) +
-  theme_minimal(base_size = 7) +
-  theme(strip.text = element_text(size = 5), panel.grid.minor = element_blank())
-
-ggsave(PLOT_TOP_TRAJ, p4, width = 18, height = 12, units = "in", dpi = 150)
-cat("Plot saved to:", PLOT_TOP_TRAJ, "\n")
-
-# ── Plot 5: raw observed counts for top 15 ────────────────────────────────────
+# ── Plot 4: raw observed counts for top 15 ────────────────────────────────────
 cat("Plotting raw counts for top 15 methods...\n")
 
 raw_counts_list <- vector("list", nrow(top15))
@@ -373,8 +314,9 @@ raw_all <- bind_rows(raw_counts_list) |>
 
 p5 <- ggplot(raw_all, aes(x = year, y = n_papers)) +
   geom_point(size = 1, colour = "grey40") +
-  geom_smooth(method = "loess", se = FALSE, colour = "steelblue4",
-              linewidth = 0.5, span = 0.75) +
+  geom_smooth(method = "loess", se = TRUE, colour = "firebrick",
+              fill = "firebrick", alpha = 0.15,
+              linewidth = 1.2, span = 0.75) +
   geom_vline(xintercept = 2023, linetype = "dashed", colour = "firebrick",
              linewidth = 0.4) +
   annotate("text", x = 2023, y = Inf, label = "LLM adoption",
@@ -392,10 +334,7 @@ ggsave(PLOT_RAW, p5, width = 18, height = 12, units = "in", dpi = 150)
 cat("Plot saved to:", PLOT_RAW, "\n")
 
 # ── Telegram: send all plots ───────────────────────────────────────────────────
-all_plots <- c(PLOT_DIVERSITY, PLOT_SIGMA, PLOT_GAMMA_DOT, PLOT_TOP_TRAJ, PLOT_RAW)
-
-token   <- "TELEGRAM_BOT_TOKEN_REDACTED"
-chat_id <- Sys.getenv("TELEGRAM_CHAT_ID")
+all_plots <- c(PLOT_DIVERSITY, PLOT_SIGMA, PLOT_GAMMA_DOT, PLOT_RAW)
 
 cat("\nSending plots via Telegram...\n")
 for (plot_path in all_plots) {
