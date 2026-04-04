@@ -177,7 +177,29 @@ generated quantities {
       vector[K] eta = mu_raw[g][1:K]
                       + beta_method[g][1:K]  * year_std[t]
                       + gamma_method[g][1:K] * post_llm[t];
-      vector[K] p   = softmax(eta);
+
+      // Conjugate Dirichlet posterior: combines the trend prior with observed
+      // counts for this group-year.
+      //
+      // Prior:     pi[g,t] ~ Dirichlet(softmax(eta) * kappa)
+      // Likelihood:  y     ~ Multinomial(pi[g,t])
+      // Posterior: pi[g,t] | y ~ Dirichlet(softmax(eta) * kappa + y)
+      //
+      // Effect: years with many papers are dominated by the observed shares
+      // (more data -> tighter diversity CI); sparse years stay regularised
+      // toward the trend prediction. The crossover is near N_papers ~ kappa.
+
+      int N_gt = sum(counts[g, t, 1:K]);
+      vector[K] p;
+
+      if (N_gt > 0) {
+        vector[K] y_k;
+        for (k in 1:K) y_k[k] = counts[g, t, k];
+        p = dirichlet_rng(softmax(eta) * kappa + y_k);
+      } else {
+        // No papers this group-year: fall back to trend-only prediction.
+        p = softmax(eta);
+      }
 
       inv_simpson[g, t]   = 1.0 / dot_self(p);
       eff_N_shannon[g, t] = exp(-dot_product(p, log(p)));
@@ -462,88 +484,7 @@ top10 <- gamma_df |>
 cat("\nTop 10 L2 methods by |mean_gamma|:\n")
 print(top10 |> select(l1_group, level_2_mid, mean_gamma, lo90, hi90))
 
-# ── Plot 4: fitted share trajectories for top 10 ─────────────────────────────
-cat("Plotting fitted share trajectories for top 10 L2 methods...\n")
-
-draw_idx <- sample(seq_len(S), min(200, S))
-
-traj_list <- vector("list", nrow(top10))
-
-for (i in seq_len(nrow(top10))) {
-  g_i <- top10$g[i]
-  k_i <- top10$k[i]
-  K_i <- K_g[g_i]
-
-  # matrix() guards against K==1 dimension drop
-  mu_g  <- matrix(mu_raw_arr[, g_i, 1:K_i],      nrow = S, ncol = K_i)
-  bm_g  <- matrix(beta_method_arr[, g_i, 1:K_i],  nrow = S, ncol = K_i)
-  gm_g  <- matrix(gamma_method_arr[, g_i, 1:K_i], nrow = S, ncol = K_i)
-
-  mu_mean <- colMeans(mu_g)
-  bm_mean <- colMeans(bm_g)
-  gm_mean <- colMeans(gm_g)
-
-  eta_mean_mat <- outer(bm_mean, year_std, "*") + outer(gm_mean, post_llm, "*")
-  eta_mean_mat <- sweep(eta_mean_mat, 1, mu_mean, "+")
-
-  p_mean_mat <- apply(eta_mean_mat, 2, function(e) {
-    e <- e - max(e)
-    exp(e) / sum(exp(e))
-  })  # [K_i, N_years]
-  p_mean_k <- p_mean_mat[k_i, ]
-
-  p_draws_k <- matrix(NA_real_, nrow = length(draw_idx), ncol = N_years)
-  for (di in seq_along(draw_idx)) {
-    s <- draw_idx[di]
-    for (ti in seq_len(N_years)) {
-      eta_s <- mu_g[s, ] + bm_g[s, ] * year_std[ti] + gm_g[s, ] * post_llm[ti]
-      eta_s <- eta_s - max(eta_s)
-      p_s   <- exp(eta_s) / sum(exp(eta_s))
-      p_draws_k[di, ti] <- p_s[k_i]
-    }
-  }
-
-  method_label <- paste0(top10$l1_group[i], ": ", top10$level_2_mid[i])
-
-  mean_df <- data.frame(
-    method_id = method_label,
-    year      = year_levels,
-    p_mean    = p_mean_k,
-    lo90      = apply(p_draws_k, 2, quantile, 0.05),
-    hi90      = apply(p_draws_k, 2, quantile, 0.95),
-    lo80      = apply(p_draws_k, 2, quantile, 0.10),
-    hi80      = apply(p_draws_k, 2, quantile, 0.90)
-  )
-  traj_list[[i]] <- mean_df
-}
-
-traj_all <- bind_rows(traj_list) |>
-  mutate(method_id = factor(
-    method_id,
-    levels = paste0(top10$l1_group, ": ", top10$level_2_mid)
-  ))
-
-p4 <- ggplot(traj_all, aes(x = year)) +
-  geom_ribbon(aes(ymin = lo90, ymax = hi90), alpha = 0.12, fill = "steelblue") +
-  geom_ribbon(aes(ymin = lo80, ymax = hi80), alpha = 0.20, fill = "steelblue") +
-  geom_line(aes(y = p_mean), colour = "steelblue4", linewidth = 0.5) +
-  geom_vline(xintercept = 2023, linetype = "dashed", colour = "firebrick", linewidth = 0.4) +
-  annotate("text", x = 2023, y = Inf, label = "LLM adoption",
-           hjust = -0.05, vjust = 1.5, size = 2.5, colour = "firebrick") +
-  facet_wrap(~ method_id, scales = "free_y", ncol = 2) +
-  labs(
-    x = "Year", y = "Fitted softmax share",
-    title    = "L2-level: top 10 methods by |gamma|: fitted share trajectories 2010-2025",
-    subtitle = "Mean line + 80%/90% CI from 200 random draws; dashed = 2023 (LLM adoption)"
-  ) +
-  theme_minimal(base_size = 8) +
-  theme(strip.text = element_text(size = 6), panel.grid.minor = element_blank())
-
-out4 <- file.path(OUTPUT_DIR, "l2_plot_top_gamma_trajectories.png")
-ggsave(out4, p4, width = 16, height = 10, units = "in", dpi = 150)
-cat("Plot saved to:", out4, "\n")
-
-# ── Plot 5: raw counts for top 10 ────────────────────────────────────────────
+# ── Plot 4: raw counts for top 10 ────────────────────────────────────────────
 cat("Plotting raw counts for top 10 L2 methods...\n")
 
 raw_counts_list <- vector("list", nrow(top10))
@@ -566,10 +507,11 @@ raw_all <- bind_rows(raw_counts_list) |>
     levels = paste0(top10$l1_group, ": ", top10$level_2_mid)
   ))
 
-p5 <- ggplot(raw_all, aes(x = year, y = n_papers)) +
+p4 <- ggplot(raw_all, aes(x = year, y = n_papers)) +
   geom_point(size = 1, colour = "grey40") +
-  geom_smooth(method = "loess", se = FALSE, colour = "steelblue4",
-              linewidth = 0.5, span = 0.75) +
+  geom_smooth(method = "loess", formula = y ~ x, se = TRUE,
+              colour = "darkorange3", fill = "darkorange", alpha = 0.2,
+              linewidth = 1.2, span = 0.75) +
   geom_vline(xintercept = 2023, linetype = "dashed", colour = "firebrick", linewidth = 0.4) +
   annotate("text", x = 2023, y = Inf, label = "LLM adoption",
            hjust = -0.05, vjust = 1.5, size = 2.5, colour = "firebrick") +
@@ -577,17 +519,17 @@ p5 <- ggplot(raw_all, aes(x = year, y = n_papers)) +
   labs(
     x = "Year", y = "Observed paper count",
     title    = "L2-level: top 10 methods raw observed paper counts 2010-2025",
-    subtitle = "Loess smoother; dashed = 2023; sanity check against fitted trajectories"
+    subtitle = "Orange = non-parametric loess smoother (NOT the Bayesian model); dashed = 2023 LLM adoption boundary"
   ) +
   theme_minimal(base_size = 8) +
   theme(strip.text = element_text(size = 6), panel.grid.minor = element_blank())
 
-out5 <- file.path(OUTPUT_DIR, "l2_plot_raw_counts.png")
-ggsave(out5, p5, width = 16, height = 10, units = "in", dpi = 150)
-cat("Plot saved to:", out5, "\n")
+out4 <- file.path(OUTPUT_DIR, "l2_plot_raw_counts.png")
+ggsave(out4, p4, width = 16, height = 10, units = "in", dpi = 150)
+cat("Plot saved to:", out4, "\n")
 
 # ── Telegram: send all L2 plots ───────────────────────────────────────────────
-all_plots <- c(out1, out2, out3, out4, out5)
+all_plots <- c(out1, out2, out3, out4)
 
 cat("\nSending L2 plots via Telegram...\n")
 for (plot_path in all_plots) {
