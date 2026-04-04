@@ -52,6 +52,11 @@ Created 2026-04-03. Auto-push implemented in R/02_extract_plot.R (L3) and R/03_l
 - Key scientific result: sigma_gamma mean=0.056, 97.5%=0.167, credibly above zero
 - sigma_beta Rhat=1.011, consider iter=4000 before final submission
 
+## Changelog
+- 2026-04-04: generated quantities now uses conjugate Dirichlet posterior for diversity metrics. For each posterior draw, pi[g,t] ~ Dirichlet(softmax(eta)*kappa + y) rather than softmax(eta) directly. This is in both stan/diversity_model.stan (comments stripped, logic unchanged) and R/03_l2_analysis.R (the source of the implementation). fit.rds does NOT need to be regenerated: generated quantities is post-hoc computation that runs on existing draws.
+- 2026-04-04: 03_l2_analysis.R — removed softmax share trajectory plot (Plot 4, p4); not interpretable. Raw counts plot (formerly p5) renumbered to p4, loess smoother updated to darkorange3 with se=TRUE and linewidth=1.2 (matching 02 style). all_plots list updated (out4 removed, out5→out4).
+- 2026-04-04: 02_extract_plot.R — removed softmax trajectory plot; loess smoother in raw counts plot fixed to darkorange3 (visible); Telegram diagnostics section added.
+
 ## Next steps
 1. Compare sigma_gamma posteriors at L3 (fit.rds) vs L2 (fit_l2.rds)
 2. Run prompting experiment (see experiment/README.md)

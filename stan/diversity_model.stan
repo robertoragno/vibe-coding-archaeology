@@ -91,17 +91,6 @@ generated quantities {
                       + beta_method[g][1:K]  * year_std[t]
                       + gamma_method[g][1:K] * post_llm[t];
 
-      // Conjugate Dirichlet posterior: combines the trend prior with observed
-      // counts for this group-year.
-      //
-      // Prior:     pi[g,t] ~ Dirichlet(softmax(eta) * kappa)
-      // Likelihood:  y     ~ Multinomial(pi[g,t])
-      // Posterior: pi[g,t] | y ~ Dirichlet(softmax(eta) * kappa + y)
-      //
-      // Effect: years with many papers are dominated by the observed shares
-      // (more data -> tighter diversity CI); sparse years stay regularised
-      // toward the trend prediction. The crossover is near N_papers ~ kappa.
-
       int N_gt = sum(counts[g, t, 1:K]);
       vector[K] p;
 
@@ -110,7 +99,6 @@ generated quantities {
         for (k in 1:K) y_k[k] = counts[g, t, k];
         p = dirichlet_rng(softmax(eta) * kappa + y_k);
       } else {
-        // No papers this group-year: fall back to trend-only prediction.
         p = softmax(eta);
       }
 

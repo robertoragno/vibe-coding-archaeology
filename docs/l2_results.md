@@ -32,6 +32,22 @@ The inline Stan code in `R/03_l2_analysis.R` is structurally identical to `stan/
 
 **σ_γ is again the primary estimand**, now measuring the global scale of post-2023 sub-discipline-level variation within L1 families. Comparing it to σ_γ from the L3 analysis is the core sensitivity check: qualitative agreement (both credibly above zero, similar ratio to σ_β) supports robustness of the main finding across taxonomic levels.
 
+**Diversity in `generated quantities`: conjugate posterior, not prior predictive.** Each posterior draw yields a sample of π[g,t] — the simplex of sub-discipline shares — which is used to compute Inverse Simpson and effective N Shannon. These are *not* computed from `softmax(η)` directly. That would be the prior predictive: it ignores the observed counts entirely and produces needlessly wide CIs.
+
+Instead, π[g,t] is drawn from the exact conjugate posterior. The prior on π is Dirichlet(softmax(η[g,t]) × κ); the likelihood is Multinomial(y[g,t]); by Dirichlet-Multinomial conjugacy:
+
+```
+π[g,t] | y[g,t]  ~  Dirichlet( softmax(η[g,t]) × κ  +  y[g,t] )
+```
+
+The posterior update is simply: add observed counts to the prior concentration. The practical effect depends on how N compares to κ = 10:
+
+- **N >> κ**: data dominates — diversity CIs are tight because the observed shares are informative.
+- **N << κ**: prior dominates — CIs are wide, reflecting trend uncertainty rather than data.
+- **Crossover near N ~ κ**: prior and data contribute roughly equally.
+
+For group-year cells with no papers (N_gt = 0), π falls back to softmax(η). Diversity CIs are therefore *data-adaptive*: they are not a uniform function of trend uncertainty but shrink or expand with how much information each year actually contains.
+
 ## Diagnostics
 
 | Quantity | Value |
