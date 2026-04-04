@@ -1,4 +1,4 @@
-# Did LLMs make archaeologists think alike?
+## Did LLMs cause convergence in computational archaeology methods?
 
 Imagine that every graduate student in a department suddenly started asking the same AI assistant for methodological advice. The assistant, trained on the same corpus, would naturally recommend the same handful of techniques — not because those techniques are best, but because they are most represented in its training data. Over time, the department's research would start to look eerily similar. This paper asks whether something like that is happening across computational archaeology.
 
@@ -14,6 +14,39 @@ We run this analysis twice. The primary analysis operates at the L2-to-L3 level:
 
 The bibliometric analysis is paired with a planned prompting experiment. We will systematically query five or six major LLMs — at three simulated expertise levels and with three types of methodological question — and classify each response into the same L3 taxonomy using Qwen. This gives us a direct estimate of what methods LLMs currently recommend. We then correlate recommendation frequency with the posterior mean gamma for each method. If LLMs are driving convergence, the methods they recommend most often should be the ones whose post-2023 share increased most in the published literature.
 
+## Results
+
+> [!WARNING]
+> The models are still undergoing some changes. Results below are preliminary — you can already explore the outputs and read through the model logic, but treat the numbers as work-in-progress until this notice is removed.
+
+| Analysis | Description | Results |
+|---|---|---|
+| L1 → L2 | Sensitivity check. Within each broad methodological family (L1), we track how sub-discipline (L2) shares evolve over time. Tests whether the post-LLM signal is consistent at a coarser taxonomic level. | [View L2 results](docs/l2_results.md) |
+| L2 → L3 | Primary analysis. Within each sub-discipline (L2), we track how specific technique (L3) shares evolve. The main estimand is whether technique-level diversity changed after 2023. | [View L3 results](docs/l3_results.md) |
+
 ## Repository structure
 
-`R/` contains the four analysis scripts, run in order from the project root. `stan/` contains the Stan model. `data/output/l3/` holds plots from the primary L2-to-L3 analysis; `data/output/l2/` holds plots from the L1-to-L2 sensitivity check. `docs/` contains result summaries that are automatically updated and pushed after each model run. `experiment/` scaffolds the prompting study, with subdirectories for prompt templates, raw LLM responses, and classification scripts.
+```
+.
+├── R/
+│   ├── 00_data_prep.R       # Ingest raw CSVs, build taxonomy vocab, write Stan inputs
+│   ├── 01_fit_model.R       # Compile and sample the Stan model
+│   ├── 02_extract_plot.R    # Extract posterior draws, produce L3 plots, push results
+│   └── 03_l2_analysis.R     # L1→L2 sensitivity analysis (inline Stan, own plots)
+├── stan/
+│   └── diversity_model.stan # Dirichlet-Multinomial two-slope model
+├── data/
+│   ├── output/
+│   │   ├── l3/              # Plots from the primary L2→L3 analysis
+│   │   └── l2/              # Plots from the L1→L2 sensitivity check
+│   └── ...                  # Raw and intermediate data files
+├── docs/
+│   ├── l3_results.md        # Auto-updated L3 diagnostics and results
+│   └── l2_results.md        # Auto-updated L2 diagnostics and results
+└── experiment/
+    ├── prompts/             # Prompt templates for querying LLMs
+    ├── responses/           # Raw LLM responses
+    └── classify/            # Scripts to classify responses into L3 taxonomy
+```
+
+Scripts are run in order from the project root: `00` → `01` → `02` → `03`.
