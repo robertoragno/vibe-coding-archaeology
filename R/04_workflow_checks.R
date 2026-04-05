@@ -642,3 +642,70 @@ if (core_pass) {
 cat("=================================\n")
 
 cat("\n04_workflow_checks.R complete.\n")
+
+# ── Auto-fill workflow_results.md and push to GitHub ─────────────────────────
+cat("\nFilling docs/workflow_results.md and pushing to GitHub...\n")
+
+sensitivity_body <- if (sensitivity_done) {
+  rho_line <- sprintf("Spearman ρ = %.4f (threshold 0.95) — gamma rankings are %s.",
+                      spearman_rho, if (spearman_rho > 0.95) "ROBUST" else "SENSITIVE")
+  sg10_line <- sprintf("  kappa=10: mean=%.4f  SD=%.4f  90%%CI=[%.4f, %.4f]",
+                       mean(sg_k10), sd(sg_k10),
+                       quantile(sg_k10, 0.05), quantile(sg_k10, 0.95))
+  sg50_line <- sprintf("  kappa=50: mean=%.4f  SD=%.4f  90%%CI=[%.4f, %.4f]",
+                       mean(sg_k50), sd(sg_k50),
+                       quantile(sg_k50, 0.05), quantile(sg_k50, 0.95))
+  paste0(
+    rho_line, "\n\n",
+    "**sigma_gamma comparison:**\n\n```\n",
+    sg10_line, "\n", sg50_line, "\n```\n\n",
+    "![Prior sensitivity](../data/output/workflow/plot_prior_sensitivity.png)"
+  )
+} else {
+  "_fit_kappa50.rds not yet available. Rerun `R/04_workflow_checks.R` after the kappa=50 fit completes._"
+}
+
+spearman_line <- if (sensitivity_done) {
+  sprintf("Spearman ρ = %.4f", spearman_rho)
+} else {
+  "pending kappa=50 fit"
+}
+
+doc <- readLines("docs/workflow_results.md")
+doc <- gsub("{{RUN_DATE}}",          format(Sys.time(), "%Y-%m-%d %H:%M"),  doc, fixed = TRUE)
+doc <- gsub("{{PPC1_STATUS}}",       ppc1_status,                            doc, fixed = TRUE)
+doc <- gsub("{{PRIOR_Q05}}",         round(prior_q05, 2),                    doc, fixed = TRUE)
+doc <- gsub("{{PRIOR_Q95}}",         round(prior_q95, 2),                    doc, fixed = TRUE)
+doc <- gsub("{{OBS_MIN}}",           round(obs_range[1], 2),                 doc, fixed = TRUE)
+doc <- gsub("{{OBS_MAX}}",           round(obs_range[2], 2),                 doc, fixed = TRUE)
+doc <- gsub("{{N_PASS_PPC}}",        n_pass_ppc,                             doc, fixed = TRUE)
+doc <- gsub("{{N_TOTAL_PPC}}",       n_total_ppc,                            doc, fixed = TRUE)
+doc <- gsub("{{SG_BETA_TRUE}}",      sigma_beta_true,                        doc, fixed = TRUE)
+doc <- gsub("{{SG_TRUE}}",           sprintf("%.4f", sigma_gamma_true),      doc, fixed = TRUE)
+doc <- gsub("{{SG_MEAN}}",           sprintf("%.4f", sg_fake_mean),          doc, fixed = TRUE)
+doc <- gsub("{{SG_CI_LO}}",          sprintf("%.4f", sg_fake_ci90[1]),       doc, fixed = TRUE)
+doc <- gsub("{{SG_CI_HI}}",          sprintf("%.4f", sg_fake_ci90[2]),       doc, fixed = TRUE)
+doc <- gsub("{{INSIDE_CI}}",         toupper(as.character(inside_ci)),        doc, fixed = TRUE)
+doc <- gsub("{{INSIDE_CI_YN}}",      if (inside_ci) "YES" else "NO",         doc, fixed = TRUE)
+doc <- gsub("{{INSIDE_CI_PREP}}",    if (inside_ci) "inside" else "outside", doc, fixed = TRUE)
+doc <- gsub("{{SENSITIVITY_STATUS}}",if (sensitivity_done) "DONE" else "PENDING", doc, fixed = TRUE)
+doc <- gsub("{{SENSITIVITY_BODY}}", sensitivity_body,                         doc, fixed = TRUE)
+doc <- gsub("{{SPEARMAN_LINE}}",    spearman_line,                            doc, fixed = TRUE)
+doc <- gsub("{{RECOMMENDATION}}",
+            if (core_pass)
+              "> **Recommendation:** model passes all core checks — results are credible for inference."
+            else
+              "> **Recommendation:** CAUTION — review model specification before reporting results.",
+            doc, fixed = TRUE)
+
+writeLines(doc, "docs/workflow_results.md")
+cat("docs/workflow_results.md written.\n")
+
+system(paste(
+  "git -C ~/R_projects/Vibe_Coding_Paper add",
+  "data/output/workflow/*.png",
+  "docs/workflow_results.md &&",
+  "git -C ~/R_projects/Vibe_Coding_Paper commit -m 'auto: workflow checks results update' &&",
+  "git -C ~/R_projects/Vibe_Coding_Paper push"
+))
+cat("GitHub push done.\n")
