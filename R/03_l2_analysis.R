@@ -327,45 +327,85 @@ S <- dim(mu_raw_arr)[1]
 cat("Posterior draws S =", S, "\n")
 
 # ── Plot 1: Diversity by L1 group ─────────────────────────────────────────────
-cat("\nComputing inv_simpson summary per L1 group...\n")
+cat("\nComputing diversity plots per L1 group...\n")
 
-inv_simp_tidy <- expand.grid(
-    draw = seq_len(S),
-    g    = seq_len(N_groups),
-    t    = seq_len(N_years)
-  ) |>
-  mutate(
-    inv_simpson = mapply(function(d, g, t) inv_simp_arr[d, g, t], draw, g, t),
-    l1_group    = l1_levels[g],
-    year        = year_levels[t]
-  )
+# Empirical inv_simpson from raw counts (no model)
+emp_diversity_l2 <- do.call(rbind, lapply(seq_len(N_groups), function(g) {
+  K <- K_g[g]
+  do.call(rbind, lapply(seq_len(N_years), function(t) {
+    cts   <- counts_array[g, t, 1:K]
+    total <- sum(cts)
+    if (total == 0) return(NULL)
+    p <- cts / total
+    p <- p[p > 0]
+    data.frame(
+      l1_group     = l1_levels[g],
+      year         = year_levels[t],
+      inv_simp_emp = 1 / sum(p^2),
+      stringsAsFactors = FALSE
+    )
+  }))
+}))
 
-inv_simp_summary <- inv_simp_tidy |>
-  group_by(l1_group, year) |>
-  summarise(
-    median = median(inv_simpson),
-    lo90   = quantile(inv_simpson, 0.05),
-    hi90   = quantile(inv_simpson, 0.95),
-    lo50   = quantile(inv_simpson, 0.25),
-    hi50   = quantile(inv_simpson, 0.75),
-    .groups = "drop"
-  )
+# Trend-only inv_simpson: softmax(mu + beta * year_std) only
+softmax_rows_l2 <- function(mat) {
+  mat <- mat - apply(mat, 1, max)
+  e   <- exp(mat)
+  e / rowSums(e)
+}
 
-p1 <- ggplot(inv_simp_summary, aes(x = year, y = median)) +
+trend_list_l2 <- vector("list", N_groups * N_years)
+idx <- 1L
+for (g in seq_len(N_groups)) {
+  K      <- K_g[g]
+  mu_g   <- matrix(mu_raw_arr[, g, 1:K],      nrow = S, ncol = K)
+  beta_g <- matrix(beta_method_arr[, g, 1:K], nrow = S, ncol = K)
+  for (t in seq_len(N_years)) {
+    eta  <- mu_g + beta_g * year_std[t]
+    p    <- softmax_rows_l2(eta)
+    vals <- 1 / rowSums(p^2)
+    trend_list_l2[[idx]] <- data.frame(
+      l1_group = l1_levels[g],
+      year     = year_levels[t],
+      median   = median(vals),
+      lo90     = quantile(vals, 0.05),
+      hi90     = quantile(vals, 0.95),
+      lo50     = quantile(vals, 0.25),
+      hi50     = quantile(vals, 0.75),
+      stringsAsFactors = FALSE
+    )
+    idx <- idx + 1L
+  }
+}
+trend_summary_l2 <- bind_rows(trend_list_l2)
+
+p1 <- ggplot(trend_summary_l2, aes(x = year)) +
+  geom_point(data = emp_diversity_l2,
+             aes(y = inv_simp_emp, colour = "Observed (annual)"),
+             size = 0.8, alpha = 0.7) +
   geom_ribbon(aes(ymin = lo90, ymax = hi90), alpha = 0.15, fill = "steelblue") +
   geom_ribbon(aes(ymin = lo50, ymax = hi50), alpha = 0.30, fill = "steelblue") +
-  geom_line(colour = "steelblue4", linewidth = 0.6) +
+  geom_line(aes(y = median, colour = "Model trend"), linewidth = 0.6) +
   geom_vline(xintercept = 2023, linetype = "dashed", colour = "firebrick", linewidth = 0.4) +
   annotate("text", x = 2023, y = Inf, label = "LLM adoption",
            hjust = -0.05, vjust = 1.5, size = 2.5, colour = "firebrick") +
+  scale_colour_manual(
+    values = c("Observed (annual)" = "grey40", "Model trend" = "steelblue4"),
+    name   = NULL
+  ) +
   facet_wrap(~ l1_group, scales = "free_y") +
   labs(
-    x = "Year", y = "Inverse Simpson (effective N of L2 methods)",
+    x        = "Year",
+    y        = "Inverse Simpson (effective N of L2 methods)",
     title    = "L2-level: methodological diversity within L1 groups over time",
-    subtitle = "Ribbon = 50% and 90% posterior credible intervals"
+    subtitle = "Grey dots = observed annual diversity; ribbon = 50%/90% CI on structural trend (mu + beta only)"
   ) +
   theme_minimal(base_size = 9) +
-  theme(strip.text = element_text(size = 7), panel.grid.minor = element_blank())
+  theme(
+    strip.text       = element_text(size = 7),
+    panel.grid.minor = element_blank(),
+    legend.position  = "bottom"
+  )
 
 out1 <- file.path(OUTPUT_DIR, "l2_plot_diversity_by_group.png")
 ggsave(out1, p1, width = 14, height = 10, units = "in", dpi = 150)

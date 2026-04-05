@@ -90,24 +90,89 @@ write.csv(inv_simp_summary, SUMMARY_CSV, row.names = FALSE)
 cat("Summary CSV saved to:", SUMMARY_CSV, "\n")
 
 cat("Plotting diversity by group...\n")
-inv_simp_summary <- inv_simp_summary |>
+
+# ── Empirical inv_simpson from raw counts (no model) ─────────────────────────
+emp_diversity <- do.call(rbind, lapply(seq_len(N_groups), function(g) {
+  K <- K_g_vec[g]
+  do.call(rbind, lapply(seq_len(N_years), function(t) {
+    cts   <- stan_data$counts[g, t, 1:K]
+    total <- sum(cts)
+    if (total == 0) return(NULL)
+    p <- cts / total
+    p <- p[p > 0]
+    data.frame(
+      level_2_mid  = l2_levels[g],
+      year         = year_levels[t],
+      inv_simp_emp = 1 / sum(p^2),
+      stringsAsFactors = FALSE
+    )
+  }))
+})) |>
   mutate(label = sub("^L2-\\d+: ", "", level_2_mid))
 
-p1 <- ggplot(inv_simp_summary, aes(x = year, y = median)) +
+# ── Trend-only inv_simpson: softmax(mu + beta * year_std) per draw ────────────
+# Uses only mu and beta — no gamma, no conjugate update.
+# Shows the smooth structural trend estimated by the model.
+softmax_rows <- function(mat) {
+  mat <- mat - apply(mat, 1, max)
+  e   <- exp(mat)
+  e / rowSums(e)
+}
+
+trend_list <- vector("list", N_groups * N_years)
+idx <- 1L
+cat("Computing trend-only inv_simpson (mu + beta only)...\n")
+for (g in seq_len(N_groups)) {
+  K      <- K_g_vec[g]
+  mu_g   <- matrix(mu_raw_arr[, g, 1:K],      nrow = S, ncol = K)
+  beta_g <- matrix(beta_method_arr[, g, 1:K], nrow = S, ncol = K)
+  for (t in seq_len(N_years)) {
+    eta  <- mu_g + beta_g * year_std[t]
+    p    <- softmax_rows(eta)
+    vals <- 1 / rowSums(p^2)
+    trend_list[[idx]] <- data.frame(
+      level_2_mid = l2_levels[g],
+      year        = year_levels[t],
+      median      = median(vals),
+      lo90        = quantile(vals, 0.05),
+      hi90        = quantile(vals, 0.95),
+      lo50        = quantile(vals, 0.25),
+      hi50        = quantile(vals, 0.75),
+      stringsAsFactors = FALSE
+    )
+    idx <- idx + 1L
+  }
+}
+trend_summary <- bind_rows(trend_list) |>
+  mutate(label = sub("^L2-\\d+: ", "", level_2_mid))
+
+p1 <- ggplot(trend_summary, aes(x = year)) +
+  geom_point(data = emp_diversity,
+             aes(y = inv_simp_emp, colour = "Observed (annual)"),
+             size = 0.8, alpha = 0.7) +
   geom_ribbon(aes(ymin = lo90, ymax = hi90), alpha = 0.15, fill = "steelblue") +
   geom_ribbon(aes(ymin = lo50, ymax = hi50), alpha = 0.30, fill = "steelblue") +
-  geom_line(colour = "steelblue4", linewidth = 0.6) +
+  geom_line(aes(y = median, colour = "Model trend"), linewidth = 0.6) +
   geom_vline(xintercept = 2023, linetype = "dashed", colour = "firebrick", linewidth = 0.4) +
   annotate("text", x = 2023, y = Inf, label = "LLM adoption",
            hjust = -0.05, vjust = 1.5, size = 2, colour = "firebrick") +
+  scale_colour_manual(
+    values = c("Observed (annual)" = "grey40", "Model trend" = "steelblue4"),
+    name   = NULL
+  ) +
   facet_wrap(~ label, scales = "free_y", ncol = 6) +
   labs(
-    x = "Year", y = "Inverse Simpson (effective N of L3 methods)",
+    x        = "Year",
+    y        = "Inverse Simpson (effective N of L3 methods)",
     title    = "Methodological diversity within L2 groups over time",
-    subtitle = "Ribbon = 50% and 90% posterior credible intervals"
+    subtitle = "Grey dots = observed annual diversity; ribbon = 50%/90% CI on structural trend (mu + beta only)"
   ) +
   theme_minimal(base_size = 8) +
-  theme(strip.text = element_text(size = 6), panel.grid.minor = element_blank())
+  theme(
+    strip.text      = element_text(size = 6),
+    panel.grid.minor = element_blank(),
+    legend.position = "bottom"
+  )
 
 ggsave(PLOT_DIVERSITY, p1, width = 20, height = 16, units = "in", dpi = 150)
 cat("Plot saved to:", PLOT_DIVERSITY, "\n")
@@ -314,8 +379,8 @@ raw_all <- bind_rows(raw_counts_list) |>
 
 p5 <- ggplot(raw_all, aes(x = year, y = n_papers)) +
   geom_point(size = 1, colour = "grey40") +
-  geom_smooth(method = "loess", se = TRUE, colour = "firebrick",
-              fill = "firebrick", alpha = 0.15,
+  geom_smooth(method = "loess", formula = y ~ x, se = TRUE,
+              colour = "darkorange3", fill = "darkorange", alpha = 0.2,
               linewidth = 1.2, span = 0.75) +
   geom_vline(xintercept = 2023, linetype = "dashed", colour = "firebrick",
              linewidth = 0.4) +
@@ -325,7 +390,7 @@ p5 <- ggplot(raw_all, aes(x = year, y = n_papers)) +
   labs(
     x = "Year", y = "Observed paper count",
     title    = "Top 15 methods: raw observed paper counts 2010-2025",
-    subtitle = "Loess smoother; dashed = 2023; sanity check that model tracks real signal"
+    subtitle = "Orange = non-parametric loess smoother (NOT the Bayesian model); dashed = 2023 LLM adoption boundary"
   ) +
   theme_minimal(base_size = 7) +
   theme(strip.text = element_text(size = 5), panel.grid.minor = element_blank())

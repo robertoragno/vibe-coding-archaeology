@@ -62,6 +62,18 @@ The posterior update is simply: add observed counts to the prior concentration. 
 
 For group-year cells with no papers (N_gt = 0), π falls back to softmax(η). Diversity CIs are therefore *data-adaptive*: they are not a uniform function of trend uncertainty but shrink or expand with how much information each year actually contains.
 
+### A note on kappa
+
+κ = 10 is currently a fixed modelling assumption, not estimated from data. It controls overdispersion: how much the observed proportions in any given year are permitted to deviate from what the model predicts based on the trend.
+
+Think of it like this. If κ is large, the model trusts the trend strongly — it treats year-to-year fluctuations in composition as noise around the smooth trajectory described by μ and β. If κ is small, the model allows the observed shares to deviate substantially from the trend each year, attributing more variation to genuine within-year randomness rather than measurement error.
+
+Concretely, κ = 10 means the prior on the composition simplex has total concentration 10, so any individual year's data needs to substantially outweigh 10 "pseudo-observations" before it pulls the posterior away from the trend. The crossover between trend-dominated and data-dominated inference happens near N_papers ~ κ = 10: groups with fewer than 10 papers in a year are mostly regularised toward the trend; groups with hundreds of papers have their diversity CIs tightened by the actual data.
+
+The empirical kappa exploration in `R/00b_kappa_exploration.R` estimates κ from the data before any modelling, using a method-of-moments estimator applied across years within each L2 group. This tests whether κ = 10 is a reasonable assumption or whether overdispersion varies substantially across method groups.
+
+If κ varies substantially (interquartile range > 5 units across groups), the next model iteration should replace the single fixed value with group-specific κ_g drawn from a lognormal hyperprior: κ_g ~ lognormal(μ_κ, σ_κ), with μ_κ ~ Normal(log(10), 1) and σ_κ ~ Exponential(1). This is identifiable because κ_g is estimated within-group from count data, not competing with μ for the same signal.
+
 ## Diagnostics
 
 | Quantity | Value |
