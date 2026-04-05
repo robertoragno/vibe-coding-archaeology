@@ -14,7 +14,8 @@ rstan_options(auto_write = TRUE)
 # ── Paths ─────────────────────────────────────────────────────────────────────
 INPUT_FILE <- "data/input/qwen_dataset.xlsx"
 OUTPUT_DIR <- "data/output/l2"
-FIT_L2_RDS <- "data/output/l2/fit_l2.rds"
+FIT_L2_RDS    <- "data/output/l2/fit_l2.rds"
+FIT_L2_K50_RDS <- "data/output/l2/fit_l2_kappa50.rds"
 dir.create(OUTPUT_DIR, recursive = TRUE, showWarnings = FALSE)
 
 token   <- "TELEGRAM_BOT_TOKEN_REDACTED"
@@ -317,6 +318,98 @@ tryCatch({
   message("Telegram diagnostics warning: ", conditionMessage(w))
 })
 
+# ── kappa=50 robustness fit (guarded) ─────────────────────────────────────────
+if (!file.exists(FIT_L2_K50_RDS)) {
+  cat("\nFitting L2 kappa=50 robustness check...\n")
+  stan_data_k50       <- stan_data
+  stan_data_k50$kappa <- 50.0
+
+  cat("Compiling Stan model for kappa=50...\n")
+  l2_mod_k50 <- stan_model(model_code = stan_code)
+
+  t_start50 <- proc.time()
+
+  l2_fit_k50 <- suppressWarnings(sampling(
+    l2_mod_k50,
+    data    = stan_data_k50,
+    chains  = 4,
+    iter    = 2000,
+    warmup  = 1000,
+    cores   = 4,
+    seed    = 42,
+    control = list(adapt_delta = 0.95, max_treedepth = 15),
+    refresh = 100
+  ))
+
+  t_elapsed50   <- proc.time() - t_start50
+  elapsed_min50 <- round(t_elapsed50["elapsed"] / 60, 1)
+  cat("kappa=50 sampling done. Elapsed:", elapsed_min50, "minutes\n")
+
+  cat("\n--- kappa=50 HMC diagnostics ---\n")
+  check_hmc_diagnostics(l2_fit_k50)
+
+  saveRDS(l2_fit_k50, FIT_L2_K50_RDS)
+  cat("L2 kappa=50 fit saved to:", FIT_L2_K50_RDS, "\n")
+
+  # ── Telegram: L2 kappa=50 robustness check ───────────────────────────────────
+  tryCatch({
+    n_div50    <- sum(rstan::get_divergent_iterations(l2_fit_k50))
+    div_flag50 <- if (n_div50 == 0) "Divergences: 0" else paste0("Divergences: ", n_div50, " !!!")
+
+    sm50 <- rstan::summary(l2_fit_k50, pars = c("sigma_beta", "sigma_gamma"))$summary
+
+    rhat_sb50 <- round(sm50["sigma_beta",  "Rhat"],  3)
+    rhat_sg50 <- round(sm50["sigma_gamma", "Rhat"],  3)
+    ess_sb50  <- round(sm50["sigma_beta",  "n_eff"])
+    ess_sg50  <- round(sm50["sigma_gamma", "n_eff"])
+
+    sg50_mean <- round(sm50["sigma_gamma", "mean"], 4)
+    sg50_lo   <- round(sm50["sigma_gamma", "5%"],   4)
+    sg50_hi   <- round(sm50["sigma_gamma", "95%"],  4)
+
+    msg50 <- paste(
+      "kappa=50 robustness check",
+      div_flag50,
+      paste0("sigma_beta Rhat = ",  rhat_sb50),
+      paste0("sigma_gamma Rhat = ", rhat_sg50),
+      paste0("sigma_beta ESS = ",   ess_sb50),
+      paste0("sigma_gamma ESS = ",  ess_sg50),
+      paste0("sigma_gamma (KEY): mean = ", sg50_mean, ", 90% CI [", sg50_lo, ", ", sg50_hi, "]"),
+      paste0("Elapsed: ", elapsed_min50, " min"),
+      sep = "\n"
+    )
+
+    resp50 <- httr::POST(
+      url    = paste0("https://api.telegram.org/bot", token, "/sendMessage"),
+      body   = list(chat_id = chat_id, text = msg50),
+      encode = "form"
+    )
+    cat("Telegram L2 kappa=50 status:", httr::status_code(resp50), "\n")
+  }, error = function(e) {
+    message("Telegram L2 kappa=50 error: ", conditionMessage(e))
+  })
+
+} else {
+  message("fit_l2_kappa50.rds already exists — skipping kappa=50 fit.")
+  l2_fit_k50 <- readRDS(FIT_L2_K50_RDS)
+}
+
+# ── Robustness comparison: kappa=10 vs kappa=50 (L2) ─────────────────────────
+sm10_l2 <- rstan::summary(l2_fit,     pars = "sigma_gamma")$summary
+sm50_l2 <- rstan::summary(l2_fit_k50, pars = "sigma_gamma")$summary
+
+sg10_mean <- round(sm10_l2["sigma_gamma", "mean"], 4)
+sg10_lo   <- round(sm10_l2["sigma_gamma", "5%"],   4)
+sg10_hi   <- round(sm10_l2["sigma_gamma", "95%"],  4)
+sg50_mean <- round(sm50_l2["sigma_gamma", "mean"], 4)
+sg50_lo   <- round(sm50_l2["sigma_gamma", "5%"],   4)
+sg50_hi   <- round(sm50_l2["sigma_gamma", "95%"],  4)
+
+cat("=== ROBUSTNESS CHECK: kappa=10 vs kappa=50 ===\n")
+cat("sigma_gamma kappa=10: mean=", sg10_mean, "90% CI [", sg10_lo, ",", sg10_hi, "]\n")
+cat("sigma_gamma kappa=50: mean=", sg50_mean, "90% CI [", sg50_lo, ",", sg50_hi, "]\n")
+cat("Ratio of means:", round(sg50_mean/sg10_mean, 3), "\n")
+
 # ── Extract arrays ────────────────────────────────────────────────────────────
 mu_raw_arr       <- rstan::extract(l2_fit, pars = "mu_raw")$mu_raw
 beta_method_arr  <- rstan::extract(l2_fit, pars = "beta_method")$beta_method
@@ -347,24 +440,13 @@ emp_diversity_l2 <- do.call(rbind, lapply(seq_len(N_groups), function(g) {
   }))
 }))
 
-# Trend-only inv_simpson: softmax(mu + beta * year_std) only
-softmax_rows_l2 <- function(mat) {
-  mat <- mat - apply(mat, 1, max)
-  e   <- exp(mat)
-  e / rowSums(e)
-}
-
-trend_list_l2 <- vector("list", N_groups * N_years)
-idx <- 1L
-for (g in seq_len(N_groups)) {
-  K      <- K_g[g]
-  mu_g   <- matrix(mu_raw_arr[, g, 1:K],      nrow = S, ncol = K)
-  beta_g <- matrix(beta_method_arr[, g, 1:K], nrow = S, ncol = K)
-  for (t in seq_len(N_years)) {
-    eta  <- mu_g + beta_g * year_std[t]
-    p    <- softmax_rows_l2(eta)
-    vals <- 1 / rowSums(p^2)
-    trend_list_l2[[idx]] <- data.frame(
+# ── Conjugate-posterior ribbon: summarise stored inv_simpson draws ────────────
+# inv_simp_arr [S, N_groups, N_years] was computed in generated quantities with
+# the conjugate Dirichlet posterior update. Summarise directly.
+conj_summary_l2 <- do.call(rbind, lapply(seq_len(N_groups), function(g) {
+  do.call(rbind, lapply(seq_len(N_years), function(t) {
+    vals <- inv_simp_arr[, g, t]
+    data.frame(
       l1_group = l1_levels[g],
       year     = year_levels[t],
       median   = median(vals),
@@ -374,23 +456,21 @@ for (g in seq_len(N_groups)) {
       hi50     = quantile(vals, 0.75),
       stringsAsFactors = FALSE
     )
-    idx <- idx + 1L
-  }
-}
-trend_summary_l2 <- bind_rows(trend_list_l2)
+  }))
+}))
 
-p1 <- ggplot(trend_summary_l2, aes(x = year)) +
+p1 <- ggplot(conj_summary_l2, aes(x = year)) +
   geom_point(data = emp_diversity_l2,
              aes(y = inv_simp_emp, colour = "Observed (annual)"),
              size = 0.8, alpha = 0.7) +
   geom_ribbon(aes(ymin = lo90, ymax = hi90), alpha = 0.15, fill = "steelblue") +
   geom_ribbon(aes(ymin = lo50, ymax = hi50), alpha = 0.30, fill = "steelblue") +
-  geom_line(aes(y = median, colour = "Model trend"), linewidth = 0.6) +
+  geom_line(aes(y = median, colour = "Posterior median"), linewidth = 0.6) +
   geom_vline(xintercept = 2023, linetype = "dashed", colour = "firebrick", linewidth = 0.4) +
   annotate("text", x = 2023, y = Inf, label = "LLM adoption",
            hjust = -0.05, vjust = 1.5, size = 2.5, colour = "firebrick") +
   scale_colour_manual(
-    values = c("Observed (annual)" = "grey40", "Model trend" = "steelblue4"),
+    values = c("Observed (annual)" = "grey40", "Posterior median" = "steelblue4"),
     name   = NULL
   ) +
   facet_wrap(~ l1_group, scales = "free_y") +
@@ -398,7 +478,7 @@ p1 <- ggplot(trend_summary_l2, aes(x = year)) +
     x        = "Year",
     y        = "Inverse Simpson (effective N of L2 methods)",
     title    = "L2-level: methodological diversity within L1 groups over time",
-    subtitle = "Grey dots = observed annual diversity; ribbon = 50%/90% CI on structural trend (mu + beta only)"
+    subtitle = "Grey dots = observed annual diversity; ribbon = 50%/90% posterior credible intervals"
   ) +
   theme_minimal(base_size = 9) +
   theme(
