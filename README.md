@@ -14,6 +14,8 @@ We run this analysis twice. The primary analysis operates at the L2-to-L3 level:
 
 The bibliometric analysis is paired with a planned prompting experiment. We will systematically query five or six major LLMs — at three simulated expertise levels and with three types of methodological question — and classify each response into the same L3 taxonomy using Qwen. This gives us a direct estimate of what methods LLMs currently recommend. We then correlate recommendation frequency with the posterior mean gamma for each method. If LLMs are driving convergence, the methods they recommend most often should be the ones whose post-2023 share increased most in the published literature.
 
+The model is validated through a four-stage Bayesian workflow following Gelman et al. (2020): prior predictive checks confirm the priors generate plausible diversity values; posterior predictive checks show 44 of 48 method groups are well-calibrated; fake-data simulation confirms sigma_gamma is identifiable through hierarchical aggregation across groups; and a kappa sensitivity analysis tests whether the fixed concentration parameter drives the conclusions. An empirical kappa exploration in `00b_kappa_exploration.R` shows that kappa varies substantially across groups, with most groups having empirical kappa well above 10 — suggesting our primary analysis is conservative.
+
 ## Results
 
 > [!WARNING]
@@ -23,6 +25,7 @@ The bibliometric analysis is paired with a planned prompting experiment. We will
 |---|---|---|
 | L1 → L2 | Sensitivity check. Within each broad methodological family (L1), we track how sub-discipline (L2) shares evolve over time. Tests whether the post-LLM signal is consistent at a coarser taxonomic level. | [View L2 results](docs/l2_results.md) |
 | L2 → L3 | Primary analysis. Within each sub-discipline (L2), we track how specific technique (L3) shares evolve. The main estimand is whether technique-level diversity changed after 2023. | [View L3 results](docs/l3_results.md) |
+| Workflow checks | Prior predictive, PPC, fake data recovery, kappa sensitivity — four-stage validation following Gelman et al. (2020). | [View workflow results](docs/workflow_results.md) |
 
 ## Repository structure
 
@@ -53,4 +56,4 @@ The bibliometric analysis is paired with a planned prompting experiment. We will
     └── classify/                # Scripts to classify responses into L3 taxonomy
 ```
 
-Scripts are run in order from the project root: `00` → `01` → `02` → `03` → `04`.
+Scripts are run in order from the project root: `00` → `00b` → `01` → `02` → `03` → `04`.

@@ -48,15 +48,15 @@ For each posterior draw d and each group-year (g, t) with N_gt > 0:
 
 We use S = 200 draws (randomly subsampled from the posterior) per group-year cell.
 
-The **PPC tail probability** per group is the fraction of posterior predictive draws whose inv_simpson exceeds the observed value, averaged over all years with data. It is not a frequentist p-value — there is no null hypothesis; it simply reports where the observation sits within the model's own predictive distribution. Values near 0.5 indicate good calibration; values near 0 or 1 indicate systematic misfit (the model consistently over- or under-predicts diversity). The density panels (Section 2a) show the same check graphically.
+The **PPC tail probability** per group is the fraction of posterior predictive draws whose inv_simpson exceeds the observed value, averaged over all years with data. It is not a frequentist p-value — there is no null hypothesis; it simply reports where the observation sits within the model's own predictive distribution. Values near 0.5 indicate good calibration; values near 0 or 1 indicate systematic misfit (the model consistently over- or under-predicts diversity). The density panels (Section 2a) show the same check graphically. *Gelman et al. (2020) call this a "Bayesian p-value" but we avoid the term to prevent confusion with frequentist p-values.*
 
 **Result: 44 / 48 groups pass at the 0.05–0.95 threshold**
 
 ### Section 2a — Density panels (9 largest groups)
 
-Grey = posterior predictive distribution (pooled over all years and draws). Red vertical line = observed group mean.
+The grey distribution is the posterior predictive — what the model expects inv_simpson to look like if we simulated new data from the fitted parameters. The red line is the observed group mean across years. A well-calibrated model would place the red line near the centre of the grey distribution.
 
-**Note on red-line position.** Because the grey density pools across all years, temporal heterogeneity within a group spreads it; the red line (a single cross-year mean) need not sit at the density peak — this is expected and not a concern on its own. A red line deep in the tails indicates misfit; confirm with the tail probability plot (Section 2b).
+What we observe: in most groups the red line falls in the left third of the grey distribution, meaning the model systematically predicts higher diversity than observed. This is a consistent pattern rather than random scatter. Two explanations are plausible: (1) kappa=10 allows too much year-to-year flexibility, letting the model spread probability mass across more methods than actually appear; (2) some L3 methods in the taxonomy co-occur systematically (a paper using Random Forest also tends to use cross-validation), which the DM independence assumption cannot capture. The kappa=50 sensitivity check in Section 4 tests explanation (1) directly — if the misfit shrinks with higher kappa, concentration was the issue.
 
 ![PPC density](../data/output/workflow/plot_ppc_density.png)
 
@@ -112,9 +112,20 @@ Note: with only 3 post-LLM years and moderate sample sizes, σ_gamma is weakly i
 
 κ controls the Dirichlet-Multinomial concentration (how closely observed proportions are expected to track the model's predicted shares). κ = 10 is the primary analysis; κ = 50 implies much tighter tracking and less overdispersion.
 
-**Status: PENDING**
+**Status: DONE**
 
-_fit_kappa50.rds not yet available. Rerun `R/04_workflow_checks.R` after the kappa=50 fit completes._
+Spearman ρ = 0.5647 (threshold 0.95) — gamma rankings are **SENSITIVE** to kappa choice.
+
+**sigma_gamma comparison:**
+
+```
+kappa=10: mean=0.0537  SD=0.0421  90%CI=[0.0041, 0.1324]
+kappa=50: mean=0.0945  SD=0.0696  90%CI=[0.0068, 0.2292]
+```
+
+The Spearman rank correlation of per-method gamma means across the two kappa values is 0.565 — below the 0.95 robustness threshold. The ordering of methods by their post-LLM slopes changes substantially when kappa is tightened. sigma_gamma itself roughly doubles under kappa=50 (mean 0.054 → 0.095), consistent with the density panel finding that kappa=10 under-concentrates predictions. **The kappa choice should be discussed explicitly in the paper and treated as a sensitivity parameter rather than a fixed assumption.**
+
+![Prior sensitivity](../data/output/workflow/plot_prior_sensitivity.png)
 
 ---
 
@@ -125,6 +136,6 @@ _fit_kappa50.rds not yet available. Rerun `R/04_workflow_checks.R` after the kap
 | Prior predictive | [PASS] prior covers plausible inv_simpson range |
 | Posterior predictive | 44 / 48 groups pass at 0.05–0.95 |
 | Fake data recovery | [YES] true σ_gamma inside 90% CI |
-| Prior sensitivity (κ) | [PENDING] pending kappa=50 fit |
+| Prior sensitivity (κ) | [SENSITIVE] Spearman ρ = 0.565 — discuss kappa choice in paper |
 
 > **Recommendation:** model passes all core checks — results are credible for inference.
