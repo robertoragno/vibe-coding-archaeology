@@ -493,7 +493,11 @@ if (!file.exists(FIT_K50_RDS)) {
                                 function(x) diff(quantile(x, c(0.05, 0.95)))))
 
   spearman_rho <- cor(gm10_means, gm50_means, method = "spearman")
-  robust       <- spearman_rho > 0.95
+  sensitivity_label <- dplyr::case_when(
+    spearman_rho > 0.95 ~ "ROBUST — kappa choice does not affect method rankings",
+    spearman_rho > 0.70 ~ "MODERATE — some sensitivity, worth reporting",
+    TRUE                ~ "SENSITIVE — individual method conclusions depend on kappa"
+  )
 
   # Top 10 gamma_method by |mean| at kappa=10
   top10_idx <- order(abs(gm10_means), decreasing = TRUE)[seq_len(min(10L, length(gm10_means)))]
@@ -511,8 +515,10 @@ if (!file.exists(FIT_K50_RDS)) {
   cat(sprintf("  kappa=50: mean=%.4f  SD=%.4f  90%%CI=[%.4f, %.4f]\n",
               mean(sg_k50), sd(sg_k50),
               quantile(sg_k50, 0.05), quantile(sg_k50, 0.95)))
-  cat(sprintf("gamma_method Spearman rho: %.4f  — results are %s\n",
-              spearman_rho, if (robust) "ROBUST" else "SENSITIVE"))
+  cat("Gamma rank correlation kappa=10 vs kappa=50: rho =", round(spearman_rho, 3), "\n")
+  cat("Sensitivity assessment:", sensitivity_label, "\n")
+  cat("Note: in a Bayesian analysis we do not test significance of this correlation.\n")
+  cat("We ask whether the ordinal story is consistent across model variants.\n")
 
   # ── Four-panel sensitivity plot ───────────────────────────────────────────
   df_sg <- data.frame(
@@ -565,8 +571,8 @@ if (!file.exists(FIT_K50_RDS)) {
     p_sens <- (p1s | p2s) / (p3s | p4s) +
       plot_annotation(
         title    = "Section 4 — Prior Sensitivity: kappa=10 vs kappa=50",
-        subtitle = sprintf("Spearman rho = %.4f — %s (threshold 0.95)",
-                           spearman_rho, if (robust) "ROBUST" else "SENSITIVE")
+        subtitle = sprintf("Spearman rho = %.4f — %s",
+                           spearman_rho, sensitivity_label)
       )
     ggsave(PLOT_SENS, p_sens, width = 12, height = 9, dpi = 150)
     combined_ok <- TRUE
@@ -574,7 +580,7 @@ if (!file.exists(FIT_K50_RDS)) {
   if (!combined_ok && requireNamespace("gridExtra", quietly = TRUE)) {
     grob_title <- sprintf(
       "Section 4 — Prior Sensitivity: kappa=10 vs kappa=50\nSpearman rho = %.4f — %s",
-      spearman_rho, if (robust) "ROBUST" else "SENSITIVE"
+      spearman_rho, sensitivity_label
     )
     png(PLOT_SENS, width = 12, height = 9, units = "in", res = 150)
     gridExtra::grid.arrange(p1s, p2s, p3s, p4s, ncol = 2,

@@ -110,20 +110,28 @@ Note: with only 3 post-LLM years and moderate sample sizes, σ_gamma is weakly i
 
 **Question:** do the conclusions change if we use κ = 50 instead of κ = 10?
 
-κ controls the Dirichlet-Multinomial concentration (how closely observed proportions are expected to track the model's predicted shares). κ = 10 is the primary analysis; κ = 50 implies much tighter tracking and less overdispersion.
+κ controls the Dirichlet-Multinomial concentration: how closely observed proportions are expected to track the model's predicted shares in any given year. κ = 10 (primary analysis) allows moderate year-to-year deviation; κ = 50 implies much tighter tracking and less overdispersion.
 
-**Status: DONE**
+**Posterior comparison of σ_gamma:**
 
-Spearman ρ = 0.5647 (threshold 0.95) — gamma rankings are **SENSITIVE** to kappa choice.
+| | mean | SD | 90% CI |
+|---|---|---|---|
+| κ = 10 | 0.054 | 0.042 | [0.004, 0.132] |
+| κ = 50 | 0.095 | 0.070 | [0.007, 0.229] |
 
-**sigma_gamma comparison:**
+σ_gamma roughly doubles under κ = 50. This is not a numerical accident — it reflects a genuine reallocation of variance in the model. With κ = 10, some of the between-method variation can be absorbed by year-to-year noise. With κ = 50, that escape route is closed, and the model attributes more of the observed compositional differences to the structural parameters β and γ. Both posteriors remain credibly above zero.
 
-```
-kappa=10: mean=0.0537  SD=0.0421  90%CI=[0.0041, 0.1324]
-kappa=50: mean=0.0945  SD=0.0696  90%CI=[0.0068, 0.2292]
-```
+σ_beta also shifts substantially (peak ~0.10 under κ=10, ~0.18 under κ=50), consistent with the same reallocation mechanism.
 
-The Spearman rank correlation of per-method gamma means across the two kappa values is 0.565 — below the 0.95 robustness threshold. The ordering of methods by their post-LLM slopes changes substantially when kappa is tightened. sigma_gamma itself roughly doubles under kappa=50 (mean 0.054 → 0.095), consistent with the density panel finding that kappa=10 under-concentrates predictions. **The kappa choice should be discussed explicitly in the paper and treated as a sensitivity parameter rather than a fixed assumption.**
+**Rank stability of individual γ estimates:**
+
+The Spearman rank correlation between per-method posterior mean γ under κ=10 vs κ=50 is ρ = 0.565. In a Bayesian analysis we do not test whether this is 'significant' — we ask whether the ordinal story is consistent. A threshold of ρ > 0.95 would indicate that the ranking of methods by their post-LLM slope is essentially unchanged by the kappa assumption. ρ = 0.565 means it is not: the specific methods identified as gaining or losing share post-2023 change meaningfully depending on the concentration assumption.
+
+**Implication:** the global finding (σ_gamma credibly above zero at both κ values) appears robust. The identification of specific methods does not. This has three consequences for the paper:
+
+1. Individual γ estimates should be presented with explicit caveats about κ sensitivity
+2. The prompting experiment is no longer optional corroboration — it is essential to identify which specific methods are genuinely LLM-driven, independent of the κ assumption
+3. The next modelling iteration treats κ as a parameter with a weakly informative lognormal prior — see Section 5 below.
 
 ![Prior sensitivity](../data/output/workflow/plot_prior_sensitivity.png)
 
@@ -136,6 +144,20 @@ The Spearman rank correlation of per-method gamma means across the two kappa val
 | Prior predictive | [PASS] prior covers plausible inv_simpson range |
 | Posterior predictive | 44 / 48 groups pass at 0.05–0.95 |
 | Fake data recovery | [YES] true σ_gamma inside 90% CI |
-| Prior sensitivity (κ) | [SENSITIVE] Spearman ρ = 0.565 — discuss kappa choice in paper |
+| Prior sensitivity (κ) | SENSITIVE — σ_gamma doubles, γ rankings change (ρ=0.565) | Global finding robust; individual methods not |
 
-> **Recommendation:** model passes all core checks — results are credible for inference.
+> Model passes core calibration checks. Global post-LLM signal (σ_gamma > 0) is robust across κ values. Individual method rankings are sensitive to κ — do not over-interpret specific γ estimates without prompting experiment corroboration. **Immediate next step: run `R/01b_fit_kappa_free.R` to estimate κ from data.**
+
+---
+
+## Section 5 — Next modelling step: estimating κ
+
+The sensitivity analysis shows that κ is not a nuisance parameter — it substantially affects both σ_gamma and the ranking of individual methods. The principled solution is to estimate κ from the data using a weakly informative prior rather than fixing it.
+
+**Why the original attempt failed:** in a pilot run without any prior on κ, the runtime exceeded 33 hours. The reason is that free κ and μ are nearly non-identified: you can always increase κ and adjust μ to produce the same likelihood. The solution is not to fix κ but to constrain it with a prior that rules out near-zero values.
+
+**Proposed prior:** κ ~ LogNormal(log(25), 0.8)
+
+This encodes the expectation that κ is around 25 — between our two sensitivity values of 10 and 50 — with uncertainty spanning roughly one order of magnitude (5th percentile ≈ 5, 95th percentile ≈ 130). The lognormal keeps κ strictly positive and places negligible mass near zero, which is where the identification problem originates.
+
+**Implementation:** a new Stan model variant `stan/diversity_model_kappa_free.stan` and corresponding fit script `R/01b_fit_kappa_free.R` are provided. The fit is saved to `data/output/fit_kappa_free.rds`. If the runtime is acceptable (target: under 8 hours), this becomes the primary analysis. If not, the κ=10/κ=50 bracket is presented in the paper as an honest sensitivity analysis.
