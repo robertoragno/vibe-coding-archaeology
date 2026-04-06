@@ -244,7 +244,9 @@ ppc_sum_df  <- bind_rows(ppc_summary_list)
 ppc_dens_df <- bind_rows(ppc_draws_list) |>
   mutate(label = sub("^L2-\\d+: ", "", level_2_mid))
 
-# Group-level Bayesian p-values (averaged over years with data)
+# Group-level PPC tail probabilities (averaged over years with data)
+# Tail probability = fraction of posterior predictive draws exceeding observed.
+# Near 0.5 = well-calibrated; near 0 or 1 = systematic misfit (over- or under-prediction).
 bpval_grp <- ppc_sum_df |>
   group_by(level_2_mid) |>
   summarise(
@@ -265,12 +267,17 @@ bpval_grp <- ppc_sum_df |>
 n_pass_ppc  <- sum(bpval_grp$status == "PASS")
 n_total_ppc <- nrow(bpval_grp)
 
-cat("\nPPC Bayesian p-values per group:\n")
+cat("\nPPC tail probabilities per group:\n")
 print(bpval_grp |> select(label, bpval_group, status), n = Inf)
 cat(sprintf("\nGroups passing (0.05-0.95): %d / %d\n", n_pass_ppc, n_total_ppc))
 
 # ── Plot: PPC density panels ──────────────────────────────────────────────────
-# Observed group mean (pooled over years) as red line
+# Observed group mean (pooled over years) as red line.
+# The grey density is pooled over ALL years × posterior draws — so temporal
+# heterogeneity within a group will spread the density, and the red line
+# (a single cross-year mean) need not sit at the peak. This is expected.
+# A red line deep in the TAILS (not just off-centre) signals misfit — confirm
+# with the tail probability plot. Off-centre but within the body = no concern.
 obs_grp_mean <- ppc_sum_df |>
   group_by(level_2_mid) |>
   summarise(obs_mean = mean(obs), .groups = "drop") |>
@@ -286,8 +293,8 @@ p_dens <- ggplot(ppc_dens_df, aes(x = inv_simp_rep)) +
   labs(
     x        = "Inv. Simpson (replicated)",
     y        = "Density",
-    title    = "Section 2 — PPC: replicated vs observed inv_simpson",
-    subtitle = "Grey = posterior predictive (pooled over years × draws); red = observed group mean"
+    title    = "Section 2a — PPC: replicated vs observed inv_simpson",
+    subtitle = "Grey = posterior predictive (pooled over years × draws); red = observed group mean\nOff-centre red line is expected (temporal spread); concern only if red is in the tail — confirm with 2b"
   ) +
   theme_minimal(base_size = 9) +
   theme(strip.text = element_text(size = 7), panel.grid.minor = element_blank())
@@ -296,7 +303,7 @@ PLOT_PPC_DENS <- file.path(OUT_DIR, "plot_ppc_density.png")
 ggsave(PLOT_PPC_DENS, p_dens, width = 12, height = 10, dpi = 150)
 cat("Saved:", PLOT_PPC_DENS, "\n")
 
-# ── Plot: Bayesian p-values dot plot ─────────────────────────────────────────
+# ── Plot: PPC tail probabilities dot plot ────────────────────────────────────
 bpval_plot <- bpval_grp |>
   arrange(bpval_group) |>
   mutate(label = factor(label, levels = unique(label)))
@@ -325,9 +332,9 @@ p_bpval <- ggplot(bpval_plot, aes(x = bpval_group, y = label)) +
   scale_x_continuous(limits = c(0, 1),
                      breaks = c(0, 0.05, 0.10, 0.50, 0.90, 0.95, 1)) +
   labs(
-    x        = "Bayesian p-value (averaged over years)",
+    x        = "PPC tail probability (averaged over years)",
     y        = NULL,
-    title    = "Section 2 — PPC Bayesian p-values per group",
+    title    = "Section 2b — PPC tail probabilities per group",
     subtitle = "Red = outside acceptable band (0.05-0.95); blue = OK"
   ) +
   theme_minimal(base_size = 11) +
@@ -338,7 +345,7 @@ ggsave(PLOT_PPC_BPVAL, p_bpval, width = 10, height = 6, dpi = 150)
 cat("Saved:", PLOT_PPC_BPVAL, "\n")
 
 tg_photo(PLOT_PPC_DENS,  "Workflow check: Section 2 — PPC density (replicated vs observed)")
-tg_photo(PLOT_PPC_BPVAL, "Workflow check: Section 2 — PPC Bayesian p-values per group")
+tg_photo(PLOT_PPC_BPVAL, "Workflow check: Section 2b — PPC tail probabilities per group")
 
 
 # ══════════════════════════════════════════════════════════════════════════════

@@ -29,24 +29,28 @@ The bibliometric analysis is paired with a planned prompting experiment. We will
 ```
 .
 ├── R/
-│   ├── 00_data_prep.R       # Ingest raw CSVs, build taxonomy vocab, write Stan inputs
-│   ├── 01_fit_model.R       # Compile and sample the Stan model
-│   ├── 02_extract_plot.R    # Extract posterior draws, produce L3 plots, push results
-│   └── 03_l2_analysis.R     # L1→L2 sensitivity analysis (inline Stan, own plots)
+│   ├── 00_data_prep.R          # Ingest raw CSVs, build taxonomy vocab, write Stan inputs
+│   ├── 00b_kappa_exploration.R # Exploratory: empirical kappa calibration and overdispersion plots
+│   ├── 01_fit_model.R          # Compile and sample the Stan model
+│   ├── 02_extract_plot.R       # Extract posterior draws, produce L3 plots, push results
+│   ├── 03_l2_analysis.R        # L1→L2 sensitivity analysis (inline Stan, own plots)
+│   └── 04_workflow_checks.R    # Bayesian workflow checks: prior predictive, PPC, fake data, sensitivity
 ├── stan/
-│   └── diversity_model.stan # Dirichlet-Multinomial two-slope model
+│   └── diversity_model.stan    # Dirichlet-Multinomial two-slope model
 ├── data/
 │   ├── output/
-│   │   ├── l3/              # Plots from the primary L2→L3 analysis
-│   │   └── l2/              # Plots from the L1→L2 sensitivity check
-│   └── ...                  # Raw and intermediate data files
+│   │   ├── l3/                 # Plots from the primary L2→L3 analysis
+│   │   ├── l2/                 # Plots from the L1→L2 sensitivity check
+│   │   └── workflow/           # Plots from the Bayesian workflow checks
+│   └── ...                     # Raw and intermediate data files
 ├── docs/
-│   ├── l3_results.md        # Auto-updated L3 diagnostics and results
-│   └── l2_results.md        # Auto-updated L2 diagnostics and results
+│   ├── l3_results.md           # Auto-updated L3 diagnostics and results
+│   ├── l2_results.md           # Auto-updated L2 diagnostics and results
+│   └── workflow_results.md     # Auto-updated Bayesian workflow check results
 └── experiment/
-    ├── prompts/             # Prompt templates for querying LLMs
-    ├── responses/           # Raw LLM responses
-    └── classify/            # Scripts to classify responses into L3 taxonomy
+    ├── prompts/                 # Prompt templates for querying LLMs
+    ├── responses/               # Raw LLM responses
+    └── classify/                # Scripts to classify responses into L3 taxonomy
 ```
 
-Scripts are run in order from the project root: `00` → `01` → `02` → `03`.
+Scripts are run in order from the project root: `00` → `01` → `02` → `03` → `04`.

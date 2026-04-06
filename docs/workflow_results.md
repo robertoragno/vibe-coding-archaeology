@@ -48,23 +48,25 @@ For each posterior draw d and each group-year (g, t) with N_gt > 0:
 
 We use S = 200 draws (randomly subsampled from the posterior) per group-year cell.
 
-The **Bayesian p-value** per group is the fraction of replicated inv_simpson values that exceed the observed value, averaged over all years with data. Values near 0.5 indicate good calibration; values near 0 or 1 indicate systematic misfit (the model consistently over- or under-predicts diversity).
+The **PPC tail probability** per group is the fraction of posterior predictive draws whose inv_simpson exceeds the observed value, averaged over all years with data. It is not a frequentist p-value — there is no null hypothesis; it simply reports where the observation sits within the model's own predictive distribution. Values near 0.5 indicate good calibration; values near 0 or 1 indicate systematic misfit (the model consistently over- or under-predicts diversity). The density panels (Section 2a) show the same check graphically.
 
 **Result: 44 / 48 groups pass at the 0.05–0.95 threshold**
 
-### Density panels (9 largest groups)
+### Section 2a — Density panels (9 largest groups)
 
-Grey = posterior predictive distribution (pooled over years and draws). Red vertical line = observed group mean.
+Grey = posterior predictive distribution (pooled over all years and draws). Red vertical line = observed group mean.
+
+**Note on red-line position.** Because the grey density pools across all years, temporal heterogeneity within a group spreads it; the red line (a single cross-year mean) need not sit at the density peak — this is expected and not a concern on its own. A red line deep in the tails indicates misfit; confirm with the tail probability plot (Section 2b).
 
 ![PPC density](../data/output/workflow/plot_ppc_density.png)
 
-### Bayesian p-values
+### Section 2b — PPC tail probabilities
 
 Orange dashed lines = 0.05/0.95 (acceptable); green dotted lines = 0.10/0.90 (good); red points = flagged groups.
 
-![PPC p-values](../data/output/workflow/plot_ppc_pvalues.png)
+![PPC tail probabilities](../data/output/workflow/plot_ppc_pvalues.png)
 
-**Interpretation.** A group failing the PPC (p-value outside 0.05–0.95) suggests the model is systematically misrepresenting the diversity of that group. Common causes: wrong K_g (methods collapsed at the wrong level), year-group cells with very small N that are noise-dominated, or a structural break not captured by the two-slope parameterisation.
+**Interpretation.** A group failing the PPC (tail probability outside 0.05–0.95) suggests the model is systematically misrepresenting the diversity of that group. Common causes: wrong K_g (methods collapsed at the wrong level), year-group cells with very small N that are noise-dominated, or a structural break not captured by the two-slope parameterisation.
 
 ---
 
