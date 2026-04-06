@@ -1,17 +1,22 @@
 # 01b_fit_kappa_free.R
-# Fits diversity_model_kappa_free.stan with kappa ~ LogNormal(log(25), 0.8)
+# Fits diversity_model_kappa_free.stan with kappa ~ LogNormal(log(100), 1.0)
 # This is the principled solution to kappa sensitivity found in 04_workflow_checks.R
 # Runtime target: under 8 hours. If exceeded, fall back to kappa=10/50 bracket.
 
 library(rstan)
 library(httr)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(gridExtra)
 options(mc.cores = parallel::detectCores())
 rstan_options(auto_write = TRUE)
 
-STAN_FILE <- "stan/diversity_model_kappa_free.stan"
-FIT_RDS   <- "data/output/fit_kappa_free.rds"
-token     <- Sys.getenv("TELEGRAM_TOKEN")
-chat_id   <- Sys.getenv("TELEGRAM_CHAT_ID")
+STAN_FILE  <- "stan/diversity_model_kappa_free.stan"
+FIT_RDS    <- "data/output/fit_kappa_free.rds"
+DONE_FLAG  <- "data/output/fit_kappa_free_v2.done"
+token      <- Sys.getenv("TELEGRAM_TOKEN")
+chat_id    <- Sys.getenv("TELEGRAM_CHAT_ID")
 
 tg_msg <- function(text) {
   tryCatch({
@@ -34,9 +39,9 @@ cat("N_years: ", stan_data$N_years,  "\n")
 cat("K_max:   ", stan_data$K_max,    "\n")
 
 # ── Fit (guarded) ─────────────────────────────────────────────────────────────
-if (!file.exists(FIT_RDS)) {
+if (!file.exists(DONE_FLAG)) {
   cat("Compiling and sampling kappa-free model...\n")
-  cat("Prior: kappa ~ LogNormal(log(25), 0.8)  [5th pct ~5, 95th pct ~130]\n")
+  cat("Prior: kappa ~ LogNormal(log(100), 1.0)  [median 100, 90% CI ~14-716]\n")
   t_start <- proc.time()
 
   fit <- suppressWarnings(stan(
@@ -59,6 +64,7 @@ if (!file.exists(FIT_RDS)) {
   cat("Sampling done. Elapsed:", elapsed_min, "minutes\n")
 
   saveRDS(fit, FIT_RDS)
+  writeLines(as.character(Sys.time()), DONE_FLAG)
   cat("Fit saved to:", FIT_RDS, "\n")
 
   # ── HMC diagnostics ────────────────────────────────────────────────────────
@@ -110,8 +116,416 @@ if (!file.exists(FIT_RDS)) {
 
   tg_msg(msg)
 
+  # ── Plots ──────────────────────────────────────────────────────────────────
+  message("Producing kappa-free plots...")
+  dir.create("data/output/kappa_free", recursive = TRUE, showWarnings = FALSE)
+
+  KF_PLOT_SIGMA     <- "data/output/kappa_free/kf_plot_sigma_posteriors.png"
+  KF_PLOT_DIVERSITY <- "data/output/kappa_free/kf_plot_diversity_by_group.png"
+  KF_PLOT_GAMMA_DOT <- "data/output/kappa_free/kf_plot_gamma_dotplot.png"
+  KF_PLOT_TOP_GAMMA <- "data/output/kappa_free/kf_plot_top_gamma_trajectories.png"
+  KF_PLOT_RAW       <- "data/output/kappa_free/kf_plot_raw_counts.png"
+
+  vocab       <- readRDS("data/output/vocab.rds")
+  l2_levels   <- vocab$l2_levels
+  year_levels <- vocab$year_levels
+  N_groups    <- length(l2_levels)
+  N_years     <- length(year_levels)
+  K_g_vec     <- vocab$K_g
+  year_std    <- stan_data$year_std
+  post_llm    <- stan_data$post_llm
+
+  mu_raw_arr       <- rstan::extract(fit, pars = "mu_raw")$mu_raw
+  beta_method_arr  <- rstan::extract(fit, pars = "beta_method")$beta_method
+  gamma_method_arr <- rstan::extract(fit, pars = "gamma_method")$gamma_method
+  S     <- dim(mu_raw_arr)[1]
+  K_max <- dim(mu_raw_arr)[3]
+
+  # ── Plot 1: sigma posteriors — 3 panels ─────────────────────────────────────
+  sigma_beta_draws_kf  <- rstan::extract(fit, pars = "sigma_beta")$sigma_beta
+  sigma_gamma_draws_kf <- rstan::extract(fit, pars = "sigma_gamma")$sigma_gamma
+  kappa_draws_kf       <- rstan::extract(fit, pars = "kappa")$kappa
+
+  fit_ref <- readRDS("data/output/fit.rds")
+  sigma_beta_draws_ref  <- rstan::extract(fit_ref, pars = "sigma_beta")$sigma_beta
+  sigma_gamma_draws_ref <- rstan::extract(fit_ref, pars = "sigma_gamma")$sigma_gamma
+  rm(fit_ref)
+
+  sigma_df <- data.frame(
+    value     = c(sigma_beta_draws_kf,  sigma_beta_draws_ref,
+                  sigma_gamma_draws_kf, sigma_gamma_draws_ref),
+    parameter = c(rep("sigma_beta",  length(sigma_beta_draws_kf)),
+                  rep("sigma_beta",  length(sigma_beta_draws_ref)),
+                  rep("sigma_gamma", length(sigma_gamma_draws_kf)),
+                  rep("sigma_gamma", length(sigma_gamma_draws_ref))),
+    model     = c(rep("kappa free v2", length(sigma_beta_draws_kf)),
+                  rep("kappa=10",      length(sigma_beta_draws_ref)),
+                  rep("kappa free v2", length(sigma_gamma_draws_kf)),
+                  rep("kappa=10",      length(sigma_gamma_draws_ref)))
+  )
+
+  x_kappa_max    <- quantile(kappa_draws_kf, 0.999)
+  x_kappa_seq    <- seq(0.1, x_kappa_max * 1.5, length.out = 500)
+  kappa_prior_df <- data.frame(
+    value   = x_kappa_seq,
+    density = dlnorm(x_kappa_seq, log(100), 1.0)
+  )
+
+  p_sb <- ggplot(sigma_df |> filter(parameter == "sigma_beta"),
+                 aes(x = value, colour = model, linetype = model)) +
+    geom_density(fill = NA) +
+    scale_colour_manual(values = c("kappa free v2" = "steelblue", "kappa=10" = "steelblue4")) +
+    scale_linetype_manual(values = c("kappa free v2" = "solid", "kappa=10" = "dashed")) +
+    labs(x = "sigma_beta", y = "Density",
+         title = "sigma_beta (baseline trend)",
+         colour = "Model", linetype = "Model") +
+    theme_minimal(base_size = 11) +
+    theme(legend.position = "bottom")
+
+  p_sg <- ggplot(sigma_df |> filter(parameter == "sigma_gamma"),
+                 aes(x = value, colour = model, linetype = model)) +
+    geom_density(fill = NA) +
+    scale_colour_manual(values = c("kappa free v2" = "firebrick", "kappa=10" = "firebrick4")) +
+    scale_linetype_manual(values = c("kappa free v2" = "solid", "kappa=10" = "dashed")) +
+    labs(x = "sigma_gamma", y = "Density",
+         title = "sigma_gamma (post-LLM shift)",
+         colour = "Model", linetype = "Model") +
+    theme_minimal(base_size = 11) +
+    theme(legend.position = "bottom")
+
+  p_kappa <- ggplot(data.frame(value = kappa_draws_kf), aes(x = value)) +
+    geom_density(colour = "darkorchid", fill = "darkorchid", alpha = 0.3) +
+    geom_line(data = kappa_prior_df, aes(x = value, y = density),
+              linetype = "dashed", colour = "grey40", inherit.aes = FALSE) +
+    coord_cartesian(xlim = c(0, x_kappa_max * 1.2)) +
+    labs(x = "kappa", y = "Density",
+         title = "kappa: posterior (solid) vs prior (dashed)") +
+    theme_minimal(base_size = 11)
+
+  p2 <- gridExtra::arrangeGrob(
+    p_sb, p_sg, p_kappa, nrow = 1,
+    top = "Sigma posteriors: kappa-free v2 (solid) vs kappa=10 (dashed)"
+  )
+  ggsave(KF_PLOT_SIGMA, p2, width = 10, height = 5, units = "in", dpi = 150)
+  cat("Plot saved:", KF_PLOT_SIGMA, "\n")
+
+  # ── Plot 2: diversity by group ────────────────────────────────────────────
+  cat("Extracting inv_simpson draws...\n")
+  inv_simp_arr <- rstan::extract(fit, pars = "inv_simpson")$inv_simpson
+
+  inv_simp_tidy <- expand.grid(
+    draw = seq_len(S),
+    g    = seq_len(N_groups),
+    t    = seq_len(N_years)
+  ) |>
+    mutate(
+      inv_simpson = mapply(function(d, g, t) inv_simp_arr[d, g, t], draw, g, t),
+      level_2_mid = l2_levels[g],
+      year        = year_levels[t]
+    )
+
+  inv_simp_summary_kf <- inv_simp_tidy |>
+    group_by(level_2_mid, year) |>
+    summarise(
+      median = median(inv_simpson),
+      lo90   = quantile(inv_simpson, 0.05),
+      hi90   = quantile(inv_simpson, 0.95),
+      lo50   = quantile(inv_simpson, 0.25),
+      hi50   = quantile(inv_simpson, 0.75),
+      .groups = "drop"
+    )
+
+  emp_diversity <- do.call(rbind, lapply(seq_len(N_groups), function(g) {
+    K <- K_g_vec[g]
+    do.call(rbind, lapply(seq_len(N_years), function(t) {
+      cts   <- stan_data$counts[g, t, 1:K]
+      total <- sum(cts)
+      if (total == 0) return(NULL)
+      p <- cts / total
+      p <- p[p > 0]
+      data.frame(
+        level_2_mid  = l2_levels[g],
+        year         = year_levels[t],
+        inv_simp_emp = 1 / sum(p^2),
+        stringsAsFactors = FALSE
+      )
+    }))
+  })) |>
+    mutate(label = sub("^L2-\\d+: ", "", level_2_mid))
+
+  conj_summary_kf <- inv_simp_summary_kf |>
+    mutate(label = sub("^L2-\\d+: ", "", level_2_mid))
+
+  p1 <- ggplot(conj_summary_kf, aes(x = year)) +
+    geom_point(data = emp_diversity,
+               aes(y = inv_simp_emp, colour = "Observed (annual)"),
+               size = 0.8, alpha = 0.7) +
+    geom_ribbon(aes(ymin = lo90, ymax = hi90), alpha = 0.15, fill = "steelblue") +
+    geom_ribbon(aes(ymin = lo50, ymax = hi50), alpha = 0.30, fill = "steelblue") +
+    geom_line(aes(y = median, colour = "Posterior median"), linewidth = 0.6) +
+    geom_vline(xintercept = 2023, linetype = "dashed", colour = "firebrick", linewidth = 0.4) +
+    annotate("text", x = 2023, y = Inf, label = "LLM adoption",
+             hjust = -0.05, vjust = 1.5, size = 2, colour = "firebrick") +
+    scale_colour_manual(
+      values = c("Observed (annual)" = "grey40", "Posterior median" = "steelblue4"),
+      name   = NULL
+    ) +
+    facet_wrap(~ label, scales = "free_y", ncol = 6) +
+    labs(
+      x        = "Year",
+      y        = "Inverse Simpson (effective N of L3 methods)",
+      title    = "Methodological diversity within L2 groups over time (kappa-free v2)",
+      subtitle = "Grey dots = observed annual diversity; ribbon = 50%/90% posterior credible intervals"
+    ) +
+    theme_minimal(base_size = 8) +
+    theme(
+      strip.text       = element_text(size = 6),
+      panel.grid.minor = element_blank(),
+      legend.position  = "bottom"
+    )
+
+  ggsave(KF_PLOT_DIVERSITY, p1, width = 20, height = 16, units = "in", dpi = 150)
+  cat("Plot saved:", KF_PLOT_DIVERSITY, "\n")
+
+  # ── Extract gamma posteriors ──────────────────────────────────────────────
+  cat("Extracting gamma_method posteriors...\n")
+  gamma_list <- vector("list", N_groups)
+  for (grp in seq_len(N_groups)) {
+    K    <- K_g_vec[grp]
+    gm_g <- matrix(gamma_method_arr[, grp, 1:K], nrow = S, ncol = K)
+
+    method_labels <- vocab$l3_vocab |>
+      filter(g == grp) |>
+      arrange(k_local) |>
+      pull(level_3_fine)
+
+    gamma_list[[grp]] <- data.frame(
+      g            = grp,
+      level_2_mid  = l2_levels[grp],
+      k            = seq_len(K),
+      level_3_fine = method_labels,
+      mean_gamma   = colMeans(gm_g),
+      lo90         = apply(gm_g, 2, quantile, 0.05),
+      hi90         = apply(gm_g, 2, quantile, 0.95),
+      stringsAsFactors = FALSE
+    )
+  }
+
+  gamma_df <- bind_rows(gamma_list) |>
+    mutate(
+      sig         = (lo90 > 0 | hi90 < 0),
+      group_label = sub("^L2-\\d+: ", "", level_2_mid),
+      method_id   = paste0(group_label, ": ", level_3_fine)
+    )
+
+  cat("Methods with 90% CI excluding zero:", sum(gamma_df$sig, na.rm = TRUE), "\n")
+
+  # ── Plot 3: gamma dotplot ─────────────────────────────────────────────────
+  sig_gamma <- gamma_df |> filter(sig)
+  if (nrow(sig_gamma) == 0) {
+    cat("WARNING: no significant gamma methods; showing all\n")
+    sig_gamma <- gamma_df
+  }
+  sig_gamma <- sig_gamma |>
+    arrange(mean_gamma) |>
+    mutate(
+      method_id = factor(method_id, levels = unique(method_id)),
+      direction = ifelse(mean_gamma > 0, "positive", "negative")
+    )
+
+  p3 <- ggplot(sig_gamma, aes(x = mean_gamma, y = method_id, colour = direction)) +
+    geom_point(size = 1.5) +
+    geom_errorbarh(aes(xmin = lo90, xmax = hi90), height = 0.3, linewidth = 0.35) +
+    scale_colour_manual(values = c("positive" = "firebrick", "negative" = "steelblue"),
+                        guide = "none") +
+    geom_vline(xintercept = 0, linetype = "dashed", colour = "grey50", linewidth = 0.4) +
+    labs(
+      x        = "Posterior mean gamma (post-LLM differential slope)",
+      y        = NULL,
+      title    = "Differential post-2023 method slopes — kappa-free v2",
+      subtitle = "Only methods where 90% CI excludes zero; red = gaining share, blue = losing share"
+    ) +
+    theme_minimal(base_size = 8) +
+    theme(axis.text.y = element_text(size = 5), panel.grid.major.y = element_blank())
+
+  plot_h <- max(8, 0.15 * nrow(sig_gamma))
+  ggsave(KF_PLOT_GAMMA_DOT, p3, width = 14, height = plot_h, units = "in", dpi = 150,
+         limitsize = FALSE)
+  cat("Plot saved:", KF_PLOT_GAMMA_DOT, "\n")
+
+  # ── Top 15 methods by |gamma| ─────────────────────────────────────────────
+  top15 <- gamma_df |>
+    mutate(abs_gamma = abs(mean_gamma)) |>
+    arrange(desc(abs_gamma)) |>
+    slice_head(n = 15)
+
+  cat("\nTop 15 methods by |mean_gamma|:\n")
+  print(top15 |> select(level_2_mid, level_3_fine, mean_gamma, lo90, hi90))
+
+  # ── Plot 4: fitted share trajectories for top 15 ─────────────────────────
+  cat("Computing fitted share trajectories for top 15 methods...\n")
+  n_draws_traj <- min(200, S)
+  draw_idx     <- sample(S, n_draws_traj)
+
+  traj_list <- vector("list", nrow(top15))
+  for (i in seq_len(nrow(top15))) {
+    g_i <- top15$g[i]
+    k_i <- top15$k[i]
+    K   <- K_g_vec[g_i]
+
+    share_mat <- matrix(0, nrow = n_draws_traj, ncol = N_years)
+    for (di in seq_len(n_draws_traj)) {
+      s <- draw_idx[di]
+      for (t in seq_len(N_years)) {
+        eta_vec          <- mu_raw_arr[s, g_i, 1:K] +
+                            beta_method_arr[s, g_i, 1:K] * year_std[t] +
+                            gamma_method_arr[s, g_i, 1:K] * post_llm[t]
+        p_vec            <- exp(eta_vec - max(eta_vec))
+        p_vec            <- p_vec / sum(p_vec)
+        share_mat[di, t] <- p_vec[k_i]
+      }
+    }
+
+    method_label <- paste0(sub("^L2-\\d+: ", "", l2_levels[g_i]), ": ", top15$level_3_fine[i])
+    traj_list[[i]] <- data.frame(
+      year      = year_levels,
+      mean      = colMeans(share_mat),
+      lo80      = apply(share_mat, 2, quantile, 0.10),
+      hi80      = apply(share_mat, 2, quantile, 0.90),
+      lo90      = apply(share_mat, 2, quantile, 0.05),
+      hi90      = apply(share_mat, 2, quantile, 0.95),
+      method_id = method_label
+    )
+  }
+
+  traj_all <- bind_rows(traj_list) |>
+    mutate(method_id = factor(method_id, levels = unique(method_id)))
+
+  p4 <- ggplot(traj_all, aes(x = year)) +
+    geom_ribbon(aes(ymin = lo90, ymax = hi90), alpha = 0.15, fill = "steelblue") +
+    geom_ribbon(aes(ymin = lo80, ymax = hi80), alpha = 0.25, fill = "steelblue") +
+    geom_line(aes(y = mean), colour = "steelblue4", linewidth = 0.7) +
+    geom_vline(xintercept = 2023, linetype = "dashed", colour = "firebrick", linewidth = 0.4) +
+    annotate("text", x = 2023, y = Inf, label = "LLM adoption",
+             hjust = -0.05, vjust = 1.5, size = 2, colour = "firebrick") +
+    facet_wrap(~ method_id, scales = "free_y", ncol = 3) +
+    labs(
+      x        = "Year",
+      y        = "Fitted method share",
+      title    = "Top 15 methods by |gamma|: fitted share trajectories (kappa-free v2)",
+      subtitle = "Ribbon = 80%/90% CI from 200 posterior draws; dashed = 2023"
+    ) +
+    theme_minimal(base_size = 7) +
+    theme(strip.text = element_text(size = 5), panel.grid.minor = element_blank())
+
+  ggsave(KF_PLOT_TOP_GAMMA, p4, width = 18, height = 12, units = "in", dpi = 150)
+  cat("Plot saved:", KF_PLOT_TOP_GAMMA, "\n")
+
+  # ── Plot 5: raw counts for top 15 ────────────────────────────────────────
+  raw_counts_list <- vector("list", nrow(top15))
+  for (i in seq_len(nrow(top15))) {
+    g_i <- top15$g[i]
+    k_i <- top15$k[i]
+    raw_df <- data.frame(
+      year     = year_levels,
+      n_papers = as.integer(stan_data$counts[g_i, , k_i])
+    )
+    method_label <- paste0(sub("^L2-\\d+: ", "", l2_levels[g_i]), ": ", top15$level_3_fine[i])
+    raw_df$method_id <- method_label
+    raw_counts_list[[i]] <- raw_df
+  }
+
+  raw_all <- bind_rows(raw_counts_list) |>
+    mutate(method_id = factor(
+      method_id,
+      levels = paste0(sub("^L2-\\d+: ", "", l2_levels[top15$g]), ": ", top15$level_3_fine)
+    ))
+
+  p5 <- ggplot(raw_all, aes(x = year, y = n_papers)) +
+    geom_point(size = 1, colour = "grey40") +
+    geom_smooth(method = "loess", formula = y ~ x, se = TRUE,
+                colour = "darkorange3", fill = "darkorange", alpha = 0.2,
+                linewidth = 1.2, span = 0.75) +
+    geom_vline(xintercept = 2023, linetype = "dashed", colour = "firebrick", linewidth = 0.4) +
+    annotate("text", x = 2023, y = Inf, label = "LLM adoption",
+             hjust = -0.05, vjust = 1.5, size = 2, colour = "firebrick") +
+    facet_wrap(~ method_id, scales = "free_y", ncol = 3) +
+    labs(
+      x        = "Year",
+      y        = "Observed paper count",
+      title    = "Top 15 methods: raw observed counts (kappa-free v2)",
+      subtitle = "Orange = loess smoother; dashed = 2023"
+    ) +
+    theme_minimal(base_size = 7) +
+    theme(strip.text = element_text(size = 5), panel.grid.minor = element_blank())
+
+  ggsave(KF_PLOT_RAW, p5, width = 18, height = 12, units = "in", dpi = 150)
+  cat("Plot saved:", KF_PLOT_RAW, "\n")
+
+  # ── Send plots via Telegram ───────────────────────────────────────────────
+  kf_plots <- c(KF_PLOT_SIGMA, KF_PLOT_DIVERSITY, KF_PLOT_GAMMA_DOT,
+                KF_PLOT_TOP_GAMMA, KF_PLOT_RAW)
+  cat("\nSending plots via Telegram...\n")
+  for (plot_path in kf_plots) {
+    tryCatch({
+      resp <- httr::POST(
+        url  = paste0("https://api.telegram.org/bot", token, "/sendPhoto"),
+        body = list(
+          chat_id = chat_id,
+          photo   = httr::upload_file(plot_path),
+          caption = paste0("kappa-free v2: ", basename(plot_path))
+        ),
+        encode = "multipart"
+      )
+      cat("Telegram photo HTTP", httr::status_code(resp), ":", basename(plot_path), "\n")
+    }, error = function(e) {
+      cat("WARNING: Telegram photo failed:", basename(plot_path), ":", conditionMessage(e), "\n")
+    })
+  }
+
+  # ── Auto-fill kappa_results.md and push to GitHub ─────────────────────────
+  message("Filling kappa_results.md placeholders...")
+
+  sm <- rstan::summary(fit, pars = c("kappa", "sigma_beta", "sigma_gamma"))$summary
+
+  kappa_mean    <- round(sm["kappa",       "mean"],  1)
+  kappa_ci      <- paste0("[", round(sm["kappa",       "2.5%"], 1),
+                           ", ", round(sm["kappa",       "97.5%"], 1), "]")
+  sg_mean       <- round(sm["sigma_gamma", "mean"],  4)
+  sg_ci         <- paste0("[", round(sm["sigma_gamma", "2.5%"], 4),
+                           ", ", round(sm["sigma_gamma", "97.5%"], 4), "]")
+  sb_mean       <- round(sm["sigma_beta",  "mean"],  4)
+  sg_rhat       <- round(sm["sigma_gamma", "Rhat"],  4)
+  sg_ess        <- round(sm["sigma_gamma", "n_eff"])
+  converged_str <- ifelse(sg_rhat < 1.01 & sg_ess > 400,
+                          "YES (Rhat OK, ESS OK)",
+                          paste0("PARTIAL (Rhat=", sg_rhat,
+                                 ", ESS=", sg_ess, ")"))
+
+  kappa_results <- readLines("docs/kappa_results.md")
+  kappa_results <- gsub("{{KAPPA_FREE_KAPPA_MEAN}}",        kappa_mean,    kappa_results, fixed=TRUE)
+  kappa_results <- gsub("{{KAPPA_FREE_KAPPA_CI}}",          kappa_ci,      kappa_results, fixed=TRUE)
+  kappa_results <- gsub("{{KAPPA_FREE_SIGMA_GAMMA_MEAN}}", sg_mean,       kappa_results, fixed=TRUE)
+  kappa_results <- gsub("{{KAPPA_FREE_SIGMA_GAMMA_CI}}",   sg_ci,         kappa_results, fixed=TRUE)
+  kappa_results <- gsub("{{KAPPA_FREE_SIGMA_BETA_MEAN}}",  sb_mean,       kappa_results, fixed=TRUE)
+  kappa_results <- gsub("{{KAPPA_FREE_RHAT}}",             sg_rhat,       kappa_results, fixed=TRUE)
+  kappa_results <- gsub("{{KAPPA_FREE_ESS}}",              sg_ess,        kappa_results, fixed=TRUE)
+  kappa_results <- gsub("{{KAPPA_FREE_RUNTIME}}",          elapsed_min,   kappa_results, fixed=TRUE)
+  kappa_results <- gsub("{{KAPPA_FREE_CONVERGED}}",        converged_str, kappa_results, fixed=TRUE)
+  writeLines(kappa_results, "docs/kappa_results.md")
+
+  system(paste0(
+    "cd ~/R_projects/Vibe_Coding_Paper && ",
+    "git add docs/kappa_results.md data/output/kappa_free/*.png ",
+    "data/output/fit_kappa_free.rds && ",
+    "git commit -m 'auto: kappa-free v2 results and plots' && ",
+    "git push"
+  ))
+  message("GitHub push complete.")
+
 } else {
-  message("fit_kappa_free.rds exists — skipping. Delete it to refit.")
+  message("fit_kappa_free v2 already complete. Delete fit_kappa_free_v2.done to refit.")
+  fit <- readRDS(FIT_RDS)
 }
 
 cat("\n01b_fit_kappa_free.R complete.\n")

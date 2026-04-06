@@ -26,6 +26,7 @@ The model is validated through a four-stage Bayesian workflow following Gelman e
 | L1 → L2 | Sensitivity check. Within each broad methodological family (L1), we track how sub-discipline (L2) shares evolve over time. Tests whether the post-LLM signal is consistent at a coarser taxonomic level. | [View L2 results](docs/l2_results.md) |
 | L2 → L3 | Primary analysis. Within each sub-discipline (L2), we track how specific technique (L3) shares evolve. The main estimand is whether technique-level diversity changed after 2023. | [View L3 results](docs/l3_results.md) |
 | Workflow checks | Prior predictive, PPC, fake data recovery, kappa sensitivity — four-stage validation following Gelman et al. (2020). | [View workflow results](docs/workflow_results.md) |
+| Kappa sensitivity | Kappa-free variant: kappa estimated from data with lognormal(log(100), 1.0) prior. Tests whether fixing kappa=10 drives the main conclusions. | [View kappa results](docs/kappa_results.md) |
 
 ## Repository structure
 
