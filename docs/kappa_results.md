@@ -50,10 +50,42 @@ These are from the primary analysis in [`docs/l3_results.md`](l3_results.md).
 | Runtime | 157.5 min |
 
 ### Plots (kappa-free v2)
-![Sigma posteriors](../data/output/kappa_free/kf_plot_sigma_posteriors.png)
-![Diversity by group](../data/output/kappa_free/kf_plot_diversity_by_group.png)
+
+> ⚠️ **Note**: ESS=67 for sigma_gamma means these results have not converged.
+> Treat all plots below as diagnostic only, not as evidence.
+
+#### 1. Parameter posteriors
+Left: sigma_beta (baseline linear trend), centre: sigma_gamma (post-LLM shift scale) —
+both compared to the kappa=10 reference. Right: kappa posterior (solid purple) vs
+lognormal(log(100), 1.0) prior (dashed). Kappa concentrates far above its prior median (100),
+suggesting the data favour a near-Multinomial likelihood.
+
+![Sigma and kappa posteriors](../data/output/kappa_free/kf_plot_sigma_posteriors.png)
+
+#### 2. Methodological diversity by L2 group
+Posterior median (line) with 50% and 90% credible intervals (ribbon) for inverse Simpson
+diversity within each of the 48 L2 groups. Grey dots = observed annual diversity.
+Dashed red line = 2023 LLM adoption boundary.
+
+![Diversity by L2 group](../data/output/kappa_free/kf_plot_diversity_by_group.png)
+
+#### 3. Differential post-2023 slopes (gamma_method)
+Methods where the 90% posterior CI for gamma excludes zero — i.e., credible post-LLM
+slope change. Red = gaining share, blue = losing share. With ESS=67, almost no methods
+pass this threshold; the near-empty plot is a convergence symptom, not a scientific finding.
+
 ![Gamma dotplot](../data/output/kappa_free/kf_plot_gamma_dotplot.png)
+
+#### 4. Share trajectories: top 15 methods by |gamma|
+Model-fitted share trajectories for the 15 methods with the largest absolute posterior mean
+gamma. Shows whether the post-2023 trend change is visible in the fitted shares.
+
 ![Top gamma trajectories](../data/output/kappa_free/kf_plot_top_gamma_trajectories.png)
+
+#### 5. Raw observed counts: top 15 methods
+Observed paper counts (grey dots) with loess smoother (orange). Pure data — no model.
+Useful sanity check: does the raw signal match what the model recovers?
+
 ![Raw counts](../data/output/kappa_free/kf_plot_raw_counts.png)
 
 ## Summary comparison
