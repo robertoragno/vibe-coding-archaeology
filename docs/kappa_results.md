@@ -40,16 +40,14 @@ These are from the primary analysis in [`docs/l3_results.md`](l3_results.md).
 
 | Parameter | kappa free v2 (lognormal(log(100), 1.0)) |
 |---|---|
-| kappa mean | {{KAPPA_FREE_KAPPA_MEAN}} |
-| kappa 90% CI | {{KAPPA_FREE_KAPPA_CI}} |
-| sigma_gamma mean | {{KAPPA_FREE_SIGMA_GAMMA_MEAN}} |
-| sigma_gamma 90% CI | {{KAPPA_FREE_SIGMA_GAMMA_CI}} |
-| sigma_beta mean | {{KAPPA_FREE_SIGMA_BETA_MEAN}} |
-| Rhat sigma_gamma | {{KAPPA_FREE_RHAT}} |
-| ESS sigma_gamma | {{KAPPA_FREE_ESS}} |
-| Runtime | {{KAPPA_FREE_RUNTIME}} min |
-
-Results pending — refit with lognormal(log(100), 1.0) prior in progress. The previous attempt with lognormal(log(25), 0.8) found kappa≈371 but with Rhat=1.025 and ESS=126, indicating the prior was poorly centred. The new prior is centred closer to the empirical kappa. Results will be filled automatically when `R/01b_fit_kappa_free.R` completes.
+| kappa mean | 599.6 |
+| kappa 90% CI | [254.1, 1505.7] |
+| sigma_gamma mean | 0.25 |
+| sigma_gamma 90% CI | [0.0426, 0.3825] |
+| sigma_beta mean | 0.2129 |
+| Rhat sigma_gamma | 1.0818 |
+| ESS sigma_gamma | 67 |
+| Runtime | 157.5 min |
 
 ### Plots (kappa-free v2)
 ![Sigma posteriors](../data/output/kappa_free/kf_plot_sigma_posteriors.png)
@@ -63,4 +61,4 @@ Results pending — refit with lognormal(log(100), 1.0) prior in progress. The p
 | Model | kappa | sigma_gamma mean | sigma_gamma 90% CI | Converged? |
 |---|---|---|---|---|
 | Fixed kappa = 10 | 10 (fixed) | 0.0563 | [0.0018, 0.1671] | YES |
-| Kappa free (v2) | {{KAPPA_FREE_KAPPA_MEAN}} (estimated) | {{KAPPA_FREE_SIGMA_GAMMA_MEAN}} | {{KAPPA_FREE_SIGMA_GAMMA_CI}} | {{KAPPA_FREE_CONVERGED}} |
+| Kappa free (v2) | 599.6 (estimated) | 0.25 | [0.0426, 0.3825] | PARTIAL (Rhat=1.0818, ESS=67) |

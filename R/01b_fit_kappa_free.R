@@ -15,8 +15,8 @@ rstan_options(auto_write = TRUE)
 STAN_FILE  <- "stan/diversity_model_kappa_free.stan"
 FIT_RDS    <- "data/output/fit_kappa_free.rds"
 DONE_FLAG  <- "data/output/fit_kappa_free_v2.done"
-token      <- Sys.getenv("TELEGRAM_TOKEN")
-chat_id    <- Sys.getenv("TELEGRAM_CHAT_ID")
+token      <- "TELEGRAM_BOT_TOKEN_REDACTED"
+chat_id    <- "252243317"
 
 tg_msg <- function(text) {
   tryCatch({
@@ -66,6 +66,13 @@ if (!file.exists(DONE_FLAG)) {
   saveRDS(fit, FIT_RDS)
   writeLines(as.character(Sys.time()), DONE_FLAG)
   cat("Fit saved to:", FIT_RDS, "\n")
+} else {
+  elapsed_min <- NA_real_
+  cat("Fit already complete; loading from", FIT_RDS, "\n")
+}
+
+{  # ── Post-processing (always runs) ───────────────────────────────────────────
+  fit <- readRDS(FIT_RDS)
 
   # ── HMC diagnostics ────────────────────────────────────────────────────────
   cat("\n--- HMC diagnostics ---\n")
@@ -84,7 +91,8 @@ if (!file.exists(DONE_FLAG)) {
   n_div    <- sum(rstan::get_divergent_iterations(fit))
   div_flag <- if (n_div == 0) "Divergences: 0" else paste0("Divergences: ", n_div, " !!!")
 
-  sm <- rstan::summary(fit, pars = c("sigma_beta", "sigma_gamma", "kappa"))$summary
+  sm <- rstan::summary(fit, pars = c("sigma_beta", "sigma_gamma", "kappa"),
+                       probs = c(0.05, 0.95))$summary
 
   fmt_par <- function(par) {
     rhat <- round(sm[par, "Rhat"],  3)
@@ -98,7 +106,9 @@ if (!file.exists(DONE_FLAG)) {
             par, mean, lo, hi, rhat, rhat_flag, ess, ess_flag)
   }
 
-  runtime_flag <- if (elapsed_min > 480)
+  runtime_flag <- if (is.na(elapsed_min))
+    "Runtime: N/A (loaded from saved fit)"
+  else if (elapsed_min > 480)
     "RUNTIME EXCEEDED TARGET — consider kappa bracket instead"
   else
     sprintf("Runtime: %.1f min (target: <480 min)", elapsed_min)
@@ -516,16 +526,12 @@ if (!file.exists(DONE_FLAG)) {
 
   system(paste0(
     "cd ~/R_projects/Vibe_Coding_Paper && ",
-    "git add docs/kappa_results.md data/output/kappa_free/*.png ",
-    "data/output/fit_kappa_free.rds && ",
+    "git add docs/kappa_results.md data/output/kappa_free/*.png && ",
     "git commit -m 'auto: kappa-free v2 results and plots' && ",
     "git push"
   ))
   message("GitHub push complete.")
 
-} else {
-  message("fit_kappa_free v2 already complete. Delete fit_kappa_free_v2.done to refit.")
-  fit <- readRDS(FIT_RDS)
-}
+}  # end post-processing block
 
 cat("\n01b_fit_kappa_free.R complete.\n")
