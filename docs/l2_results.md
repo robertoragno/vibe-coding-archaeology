@@ -106,21 +106,21 @@ This section repeats the L2 analysis with phi treated as a free parameter estima
 | Quantity | Value |
 |---|---|
 | Divergent transitions | 0 |
-| sigma_gamma Rhat | {{L2_PHI_FREE_RHAT}} |
-| sigma_gamma ESS | {{L2_PHI_FREE_ESS}} |
-| Runtime (minutes) | {{L2_PHI_FREE_RUNTIME}} |
-| Converged? | {{L2_PHI_FREE_CONVERGED}} |
+| sigma_gamma Rhat | 1.0002 |
+| sigma_gamma ESS | 1230 |
+| Runtime (minutes) | 125.9 |
+| Converged? | YES (Rhat OK, ESS OK) |
 
 ### Key results
 
 | Parameter | phi-free |
 |---|---|
-| phi mean | {{L2_PHI_FREE_PHI_MEAN}} |
-| phi 95% CI | {{L2_PHI_FREE_PHI_CI}} |
-| sigma_gamma mean | {{L2_PHI_FREE_SIGMA_GAMMA_MEAN}} |
-| sigma_gamma 90% CI | {{L2_PHI_FREE_SIGMA_GAMMA_CI}} |
-| sigma_beta mean | {{L2_PHI_FREE_SIGMA_BETA_MEAN}} |
-| ratio gamma/beta | {{L2_PHI_FREE_RATIO}} |
+| phi mean | 695.6 |
+| phi 95% CI | [277.5, 1783.5] |
+| sigma_gamma mean | 0.1214 |
+| sigma_gamma 90% CI | [0.0184, 0.2247] |
+| sigma_beta mean | 0.2063 |
+| ratio gamma/beta | 0.588 |
 
 ### Plots
 
