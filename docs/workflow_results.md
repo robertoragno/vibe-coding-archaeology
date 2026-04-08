@@ -56,7 +56,7 @@ The **PPC tail probability** per group is the fraction of posterior predictive d
 
 The grey distribution is the posterior predictive — what the model expects inv_simpson to look like if we simulated new data from the fitted parameters. The red line is the observed group mean across years. A well-calibrated model would place the red line near the centre of the grey distribution.
 
-What we observe: in most groups the red line falls in the left third of the grey distribution, meaning the model systematically predicts higher diversity than observed. This is a consistent pattern rather than random scatter. Two explanations are plausible: (1) kappa=10 allows too much year-to-year flexibility, letting the model spread probability mass across more methods than actually appear; (2) some L3 methods in the taxonomy co-occur systematically (a paper using Random Forest also tends to use cross-validation), which the DM independence assumption cannot capture. The kappa=50 sensitivity check in Section 4 tests explanation (1) directly — if the misfit shrinks with higher kappa, concentration was the issue.
+What we observe: in most groups the red line falls in the left third of the grey distribution, meaning the model systematically predicts higher diversity than observed. This is a consistent pattern rather than random scatter. Two explanations are plausible: (1) phi=10 allows too much year-to-year flexibility, letting the model spread probability mass across more methods than actually appear; (2) some L3 methods in the taxonomy co-occur systematically (a paper using Random Forest also tends to use cross-validation), which the DM independence assumption cannot capture. The phi=50 sensitivity check in Section 4 tests explanation (1) directly — if the misfit shrinks with higher phi, concentration was the issue.
 
 ![PPC density](../data/output/workflow/plot_ppc_density.png)
 
@@ -116,16 +116,17 @@ Note: with only 3 post-LLM years and moderate sample sizes, σ_gamma is weakly i
 
 | | mean | SD | 90% CI |
 |---|---|---|---|
-| κ = 10 | 0.054 | 0.042 | [0.004, 0.132] |
-| κ = 50 | 0.095 | 0.070 | [0.007, 0.229] |
+| κ = 10 (fixed) | 0.054 | 0.042 | [0.004, 0.132] |
+| κ = 50 (fixed) | 0.095 | 0.070 | [0.007, 0.229] |
+| φ free (v3) | 0.250 | 0.073 | [0.125, 0.365] |
 
-σ_gamma roughly doubles under κ = 50. This is not a numerical accident — it reflects a genuine reallocation of variance in the model. With κ = 10, some of the between-method variation can be absorbed by year-to-year noise. With κ = 50, that escape route is closed, and the model attributes more of the observed compositional differences to the structural parameters β and γ. Both posteriors remain credibly above zero.
+σ_gamma increases monotonically as the model gains freedom to fit φ. With κ = 10, some between-method variation is absorbed by the DM noise floor. With κ = 50, that escape route is closed and the model attributes more variation to β and γ. When φ is estimated from data (v3), φ concentrates at ~605 — far above both fixed values — and σ_gamma rises to 0.25 (90% CI [0.125, 0.365]). Across all three settings, σ_gamma remains credibly above zero, supporting the robustness of the global post-LLM signal.
 
-σ_beta also shifts substantially (peak ~0.10 under κ=10, ~0.18 under κ=50), consistent with the same reallocation mechanism.
+σ_beta also shifts monotonically (0.097 → 0.185 → 0.215 across φ = 10, 50, free), consistent with the same variance-reallocation mechanism.
 
 **Rank stability of individual γ estimates:**
 
-The Spearman rank correlation between per-method posterior mean γ under κ=10 vs κ=50 is ρ = 0.565. In a Bayesian analysis we do not test whether this is 'significant' — we ask whether the ordinal story is consistent. A threshold of ρ > 0.95 would indicate that the ranking of methods by their post-LLM slope is essentially unchanged by the kappa assumption. ρ = 0.565 means it is not: the specific methods identified as gaining or losing share post-2023 change meaningfully depending on the concentration assumption.
+The Spearman rank correlation between per-method posterior mean γ under κ=10 vs κ=50 is ρ = 0.565. In a Bayesian analysis we do not test whether this is 'significant' — we ask whether the ordinal story is consistent. A threshold of ρ > 0.95 would indicate that the ranking of methods by their post-LLM slope is essentially unchanged by the phi assumption. ρ = 0.565 means it is not: the specific methods identified as gaining or losing share post-2023 change meaningfully depending on the concentration assumption.
 
 **Implication:** the global finding (σ_gamma credibly above zero at both κ values) appears robust. The identification of specific methods does not. This has three consequences for the paper:
 
@@ -144,20 +145,18 @@ The Spearman rank correlation between per-method posterior mean γ under κ=10 v
 | Prior predictive | [PASS] prior covers plausible inv_simpson range |
 | Posterior predictive | 44 / 48 groups pass at 0.05–0.95 |
 | Fake data recovery | [YES] true σ_gamma inside 90% CI |
-| Prior sensitivity (κ) | SENSITIVE — σ_gamma doubles, γ rankings change (ρ=0.565) | Global finding robust; individual methods not |
+| Prior sensitivity (κ / φ) | SENSITIVE — σ_gamma scales with φ; γ rankings shift (ρ=0.565 at fixed φ). φ-free v3: σ_gamma=0.25 (90% CI [0.125, 0.365]). Global signal robust across all three settings. |
 
-> Model passes core calibration checks. Global post-LLM signal (σ_gamma > 0) is robust across κ values. Individual method rankings are sensitive to κ — do not over-interpret specific γ estimates without prompting experiment corroboration. **Immediate next step: run `R/01b_fit_kappa_free.R` to estimate κ from data.**
+> Model passes core calibration checks. Global post-LLM signal (σ_gamma > 0) is robust across all three φ settings (fixed 10, fixed 50, estimated ~605). Individual method rankings are sensitive to φ — do not over-interpret specific γ estimates without prompting experiment corroboration. φ-free fit complete: see `docs/phi_results.md`.
 
 ---
 
-## Section 5 — Next modelling step: estimating κ
+## Section 5 — φ-free model: completed
 
-The sensitivity analysis shows that κ is not a nuisance parameter — it substantially affects both σ_gamma and the ranking of individual methods. The principled solution is to estimate κ from the data using a weakly informative prior rather than fixing it.
+The sensitivity analysis showed that φ is not a nuisance parameter — it substantially affects both σ_gamma and the ranking of individual methods. The phi-free model (`stan/diversity_model_phi_free.stan`, v3) estimates φ from data using a lognormal(log(100), 1.0) prior (median 100, 90% interval [14, 716]).
 
-**Why the original attempt failed:** in a pilot run without any prior on κ, the runtime exceeded 33 hours. The reason is that free κ and μ are nearly non-identified: you can always increase κ and adjust μ to produce the same likelihood. The solution is not to fix κ but to constrain it with a prior that rules out near-zero values.
+**Result:** φ concentrates at mean 604.6 (90% CI [279.8, 1210.2]), far above both fixed values. This implies the data favour a near-Multinomial likelihood — less DM overdispersion than the φ=10 prior assumed. σ_gamma rises to 0.250 (90% CI [0.125, 0.365]), with excellent convergence (Rhat=1.002, ESS=1824).
 
-**Proposed prior:** κ ~ LogNormal(log(25), 0.8)
+**Interpretation:** the fixed φ=10 model was conservative; the data prefer a much tighter concentration, leaving more of the observed compositional variation to be explained by the structural β/γ slopes. The global finding (σ_gamma credibly above zero) is consistent across all three specifications.
 
-This encodes the expectation that κ is around 25 — between our two sensitivity values of 10 and 50 — with uncertainty spanning roughly one order of magnitude (5th percentile ≈ 5, 95th percentile ≈ 130). The lognormal keeps κ strictly positive and places negligible mass near zero, which is where the identification problem originates.
-
-**Implementation:** a new Stan model variant `stan/diversity_model_kappa_free.stan` and corresponding fit script `R/01b_fit_kappa_free.R` are provided. The fit is saved to `data/output/fit_kappa_free.rds`. If the runtime is acceptable (target: under 8 hours), this becomes the primary analysis. If not, the κ=10/κ=50 bracket is presented in the paper as an honest sensitivity analysis.
+Full results in `docs/phi_results.md`. Fit saved to `data/output/fit_phi_free.rds`.

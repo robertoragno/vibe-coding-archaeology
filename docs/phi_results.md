@@ -36,11 +36,11 @@ These are from the primary analysis in [`docs/l3_results.md`](l3_results.md).
 
 | Parameter | phi = 10 |
 |---|---|
-| sigma_gamma mean | 0.0563 |
-| sigma_gamma 95% CI | [0.0018, 0.1671] |
-| sigma_beta mean | 0.0965 |
-| Rhat sigma_gamma | 1.0016 |
-| ESS sigma_gamma | 1268 |
+| sigma_gamma mean | 0.054 |
+| sigma_gamma 90% CI | [0.004, 0.132] |
+| sigma_beta mean | 0.097 |
+| Rhat sigma_gamma | 1.0046 |
+| ESS sigma_gamma | 1651 |
 
 ## Phi-free results (v3: log_phi parameterisation, warmup=2000, iter=4000)
 
@@ -49,13 +49,12 @@ _v3 key change: phi sampled as log_phi (unbounded) for better HMC geometry; warm
 | Parameter | phi free v3 |
 |---|---|
 | phi mean | 604.6 |
-| phi 90% CI | [254.1, 1503.5] |
+| phi 90% CI | [279.8, 1210.2] |
 | sigma_gamma mean | 0.2502 |
-| sigma_gamma 90% CI | [0.095, 0.3865] |
+| sigma_gamma 90% CI | [0.125, 0.365] |
 | sigma_beta mean | 0.2148 |
 | Rhat sigma_gamma | 1.0019 |
 | ESS sigma_gamma | 1824 |
-NA
 
 ### Plots (phi-free v3)
 
@@ -106,6 +105,6 @@ Useful sanity check: does the raw signal match what the model recovers?
 
 | Model | phi | sigma_gamma mean | sigma_gamma 90% CI | Converged? | Notes |
 |---|---|---|---|---|---|
-| Fixed phi = 10 | 10 (fixed) | 0.0563 | [0.0018, 0.1671] | YES | Primary model; phi is a Dirac-delta prior |
-| Fixed phi = 50 | 50 (fixed) | ~0.095 | — | YES | Sensitivity check; not Bayesian |
-| Phi free (v3) | 604.6 (estimated) | 0.2502 | [0.095, 0.3865] | YES (Rhat OK, ESS OK) | log_phi parameterisation; genuinely Bayesian |
+| Fixed phi = 10 | 10 (fixed) | 0.054 | [0.004, 0.132] | YES | Fixed concentration — conservative baseline |
+| Fixed phi = 50 | 50 (fixed) | 0.095 | [0.007, 0.229] | YES | Fixed concentration — higher regularisation |
+| Phi free (v3) | 604.6 (estimated) | 0.2502 | [0.125, 0.365] | YES | Concentration estimated from data — lognormal(log(100), 1.0) prior |
