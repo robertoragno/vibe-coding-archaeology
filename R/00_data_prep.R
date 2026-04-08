@@ -75,7 +75,7 @@ stan_data <- list(
   K_max     = K_max,
   K_g       = K_g,
   counts    = counts_array,
-  kappa     = 10.0,
+  phi     = 10.0,
   year_std  = year_std,
   post_llm  = post_llm,
   years_vec = years_vec

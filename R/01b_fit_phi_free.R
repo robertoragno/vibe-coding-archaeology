@@ -1,7 +1,9 @@
-# 01b_fit_kappa_free.R
-# Fits diversity_model_kappa_free.stan with kappa ~ LogNormal(log(100), 1.0)
-# This is the principled solution to kappa sensitivity found in 04_workflow_checks.R
-# Runtime target: under 8 hours. If exceeded, fall back to kappa=10/50 bracket.
+# 01b_fit_phi_free.R
+# Fits diversity_model_phi_free.stan — phi (precision parameter) estimated from data.
+# phi controls Dirichlet-Multinomial concentration: higher phi = tighter shares (less overdispersion).
+# Parameterised on log scale (log_phi) for better HMC geometry.
+# Prior: log_phi ~ N(log(100), 1.0)  <=>  phi ~ lognormal(log(100), 1.0)  [median=100, 90%CI ~14-716]
+# Runtime target: under 12 hours.
 
 library(rstan)
 library(httr)
@@ -12,9 +14,9 @@ library(gridExtra)
 options(mc.cores = parallel::detectCores())
 rstan_options(auto_write = TRUE)
 
-STAN_FILE  <- "stan/diversity_model_kappa_free.stan"
-FIT_RDS    <- "data/output/fit_kappa_free.rds"
-DONE_FLAG  <- "data/output/fit_kappa_free_v2.done"
+STAN_FILE  <- "stan/diversity_model_phi_free.stan"
+FIT_RDS    <- "data/output/fit_phi_free.rds"
+DONE_FLAG  <- "data/output/fit_phi_free_v3.done"  # v3: log_phi reparameterisation + warmup=2000 + iter=4000
 token      <- "TELEGRAM_BOT_TOKEN_REDACTED"
 chat_id    <- "252243317"
 
@@ -29,10 +31,10 @@ tg_msg <- function(text) {
   }, error = function(e) cat("WARNING Telegram:", conditionMessage(e), "\n"))
 }
 
-# ── Load data (kappa removed — it is now a parameter) ─────────────────────────
+# ── Load data (phi removed — it is now a parameter) ─────────────────────────
 cat("Loading stan_data...\n")
 stan_data        <- readRDS("data/output/stan_data.rds")
-stan_data$kappa  <- NULL  # kappa is now a parameter, not data
+stan_data$phi  <- NULL  # phi is now a parameter, not data
 
 cat("N_groups:", stan_data$N_groups, "\n")
 cat("N_years: ", stan_data$N_years,  "\n")
@@ -40,23 +42,24 @@ cat("K_max:   ", stan_data$K_max,    "\n")
 
 # ── Fit (guarded) ─────────────────────────────────────────────────────────────
 if (!file.exists(DONE_FLAG)) {
-  cat("Compiling and sampling kappa-free model...\n")
-  cat("Prior: kappa ~ LogNormal(log(100), 1.0)  [median 100, 90% CI ~14-716]\n")
+  cat("Compiling and sampling phi-free model (log_phi parameterisation)...\n")
+  cat("Prior: log_phi ~ N(log(100), 1.0)  [phi median=100, 90% CI ~14-716]\n")
+  cat("Settings: warmup=2000, iter=4000, max_treedepth=14\n")
   t_start <- proc.time()
 
   fit <- suppressWarnings(stan(
     file    = STAN_FILE,
     data    = stan_data,
     chains  = 4,
-    iter    = 2000,
-    warmup  = 1000,
+    iter    = 4000,
+    warmup  = 2000,
     cores   = 4,
     seed    = 42,
     control = list(
       adapt_delta   = 0.95,
-      max_treedepth = 12
+      max_treedepth = 14
     ),
-    refresh = 100
+    refresh = 200
   ))
 
   t_elapsed   <- proc.time() - t_start
@@ -84,14 +87,14 @@ if (!file.exists(DONE_FLAG)) {
   cat("\n--- sigma_gamma summary ---\n")
   print(summary(fit, pars = "sigma_gamma")$summary)
 
-  cat("\n--- kappa summary ---\n")
-  print(summary(fit, pars = "kappa")$summary)
+  cat("\n--- phi summary ---\n")
+  print(summary(fit, pars = "phi")$summary)
 
   # ── Telegram diagnostics ──────────────────────────────────────────────────
   n_div    <- sum(rstan::get_divergent_iterations(fit))
   div_flag <- if (n_div == 0) "Divergences: 0" else paste0("Divergences: ", n_div, " !!!")
 
-  sm <- rstan::summary(fit, pars = c("sigma_beta", "sigma_gamma", "kappa"),
+  sm <- rstan::summary(fit, pars = c("sigma_beta", "sigma_gamma", "phi"),
                        probs = c(0.05, 0.95))$summary
 
   fmt_par <- function(par) {
@@ -108,18 +111,18 @@ if (!file.exists(DONE_FLAG)) {
 
   runtime_flag <- if (is.na(elapsed_min))
     "Runtime: N/A (loaded from saved fit)"
-  else if (elapsed_min > 480)
-    "RUNTIME EXCEEDED TARGET — consider kappa bracket instead"
+  else if (elapsed_min > 720)
+    "RUNTIME EXCEEDED TARGET (>12h)"
   else
-    sprintf("Runtime: %.1f min (target: <480 min)", elapsed_min)
+    sprintf("Runtime: %.1f min (target: <720 min)", elapsed_min)
 
   msg <- paste(
-    "kappa-free model diagnostics",
+    "phi-free v3 model diagnostics",
     div_flag,
     fmt_par("sigma_beta"),
     fmt_par("sigma_gamma"),
-    fmt_par("kappa"),
-    paste("Reference: kappa=10 sigma_gamma~0.054; kappa=50 sigma_gamma~0.095"),
+    fmt_par("phi"),
+    paste("Reference: phi=10 sigma_gamma~0.054; phi=50 sigma_gamma~0.095"),
     runtime_flag,
     sep = "\n"
   )
@@ -127,14 +130,14 @@ if (!file.exists(DONE_FLAG)) {
   tg_msg(msg)
 
   # ── Plots ──────────────────────────────────────────────────────────────────
-  message("Producing kappa-free plots...")
-  dir.create("data/output/kappa_free", recursive = TRUE, showWarnings = FALSE)
+  message("Producing phi-free plots...")
+  dir.create("data/output/phi_free", recursive = TRUE, showWarnings = FALSE)
 
-  KF_PLOT_SIGMA     <- "data/output/kappa_free/kf_plot_sigma_posteriors.png"
-  KF_PLOT_DIVERSITY <- "data/output/kappa_free/kf_plot_diversity_by_group.png"
-  KF_PLOT_GAMMA_DOT <- "data/output/kappa_free/kf_plot_gamma_dotplot.png"
-  KF_PLOT_TOP_GAMMA <- "data/output/kappa_free/kf_plot_top_gamma_trajectories.png"
-  KF_PLOT_RAW       <- "data/output/kappa_free/kf_plot_raw_counts.png"
+  KF_PLOT_SIGMA     <- "data/output/phi_free/kf_plot_sigma_posteriors.png"
+  KF_PLOT_DIVERSITY <- "data/output/phi_free/kf_plot_diversity_by_group.png"
+  KF_PLOT_GAMMA_DOT <- "data/output/phi_free/kf_plot_gamma_dotplot.png"
+  KF_PLOT_TOP_GAMMA <- "data/output/phi_free/kf_plot_top_gamma_trajectories.png"
+  KF_PLOT_RAW       <- "data/output/phi_free/kf_plot_raw_counts.png"
 
   vocab       <- readRDS("data/output/vocab.rds")
   l2_levels   <- vocab$l2_levels
@@ -154,7 +157,7 @@ if (!file.exists(DONE_FLAG)) {
   # ── Plot 1: sigma posteriors — 3 panels ─────────────────────────────────────
   sigma_beta_draws_kf  <- rstan::extract(fit, pars = "sigma_beta")$sigma_beta
   sigma_gamma_draws_kf <- rstan::extract(fit, pars = "sigma_gamma")$sigma_gamma
-  kappa_draws_kf       <- rstan::extract(fit, pars = "kappa")$kappa
+  phi_draws_kf       <- rstan::extract(fit, pars = "phi")$phi
 
   fit_ref <- readRDS("data/output/fit.rds")
   sigma_beta_draws_ref  <- rstan::extract(fit_ref, pars = "sigma_beta")$sigma_beta
@@ -168,24 +171,24 @@ if (!file.exists(DONE_FLAG)) {
                   rep("sigma_beta",  length(sigma_beta_draws_ref)),
                   rep("sigma_gamma", length(sigma_gamma_draws_kf)),
                   rep("sigma_gamma", length(sigma_gamma_draws_ref))),
-    model     = c(rep("kappa free v2", length(sigma_beta_draws_kf)),
-                  rep("kappa=10",      length(sigma_beta_draws_ref)),
-                  rep("kappa free v2", length(sigma_gamma_draws_kf)),
-                  rep("kappa=10",      length(sigma_gamma_draws_ref)))
+    model     = c(rep("phi free v3", length(sigma_beta_draws_kf)),
+                  rep("phi=10",      length(sigma_beta_draws_ref)),
+                  rep("phi free v3", length(sigma_gamma_draws_kf)),
+                  rep("phi=10",      length(sigma_gamma_draws_ref)))
   )
 
-  x_kappa_max    <- quantile(kappa_draws_kf, 0.999)
-  x_kappa_seq    <- seq(0.1, x_kappa_max * 1.5, length.out = 500)
-  kappa_prior_df <- data.frame(
-    value   = x_kappa_seq,
-    density = dlnorm(x_kappa_seq, log(100), 1.0)
+  x_phi_max    <- quantile(phi_draws_kf, 0.999)
+  x_phi_seq    <- seq(0.1, x_phi_max * 1.5, length.out = 500)
+  phi_prior_df <- data.frame(
+    value   = x_phi_seq,
+    density = dlnorm(x_phi_seq, log(100), 1.0)
   )
 
   p_sb <- ggplot(sigma_df |> filter(parameter == "sigma_beta"),
                  aes(x = value, colour = model, linetype = model)) +
     geom_density(fill = NA) +
-    scale_colour_manual(values = c("kappa free v2" = "steelblue", "kappa=10" = "steelblue4")) +
-    scale_linetype_manual(values = c("kappa free v2" = "solid", "kappa=10" = "dashed")) +
+    scale_colour_manual(values = c("phi free v3" = "steelblue", "phi=10" = "steelblue4")) +
+    scale_linetype_manual(values = c("phi free v3" = "solid", "phi=10" = "dashed")) +
     labs(x = "sigma_beta", y = "Density",
          title = "sigma_beta (baseline trend)",
          colour = "Model", linetype = "Model") +
@@ -195,26 +198,27 @@ if (!file.exists(DONE_FLAG)) {
   p_sg <- ggplot(sigma_df |> filter(parameter == "sigma_gamma"),
                  aes(x = value, colour = model, linetype = model)) +
     geom_density(fill = NA) +
-    scale_colour_manual(values = c("kappa free v2" = "firebrick", "kappa=10" = "firebrick4")) +
-    scale_linetype_manual(values = c("kappa free v2" = "solid", "kappa=10" = "dashed")) +
+    scale_colour_manual(values = c("phi free v3" = "firebrick", "phi=10" = "firebrick4")) +
+    scale_linetype_manual(values = c("phi free v3" = "solid", "phi=10" = "dashed")) +
     labs(x = "sigma_gamma", y = "Density",
          title = "sigma_gamma (post-LLM shift)",
          colour = "Model", linetype = "Model") +
     theme_minimal(base_size = 11) +
     theme(legend.position = "bottom")
 
-  p_kappa <- ggplot(data.frame(value = kappa_draws_kf), aes(x = value)) +
+  p_phi <- ggplot(data.frame(value = phi_draws_kf), aes(x = value)) +
     geom_density(colour = "darkorchid", fill = "darkorchid", alpha = 0.3) +
-    geom_line(data = kappa_prior_df, aes(x = value, y = density),
+    geom_line(data = phi_prior_df, aes(x = value, y = density),
               linetype = "dashed", colour = "grey40", inherit.aes = FALSE) +
-    coord_cartesian(xlim = c(0, x_kappa_max * 1.2)) +
-    labs(x = "kappa", y = "Density",
-         title = "kappa: posterior (solid) vs prior (dashed)") +
+    coord_cartesian(xlim = c(0, x_phi_max * 1.2)) +
+    labs(x = "phi (precision: higher = less overdispersion)", y = "Density",
+         title = "phi: posterior (solid) vs prior (dashed)",
+         subtitle = "phi ~ lognormal(log(100), 1.0); sampled as log_phi") +
     theme_minimal(base_size = 11)
 
   p2 <- gridExtra::arrangeGrob(
-    p_sb, p_sg, p_kappa, nrow = 1,
-    top = "Sigma posteriors: kappa-free v2 (solid) vs kappa=10 (dashed)"
+    p_sb, p_sg, p_phi, nrow = 1,
+    top = "Sigma posteriors: phi-free v3 (solid) vs phi=10 (dashed)"
   )
   ggsave(KF_PLOT_SIGMA, p2, width = 10, height = 5, units = "in", dpi = 150)
   cat("Plot saved:", KF_PLOT_SIGMA, "\n")
@@ -284,7 +288,7 @@ if (!file.exists(DONE_FLAG)) {
     labs(
       x        = "Year",
       y        = "Inverse Simpson (effective N of L3 methods)",
-      title    = "Methodological diversity within L2 groups over time (kappa-free v2)",
+      title    = "Methodological diversity within L2 groups over time (phi-free v3)",
       subtitle = "Grey dots = observed annual diversity; ribbon = 50%/90% posterior credible intervals"
     ) +
     theme_minimal(base_size = 8) +
@@ -352,7 +356,7 @@ if (!file.exists(DONE_FLAG)) {
     labs(
       x        = "Posterior mean gamma (post-LLM differential slope)",
       y        = NULL,
-      title    = "Differential post-2023 method slopes — kappa-free v2",
+      title    = "Differential post-2023 method slopes — phi-free v3",
       subtitle = "Only methods where 90% CI excludes zero; red = gaining share, blue = losing share"
     ) +
     theme_minimal(base_size = 8) +
@@ -422,7 +426,7 @@ if (!file.exists(DONE_FLAG)) {
     labs(
       x        = "Year",
       y        = "Fitted method share",
-      title    = "Top 15 methods by |gamma|: fitted share trajectories (kappa-free v2)",
+      title    = "Top 15 methods by |gamma|: fitted share trajectories (phi-free v3)",
       subtitle = "Ribbon = 80%/90% CI from 200 posterior draws; dashed = 2023"
     ) +
     theme_minimal(base_size = 7) +
@@ -463,7 +467,7 @@ if (!file.exists(DONE_FLAG)) {
     labs(
       x        = "Year",
       y        = "Observed paper count",
-      title    = "Top 15 methods: raw observed counts (kappa-free v2)",
+      title    = "Top 15 methods: raw observed counts (phi-free v3)",
       subtitle = "Orange = loess smoother; dashed = 2023"
     ) +
     theme_minimal(base_size = 7) +
@@ -483,7 +487,7 @@ if (!file.exists(DONE_FLAG)) {
         body = list(
           chat_id = chat_id,
           photo   = httr::upload_file(plot_path),
-          caption = paste0("kappa-free v2: ", basename(plot_path))
+          caption = paste0("phi-free v3: ", basename(plot_path))
         ),
         encode = "multipart"
       )
@@ -493,14 +497,14 @@ if (!file.exists(DONE_FLAG)) {
     })
   }
 
-  # ── Auto-fill kappa_results.md and push to GitHub ─────────────────────────
-  message("Filling kappa_results.md placeholders...")
+  # ── Auto-fill phi_results.md and push to GitHub ─────────────────────────
+  message("Filling phi_results.md placeholders...")
 
-  sm <- rstan::summary(fit, pars = c("kappa", "sigma_beta", "sigma_gamma"))$summary
+  sm <- rstan::summary(fit, pars = c("phi", "sigma_beta", "sigma_gamma"))$summary
 
-  kappa_mean    <- round(sm["kappa",       "mean"],  1)
-  kappa_ci      <- paste0("[", round(sm["kappa",       "2.5%"], 1),
-                           ", ", round(sm["kappa",       "97.5%"], 1), "]")
+  phi_mean    <- round(sm["phi",       "mean"],  1)
+  phi_ci      <- paste0("[", round(sm["phi",       "2.5%"], 1),
+                           ", ", round(sm["phi",       "97.5%"], 1), "]")
   sg_mean       <- round(sm["sigma_gamma", "mean"],  4)
   sg_ci         <- paste0("[", round(sm["sigma_gamma", "2.5%"], 4),
                            ", ", round(sm["sigma_gamma", "97.5%"], 4), "]")
@@ -512,26 +516,28 @@ if (!file.exists(DONE_FLAG)) {
                           paste0("PARTIAL (Rhat=", sg_rhat,
                                  ", ESS=", sg_ess, ")"))
 
-  kappa_results <- readLines("docs/kappa_results.md")
-  kappa_results <- gsub("{{KAPPA_FREE_KAPPA_MEAN}}",        kappa_mean,    kappa_results, fixed=TRUE)
-  kappa_results <- gsub("{{KAPPA_FREE_KAPPA_CI}}",          kappa_ci,      kappa_results, fixed=TRUE)
-  kappa_results <- gsub("{{KAPPA_FREE_SIGMA_GAMMA_MEAN}}", sg_mean,       kappa_results, fixed=TRUE)
-  kappa_results <- gsub("{{KAPPA_FREE_SIGMA_GAMMA_CI}}",   sg_ci,         kappa_results, fixed=TRUE)
-  kappa_results <- gsub("{{KAPPA_FREE_SIGMA_BETA_MEAN}}",  sb_mean,       kappa_results, fixed=TRUE)
-  kappa_results <- gsub("{{KAPPA_FREE_RHAT}}",             sg_rhat,       kappa_results, fixed=TRUE)
-  kappa_results <- gsub("{{KAPPA_FREE_ESS}}",              sg_ess,        kappa_results, fixed=TRUE)
-  kappa_results <- gsub("{{KAPPA_FREE_RUNTIME}}",          elapsed_min,   kappa_results, fixed=TRUE)
-  kappa_results <- gsub("{{KAPPA_FREE_CONVERGED}}",        converged_str, kappa_results, fixed=TRUE)
-  writeLines(kappa_results, "docs/kappa_results.md")
+  phi_results <- readLines("docs/phi_results.md")
+  phi_results <- gsub("{{PHI_FREE_PHI_MEAN}}",        phi_mean,    phi_results, fixed=TRUE)
+  phi_results <- gsub("{{PHI_FREE_PHI_CI}}",          phi_ci,      phi_results, fixed=TRUE)
+  phi_results <- gsub("{{PHI_FREE_SIGMA_GAMMA_MEAN}}", sg_mean,       phi_results, fixed=TRUE)
+  phi_results <- gsub("{{PHI_FREE_SIGMA_GAMMA_CI}}",   sg_ci,         phi_results, fixed=TRUE)
+  phi_results <- gsub("{{PHI_FREE_SIGMA_BETA_MEAN}}",  sb_mean,       phi_results, fixed=TRUE)
+  phi_results <- gsub("{{PHI_FREE_RHAT}}",             sg_rhat,       phi_results, fixed=TRUE)
+  phi_results <- gsub("{{PHI_FREE_ESS}}",              sg_ess,        phi_results, fixed=TRUE)
+  phi_results <- gsub("{{PHI_FREE_RUNTIME}}",          elapsed_min,   phi_results, fixed=TRUE)
+  phi_results <- gsub("{{PHI_FREE_CONVERGED}}",        converged_str, phi_results, fixed=TRUE)
+  phi_results <- gsub("{{PHI_FREE_SUMMARY_PHI}}",
+                      paste0(phi_mean, " (estimated)"), phi_results, fixed=TRUE)
+  writeLines(phi_results, "docs/phi_results.md")
 
   system(paste0(
     "cd ~/R_projects/Vibe_Coding_Paper && ",
-    "git add docs/kappa_results.md data/output/kappa_free/*.png && ",
-    "git commit -m 'auto: kappa-free v2 results and plots' && ",
+    "git add docs/phi_results.md data/output/phi_free/*.png && ",
+    "git commit -m 'auto: phi-free v3 results and plots' && ",
     "git push"
   ))
   message("GitHub push complete.")
 
 }  # end post-processing block
 
-cat("\n01b_fit_kappa_free.R complete.\n")
+cat("\n01b_fit_phi_free.R complete.\n")

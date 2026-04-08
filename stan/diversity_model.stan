@@ -13,7 +13,7 @@ data {
   int<lower=1> K_max;
   array[N_groups] int<lower=1> K_g;
   array[N_groups, N_years, K_max] int<lower=0> counts;
-  real<lower=0> kappa;
+  real<lower=0> phi;
   vector[N_years] year_std;
   array[N_years] int post_llm;
 }
@@ -72,7 +72,7 @@ model {
       vector[K] eta   = mu_raw[g][1:K]
                         + beta_method[g][1:K]  * year_std[t]
                         + gamma_method[g][1:K] * post_llm[t];
-      vector[K] alpha = softmax(eta) * kappa;
+      vector[K] alpha = softmax(eta) * phi;
       array[K] int y  = counts[g, t, 1:K];
 
       target += dm_log(y, alpha);
@@ -97,7 +97,7 @@ generated quantities {
       if (N_gt > 0) {
         vector[K] y_k;
         for (k in 1:K) y_k[k] = counts[g, t, k];
-        p = dirichlet_rng(softmax(eta) * kappa + y_k);
+        p = dirichlet_rng(softmax(eta) * phi + y_k);
       } else {
         p = softmax(eta);
       }

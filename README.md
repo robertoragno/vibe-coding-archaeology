@@ -14,47 +14,90 @@ We run this analysis twice. The primary analysis operates at the L2-to-L3 level:
 
 The bibliometric analysis is paired with a planned prompting experiment. We will systematically query five or six major LLMs — at three simulated expertise levels and with three types of methodological question — and classify each response into the same L3 taxonomy using Qwen. This gives us a direct estimate of what methods LLMs currently recommend. We then correlate recommendation frequency with the posterior mean gamma for each method. If LLMs are driving convergence, the methods they recommend most often should be the ones whose post-2023 share increased most in the published literature.
 
-The model is validated through a four-stage Bayesian workflow following Gelman et al. (2020): prior predictive checks confirm the priors generate plausible diversity values; posterior predictive checks show 44 of 48 method groups are well-calibrated; fake-data simulation confirms sigma_gamma is identifiable through hierarchical aggregation across groups; and a kappa sensitivity analysis tests whether the fixed concentration parameter drives the conclusions. An empirical kappa exploration in `00b_kappa_exploration.R` shows that kappa varies substantially across groups, with most groups having empirical kappa well above 10 — suggesting our primary analysis is conservative.
+The model is validated through a four-stage Bayesian workflow following Gelman et al. (2020): prior predictive checks confirm the priors generate plausible diversity values; posterior predictive checks show 44 of 48 method groups are well-calibrated; fake-data simulation confirms sigma_gamma is identifiable through hierarchical aggregation across groups; and a phi sensitivity analysis tests whether the fixed concentration parameter drives the conclusions. An empirical phi exploration in `00b_phi_exploration.R` shows that phi varies substantially across groups, with most groups having empirical phi well above 10 — suggesting our primary analysis is conservative.
 
-## Results
+## Preliminary Results
 
-> [!WARNING]
-> The models are still undergoing some changes. Results below are preliminary — you can already explore the outputs and read through the model logic, but treat the numbers as work-in-progress until this notice is removed.
+> **Note:** These are preliminary results. The bibliometric analysis (Steps 1 and 2) is complete; the prompting experiment (Step 3) is in progress. The full causal argument requires all three steps.
+
+The analysis proceeds in three steps:
+
+**Step 1 — Is there anomalous post-2023 methodological reshuffling?**
+
+Yes. The global scale of post-2023 method-level change (sigma_gamma) is credibly above zero across all model specifications:
+
+| Model | sigma_gamma mean | 90% CI | phi |
+|---|---|---|---|
+| Conservative baseline | 0.054 | [0.004, 0.132] | 10 (fixed) |
+| Higher regularisation | 0.095 | [0.007, 0.229] | 50 (fixed) |
+| phi estimated from data | 0.250 | [0.095, 0.387] | 604 (estimated) |
+
+All fits converged cleanly (Rhat < 1.002, ESS > 1800). In the model where phi is estimated from data, sigma_gamma ≈ sigma_beta (0.250 vs 0.215): the post-LLM reshuffling in 2–3 years is as large as the variation accumulated over 13 years of gradual evolution.
+
+Note: sigma_gamma measures the *magnitude* of reshuffling, not its direction. A large sigma_gamma is necessary but not sufficient evidence for convergence toward generic methods.
+
+**Step 2 — Is the reshuffling directionally consistent with LLM-driven convergence?**
+
+Preliminary yes. Individual gamma estimates show a consistent directional pattern:
+
+Methods gaining share post-2023 (positive gamma, 90% CI excludes zero):
+- L3-021: Spatial Pattern & Suitability Analysis (+0.33)
+- L3-067: Visual Perception & Saliency (+0.31)
+- L3-059: Generative Image Restoration (+0.29)
+- L3-066: Attention Mechanism Architectures (+0.27)
+- L3-064: Multimodal Fusion and Alignment (+0.23)
+
+These are predominantly generic, widely-documented techniques that appear frequently in LLM training data and tutorials. A researcher asking an LLM 'how should I analyse archaeological images?' would likely receive recommendations for attention mechanisms, image segmentation, or spatial pattern analysis.
+
+Methods losing share post-2023 (negative gamma):
+- L3-178: Computational Analytical Methods (-0.47)
+- L3-107: Deep Learning Architectural Patterns (-0.22)
+- L3-044: Bootstrap and Jackknife Methods (-0.22)
+- L3-149: Principal Component Analysis (-0.19)
+
+These are domain-specialised or statistically rigorous techniques that require methodological understanding to apply correctly — exactly the methods a vibe coder would bypass in favour of more generic alternatives.
+
+Note: individual gamma estimates are sensitive to the phi assumption (Spearman rho=0.565 between phi=10 and phi=50). The directional pattern is indicative but requires corroboration from Step 3.
+
+**Step 3 — Are the gaining methods the ones LLMs actually recommend? (in progress)**
+
+The prompting experiment will query 5–6 LLMs at 3 expertise levels with 3 question types, classify each response into the L3 taxonomy via Qwen, and correlate recommendation frequencies with posterior mean gamma per method. A positive correlation closes the causal argument. See `experiment/` for the planned design.
+
+## Analysis outputs
 
 | Analysis | Description | Results |
 |---|---|---|
-| L1 → L2 | Sensitivity check. Within each broad methodological family (L1), we track how sub-discipline (L2) shares evolve over time. Tests whether the post-LLM signal is consistent at a coarser taxonomic level. | [View L2 results](docs/l2_results.md) |
-| L2 → L3 | Primary analysis. Within each sub-discipline (L2), we track how specific technique (L3) shares evolve. The main estimand is whether technique-level diversity changed after 2023. | [View L3 results](docs/l3_results.md) |
-| Workflow checks | Prior predictive, PPC, fake data recovery, kappa sensitivity — four-stage validation following Gelman et al. (2020). | [View workflow results](docs/workflow_results.md) |
-| Kappa sensitivity | Kappa-free variant: kappa estimated from data with lognormal(log(100), 1.0) prior. Tests whether fixing kappa=10 drives the main conclusions. | [View kappa results](docs/kappa_results.md) |
+| L2→L3 primary | Within each sub-discipline, specific technique shares over time | [View](docs/l3_results.md) |
+| L1→L2 sensitivity | Within each broad family, sub-discipline shares over time | [View](docs/l2_results.md) |
+| Phi analysis | Concentration parameter sensitivity and estimation | [View](docs/phi_results.md) |
+| Bayesian workflow | Prior predictive, PPC, fake data recovery, phi sensitivity | [View](docs/workflow_results.md) |
 
 ## Repository structure
 
 ```
-.
 ├── R/
-│   ├── 00_data_prep.R          # Ingest raw CSVs, build taxonomy vocab, write Stan inputs
-│   ├── 00b_kappa_exploration.R # Exploratory: empirical kappa calibration and overdispersion plots
-│   ├── 01_fit_model.R          # Compile and sample the Stan model
-│   ├── 02_extract_plot.R       # Extract posterior draws, produce L3 plots, push results
-│   ├── 03_l2_analysis.R        # L1→L2 sensitivity analysis (inline Stan, own plots)
-│   └── 04_workflow_checks.R    # Bayesian workflow checks: prior predictive, PPC, fake data, sensitivity
+│   ├── 00_data_prep.R
+│   ├── 00b_phi_exploration.R
+│   ├── 01_fit_model.R
+│   ├── 01b_fit_phi_free.R
+│   ├── 02_extract_plot.R
+│   ├── 03_l2_analysis.R
+│   └── 04_workflow_checks.R
 ├── stan/
-│   └── diversity_model.stan    # Dirichlet-Multinomial two-slope model
-├── data/
-│   ├── output/
-│   │   ├── l3/                 # Plots from the primary L2→L3 analysis
-│   │   ├── l2/                 # Plots from the L1→L2 sensitivity check
-│   │   └── workflow/           # Plots from the Bayesian workflow checks
-│   └── ...                     # Raw and intermediate data files
+│   ├── diversity_model.stan
+│   └── diversity_model_phi_free.stan
+├── data/output/
+│   ├── l3/
+│   ├── l2/
+│   ├── phi_free/
+│   └── workflow/
 ├── docs/
-│   ├── l3_results.md           # Auto-updated L3 diagnostics and results
-│   ├── l2_results.md           # Auto-updated L2 diagnostics and results
-│   └── workflow_results.md     # Auto-updated Bayesian workflow check results
+│   ├── l3_results.md
+│   ├── l2_results.md
+│   ├── phi_results.md
+│   └── workflow_results.md
 └── experiment/
-    ├── prompts/                 # Prompt templates for querying LLMs
-    ├── responses/               # Raw LLM responses
-    └── classify/                # Scripts to classify responses into L3 taxonomy
+    ├── prompts/
+    ├── responses/
+    └── analysis/
 ```
-
-Scripts are run in order from the project root: `00` → `00b` → `01` → `02` → `03` → `04`.

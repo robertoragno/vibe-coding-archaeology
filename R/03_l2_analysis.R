@@ -15,7 +15,7 @@ rstan_options(auto_write = TRUE)
 INPUT_FILE <- "data/input/qwen_dataset.xlsx"
 OUTPUT_DIR <- "data/output/l2"
 FIT_L2_RDS    <- "data/output/l2/fit_l2.rds"
-FIT_L2_K50_RDS <- "data/output/l2/fit_l2_kappa50.rds"
+FIT_L2_K50_RDS <- "data/output/l2/fit_l2_phi50.rds"
 dir.create(OUTPUT_DIR, recursive = TRUE, showWarnings = FALSE)
 
 token   <- "TELEGRAM_BOT_TOKEN_REDACTED"
@@ -83,14 +83,14 @@ stan_data <- list(
   K_max     = K_max,
   K_g       = K_g,
   counts    = counts_array,
-  kappa     = 10.0,
+  phi     = 10.0,
   year_std  = year_std,
   post_llm  = post_llm
 )
 
 # ── Inline Stan model (identical structure to diversity_model.stan) ───────────
 # No non-ASCII characters in Stan code. Hand-rolled dm_log, no built-in
-# dirichlet_multinomial. kappa fixed at 10 as data input.
+# dirichlet_multinomial. phi fixed at 10 as data input.
 stan_code <- "
 functions {
   real dm_log(array[] int n, vector alpha) {
@@ -107,7 +107,7 @@ data {
   int<lower=1> K_max;
   array[N_groups] int<lower=1> K_g;
   array[N_groups, N_years, K_max] int<lower=0> counts;
-  real<lower=0> kappa;
+  real<lower=0> phi;
   vector[N_years] year_std;
   array[N_years] int post_llm;
 }
@@ -160,7 +160,7 @@ model {
       vector[K] eta   = mu_raw[g][1:K]
                         + beta_method[g][1:K]  * year_std[t]
                         + gamma_method[g][1:K] * post_llm[t];
-      vector[K] alpha = softmax(eta) * kappa;
+      vector[K] alpha = softmax(eta) * phi;
       array[K] int y  = counts[g, t, 1:K];
 
       target += dm_log(y, alpha);
@@ -182,13 +182,13 @@ generated quantities {
       // Conjugate Dirichlet posterior: combines the trend prior with observed
       // counts for this group-year.
       //
-      // Prior:     pi[g,t] ~ Dirichlet(softmax(eta) * kappa)
+      // Prior:     pi[g,t] ~ Dirichlet(softmax(eta) * phi)
       // Likelihood:  y     ~ Multinomial(pi[g,t])
-      // Posterior: pi[g,t] | y ~ Dirichlet(softmax(eta) * kappa + y)
+      // Posterior: pi[g,t] | y ~ Dirichlet(softmax(eta) * phi + y)
       //
       // Effect: years with many papers are dominated by the observed shares
       // (more data -> tighter diversity CI); sparse years stay regularised
-      // toward the trend prediction. The crossover is near N_papers ~ kappa.
+      // toward the trend prediction. The crossover is near N_papers ~ phi.
 
       int N_gt = sum(counts[g, t, 1:K]);
       vector[K] p;
@@ -196,7 +196,7 @@ generated quantities {
       if (N_gt > 0) {
         vector[K] y_k;
         for (k in 1:K) y_k[k] = counts[g, t, k];
-        p = dirichlet_rng(softmax(eta) * kappa + y_k);
+        p = dirichlet_rng(softmax(eta) * phi + y_k);
       } else {
         // No papers this group-year: fall back to trend-only prediction.
         p = softmax(eta);
@@ -318,13 +318,13 @@ tryCatch({
   message("Telegram diagnostics warning: ", conditionMessage(w))
 })
 
-# ── kappa=50 robustness fit (guarded) ─────────────────────────────────────────
+# ── phi=50 robustness fit (guarded) ─────────────────────────────────────────
 if (!file.exists(FIT_L2_K50_RDS)) {
-  cat("\nFitting L2 kappa=50 robustness check...\n")
+  cat("\nFitting L2 phi=50 robustness check...\n")
   stan_data_k50       <- stan_data
-  stan_data_k50$kappa <- 50.0
+  stan_data_k50$phi <- 50.0
 
-  cat("Compiling Stan model for kappa=50...\n")
+  cat("Compiling Stan model for phi=50...\n")
   l2_mod_k50 <- stan_model(model_code = stan_code)
 
   t_start50 <- proc.time()
@@ -343,15 +343,15 @@ if (!file.exists(FIT_L2_K50_RDS)) {
 
   t_elapsed50   <- proc.time() - t_start50
   elapsed_min50 <- round(t_elapsed50["elapsed"] / 60, 1)
-  cat("kappa=50 sampling done. Elapsed:", elapsed_min50, "minutes\n")
+  cat("phi=50 sampling done. Elapsed:", elapsed_min50, "minutes\n")
 
-  cat("\n--- kappa=50 HMC diagnostics ---\n")
+  cat("\n--- phi=50 HMC diagnostics ---\n")
   check_hmc_diagnostics(l2_fit_k50)
 
   saveRDS(l2_fit_k50, FIT_L2_K50_RDS)
-  cat("L2 kappa=50 fit saved to:", FIT_L2_K50_RDS, "\n")
+  cat("L2 phi=50 fit saved to:", FIT_L2_K50_RDS, "\n")
 
-  # ── Telegram: L2 kappa=50 robustness check ───────────────────────────────────
+  # ── Telegram: L2 phi=50 robustness check ───────────────────────────────────
   tryCatch({
     n_div50    <- sum(rstan::get_divergent_iterations(l2_fit_k50))
     div_flag50 <- if (n_div50 == 0) "Divergences: 0" else paste0("Divergences: ", n_div50, " !!!")
@@ -368,7 +368,7 @@ if (!file.exists(FIT_L2_K50_RDS)) {
     sg50_hi   <- round(sm50["sigma_gamma", "95%"],  4)
 
     msg50 <- paste(
-      "kappa=50 robustness check",
+      "phi=50 robustness check",
       div_flag50,
       paste0("sigma_beta Rhat = ",  rhat_sb50),
       paste0("sigma_gamma Rhat = ", rhat_sg50),
@@ -384,17 +384,17 @@ if (!file.exists(FIT_L2_K50_RDS)) {
       body   = list(chat_id = chat_id, text = msg50),
       encode = "form"
     )
-    cat("Telegram L2 kappa=50 status:", httr::status_code(resp50), "\n")
+    cat("Telegram L2 phi=50 status:", httr::status_code(resp50), "\n")
   }, error = function(e) {
-    message("Telegram L2 kappa=50 error: ", conditionMessage(e))
+    message("Telegram L2 phi=50 error: ", conditionMessage(e))
   })
 
 } else {
-  message("fit_l2_kappa50.rds already exists — skipping kappa=50 fit.")
+  message("fit_l2_phi50.rds already exists — skipping phi=50 fit.")
   l2_fit_k50 <- readRDS(FIT_L2_K50_RDS)
 }
 
-# ── Robustness comparison: kappa=10 vs kappa=50 (L2) ─────────────────────────
+# ── Robustness comparison: phi=10 vs phi=50 (L2) ─────────────────────────
 sm10_l2 <- rstan::summary(l2_fit,     pars = "sigma_gamma")$summary
 sm50_l2 <- rstan::summary(l2_fit_k50, pars = "sigma_gamma")$summary
 
@@ -405,9 +405,9 @@ sg50_mean <- round(sm50_l2["sigma_gamma", "mean"], 4)
 sg50_lo   <- round(sm50_l2["sigma_gamma", "5%"],   4)
 sg50_hi   <- round(sm50_l2["sigma_gamma", "95%"],  4)
 
-cat("=== ROBUSTNESS CHECK: kappa=10 vs kappa=50 ===\n")
-cat("sigma_gamma kappa=10: mean=", sg10_mean, "90% CI [", sg10_lo, ",", sg10_hi, "]\n")
-cat("sigma_gamma kappa=50: mean=", sg50_mean, "90% CI [", sg50_lo, ",", sg50_hi, "]\n")
+cat("=== ROBUSTNESS CHECK: phi=10 vs phi=50 ===\n")
+cat("sigma_gamma phi=10: mean=", sg10_mean, "90% CI [", sg10_lo, ",", sg10_hi, "]\n")
+cat("sigma_gamma phi=50: mean=", sg50_mean, "90% CI [", sg50_lo, ",", sg50_hi, "]\n")
 cat("Ratio of means:", round(sg50_mean/sg10_mean, 3), "\n")
 
 # ── Extract arrays ────────────────────────────────────────────────────────────

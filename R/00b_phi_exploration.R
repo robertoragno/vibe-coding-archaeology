@@ -1,5 +1,5 @@
-cat("=== 00b_kappa_exploration.R ===\n")
-cat("Empirical kappa estimation before any modelling.\n")
+cat("=== 00b_phi_exploration.R ===\n")
+cat("Empirical phi estimation before any modelling.\n")
 
 library(readxl)
 library(dplyr)
@@ -65,22 +65,22 @@ for (i in seq_len(nrow(counts_long_l2))) {
     counts_long_l2$n_papers[i]
 }
 
-# ── MoM kappa estimator ───────────────────────────────────────────────────────
+# ── MoM phi estimator ───────────────────────────────────────────────────────
 # For group g, method k: across years with N >= 5, compute var(p_{k,t}).
-# Under DM: Var(p_k) = p_bar_k*(1-p_bar_k)*(kappa+N_bar)/(N_bar*(kappa+1))
-# MoM solve: f = var_obs * N_bar / (p_bar*(1-p_bar)); kappa = (N_bar - f)/(f - 1)
+# Under DM: Var(p_k) = p_bar_k*(1-p_bar_k)*(phi+N_bar)/(N_bar*(phi+1))
+# MoM solve: f = var_obs * N_bar / (p_bar*(1-p_bar)); phi = (N_bar - f)/(f - 1)
 #
 # For overdispersion ratio per (group, year):
 #   obs = sum_k (p_{k,t} - p_bar_k)^2
 #   mult = sum_k p_bar_k*(1-p_bar_k)/N_t
 #   ratio = obs / mult (1 = pure multinomial)
 
-estimate_kappa <- function(counts_arr, K_g_vec, group_labels, year_labels,
+estimate_phi <- function(counts_arr, K_g_vec, group_labels, year_labels,
                            min_total = 5, level_label = "group") {
   N_g <- length(group_labels)
   N_t <- length(year_labels)
 
-  kappa_records  <- list()
+  phi_records  <- list()
   overdisp_records <- list()
 
   for (g in seq_len(N_g)) {
@@ -102,7 +102,7 @@ estimate_kappa <- function(counts_arr, K_g_vec, group_labels, year_labels,
     N_bar  <- mean(N_ok)
     p_bar  <- colMeans(prop_mat)  # mean proportion per method
 
-    # MoM kappa estimate per method k
+    # MoM phi estimate per method k
     for (k in seq_len(K)) {
       if (p_bar[k] <= 0 || p_bar[k] >= 1) next
       pk_vals <- prop_mat[, k]
@@ -111,10 +111,10 @@ estimate_kappa <- function(counts_arr, K_g_vec, group_labels, year_labels,
       if (var_obs <= 0) next
       f <- var_obs * N_bar / (p_bar[k] * (1 - p_bar[k]))
       if (f <= 1) next
-      kappa_k <- (N_bar - f) / (f - 1)
-      if (kappa_k > 0 && is.finite(kappa_k)) {
-        kappa_records[[length(kappa_records) + 1]] <- data.frame(
-          group = glabel, method_k = k, kappa_est = kappa_k,
+      phi_k <- (N_bar - f) / (f - 1)
+      if (phi_k > 0 && is.finite(phi_k)) {
+        phi_records[[length(phi_records) + 1]] <- data.frame(
+          group = glabel, method_k = k, phi_est = phi_k,
           stringsAsFactors = FALSE
         )
       }
@@ -138,59 +138,59 @@ estimate_kappa <- function(counts_arr, K_g_vec, group_labels, year_labels,
   }
 
   list(
-    kappa    = bind_rows(kappa_records),
+    phi    = bind_rows(phi_records),
     overdisp = bind_rows(overdisp_records)
   )
 }
 
-cat("Estimating kappa for L2 groups (L3 model data)...\n")
-res_l3 <- estimate_kappa(counts_l3, K_g_l3, l2_levels, year_levels)
+cat("Estimating phi for L2 groups (L3 model data)...\n")
+res_l3 <- estimate_phi(counts_l3, K_g_l3, l2_levels, year_levels)
 
-cat("Estimating kappa for L1 groups (L2 model data)...\n")
-res_l2 <- estimate_kappa(counts_l2, K_g_l2, l1_levels, year_levels)
+cat("Estimating phi for L1 groups (L2 model data)...\n")
+res_l2 <- estimate_phi(counts_l2, K_g_l2, l1_levels, year_levels)
 
 # ── Summary table ─────────────────────────────────────────────────────────────
-kappa_summary_l3 <- res_l3$kappa |>
+phi_summary_l3 <- res_l3$phi |>
   group_by(group) |>
   summarise(
     n_methods    = n(),
-    kappa_median = median(kappa_est),
-    kappa_q25    = quantile(kappa_est, 0.25),
-    kappa_q75    = quantile(kappa_est, 0.75),
-    kappa_iqr    = kappa_q75 - kappa_q25,
+    phi_median = median(phi_est),
+    phi_q25    = quantile(phi_est, 0.25),
+    phi_q75    = quantile(phi_est, 0.75),
+    phi_iqr    = phi_q75 - phi_q25,
     .groups      = "drop"
   ) |>
-  arrange(kappa_median)
+  arrange(phi_median)
 
-kappa_summary_l2 <- res_l2$kappa |>
+phi_summary_l2 <- res_l2$phi |>
   group_by(group) |>
   summarise(
     n_methods    = n(),
-    kappa_median = median(kappa_est),
-    kappa_q25    = quantile(kappa_est, 0.25),
-    kappa_q75    = quantile(kappa_est, 0.75),
-    kappa_iqr    = kappa_q75 - kappa_q25,
+    phi_median = median(phi_est),
+    phi_q25    = quantile(phi_est, 0.25),
+    phi_q75    = quantile(phi_est, 0.75),
+    phi_iqr    = phi_q75 - phi_q25,
     .groups      = "drop"
   ) |>
-  arrange(kappa_median)
+  arrange(phi_median)
 
-cat("\n=== L2 group kappa summary (L3 model) ===\n")
-print(kappa_summary_l3, n = Inf)
+cat("\n=== L2 group phi summary (L3 model) ===\n")
+print(phi_summary_l3, n = Inf)
 
-cat("\n=== L1 group kappa summary (L2 model) ===\n")
-print(kappa_summary_l2, n = Inf)
+cat("\n=== L1 group phi summary (L2 model) ===\n")
+print(phi_summary_l2, n = Inf)
 
-# ── Plot 1: kappa boxplot per L2 group ────────────────────────────────────────
-cat("\nPlotting kappa distribution per L2 group...\n")
+# ── Plot 1: phi boxplot per L2 group ────────────────────────────────────────
+cat("\nPlotting phi distribution per L2 group...\n")
 
-kappa_l3_aug <- res_l3$kappa |>
-  left_join(kappa_summary_l3 |> select(group, kappa_median, kappa_q25, kappa_q75),
+phi_l3_aug <- res_l3$phi |>
+  left_join(phi_summary_l3 |> select(group, phi_median, phi_q25, phi_q75),
             by = "group") |>
   mutate(
-    group        = factor(group, levels = kappa_summary_l3$group),
+    group        = factor(group, levels = phi_summary_l3$group),
     fill_colour  = case_when(
-      kappa_q75 < 10  ~ "underdispersed",
-      kappa_q25 > 10  ~ "overdispersed",
+      phi_q75 < 10  ~ "underdispersed",
+      phi_q25 > 10  ~ "overdispersed",
       TRUE            ~ "neutral"
     )
   )
@@ -202,13 +202,13 @@ fill_vals <- c(
 )
 
 # Shorten group labels
-kappa_l3_aug <- kappa_l3_aug |>
+phi_l3_aug <- phi_l3_aug |>
   mutate(group_short = sub("^L2-\\d+: ", "", as.character(group)),
          group_short = factor(group_short,
                               levels = sub("^L2-\\d+: ", "", levels(group))))
 
-p_kappa <- ggplot(kappa_l3_aug,
-                  aes(x = group_short, y = kappa_est, fill = fill_colour)) +
+p_phi <- ggplot(phi_l3_aug,
+                  aes(x = group_short, y = phi_est, fill = fill_colour)) +
   geom_boxplot(outlier.size = 0.6, outlier.alpha = 0.4, linewidth = 0.3) +
   geom_hline(yintercept = 10, linetype = "dashed", colour = "black", linewidth = 0.5) +
   scale_fill_manual(
@@ -222,9 +222,9 @@ p_kappa <- ggplot(kappa_l3_aug,
   coord_flip() +
   labs(
     x        = NULL,
-    y        = "Estimated kappa (log scale)",
-    title    = "Empirical kappa by L2 group",
-    subtitle = "Dashed line = kappa = 10 (model assumption); orange = under-dispersed, red = over-dispersed"
+    y        = "Estimated phi (log scale)",
+    title    = "Empirical phi by L2 group",
+    subtitle = "Dashed line = phi = 10 (model assumption); orange = under-dispersed, red = over-dispersed"
   ) +
   theme_minimal(base_size = 8) +
   theme(
@@ -232,9 +232,9 @@ p_kappa <- ggplot(kappa_l3_aug,
     panel.grid.minor = element_blank()
   )
 
-out_kappa <- "data/output/plot_kappa_empirical.png"
-ggsave(out_kappa, p_kappa, width = 14, height = 10, units = "in", dpi = 150)
-cat("Saved:", out_kappa, "\n")
+out_phi <- "data/output/plot_phi_empirical.png"
+ggsave(out_phi, p_phi, width = 14, height = 10, units = "in", dpi = 150)
+cat("Saved:", out_phi, "\n")
 
 # ── Plot 2: overdispersion heatmap ────────────────────────────────────────────
 cat("Plotting overdispersion heatmap...\n")
@@ -257,7 +257,7 @@ p_overdisp <- ggplot(overdisp_l3, aes(x = year, y = group_short, fill = log_rati
     x        = "Year",
     y        = NULL,
     title    = "Overdispersion ratio per L2 group × year",
-    subtitle = "White = matches multinomial; red = more overdispersed; blue = less (kappa >> 10)"
+    subtitle = "White = matches multinomial; red = more overdispersed; blue = less (phi >> 10)"
   ) +
   theme_minimal(base_size = 8) +
   theme(
@@ -272,14 +272,14 @@ cat("Saved:", out_overdisp, "\n")
 
 # ── Send both plots via Telegram ──────────────────────────────────────────────
 cat("Sending plots via Telegram...\n")
-for (plot_path in c(out_kappa, out_overdisp)) {
+for (plot_path in c(out_phi, out_overdisp)) {
   tryCatch({
     resp <- httr::POST(
       url  = paste0("https://api.telegram.org/bot", token, "/sendPhoto"),
       body = list(
         chat_id = chat_id,
         photo   = httr::upload_file(plot_path),
-        caption = "Kappa exploration"
+        caption = "Phi exploration"
       ),
       encode = "multipart"
     )
@@ -291,13 +291,13 @@ for (plot_path in c(out_kappa, out_overdisp)) {
 }
 
 # ── Overall IQR check ─────────────────────────────────────────────────────────
-overall_iqr <- IQR(res_l3$kappa$kappa_est, na.rm = TRUE)
-cat("\nOverall IQR of kappa estimates (L2 groups):", round(overall_iqr, 2), "\n")
+overall_iqr <- IQR(res_l3$phi$phi_est, na.rm = TRUE)
+cat("\nOverall IQR of phi estimates (L2 groups):", round(overall_iqr, 2), "\n")
 
-# RECOMMENDATION: kappa varies substantially across groups (IQR > 5).
-# Consider replacing fixed kappa with group-specific kappa_g ~ lognormal(mu_kappa, sigma_kappa)
-# with mu_kappa ~ normal(log(10), 1) and sigma_kappa ~ exponential(1).
-# This is identifiable because kappa_g is estimated within-group, not competing with mu.
-# Expected runtime increase: moderate (not the 33hr issue which was global kappa vs mu).
+# RECOMMENDATION: phi varies substantially across groups (IQR > 5).
+# Consider replacing fixed phi with group-specific phi_g ~ lognormal(mu_phi, sigma_phi)
+# with mu_phi ~ normal(log(10), 1) and sigma_phi ~ exponential(1).
+# This is identifiable because phi_g is estimated within-group, not competing with mu.
+# Expected runtime increase: moderate (not the 33hr issue which was global phi vs mu).
 
-cat("=== 00b_kappa_exploration.R DONE ===\n")
+cat("=== 00b_phi_exploration.R DONE ===\n")

@@ -110,54 +110,25 @@ emp_diversity <- do.call(rbind, lapply(seq_len(N_groups), function(g) {
 })) |>
   mutate(label = sub("^L2-\\d+: ", "", level_2_mid))
 
-# ── Trend-only inv_simpson: softmax(mu + beta * year_std) per draw ────────────
-# Uses only mu and beta — no gamma, no conjugate update.
-# Shows the smooth structural trend estimated by the model.
-softmax_rows <- function(mat) {
-  mat <- mat - apply(mat, 1, max)
-  e   <- exp(mat)
-  e / rowSums(e)
-}
-
-trend_list <- vector("list", N_groups * N_years)
-idx <- 1L
-cat("Computing trend-only inv_simpson (mu + beta only)...\n")
-for (g in seq_len(N_groups)) {
-  K      <- K_g_vec[g]
-  mu_g   <- matrix(mu_raw_arr[, g, 1:K],      nrow = S, ncol = K)
-  beta_g <- matrix(beta_method_arr[, g, 1:K], nrow = S, ncol = K)
-  for (t in seq_len(N_years)) {
-    eta  <- mu_g + beta_g * year_std[t]
-    p    <- softmax_rows(eta)
-    vals <- 1 / rowSums(p^2)
-    trend_list[[idx]] <- data.frame(
-      level_2_mid = l2_levels[g],
-      year        = year_levels[t],
-      median      = median(vals),
-      lo90        = quantile(vals, 0.05),
-      hi90        = quantile(vals, 0.95),
-      lo50        = quantile(vals, 0.25),
-      hi50        = quantile(vals, 0.75),
-      stringsAsFactors = FALSE
-    )
-    idx <- idx + 1L
-  }
-}
-trend_summary <- bind_rows(trend_list) |>
+# ── Conjugate-posterior ribbon: use stored inv_simpson draws from fit ─────────
+# inv_simp_arr was computed in the Stan generated quantities block with the
+# conjugate Dirichlet posterior update (softmax(eta)*phi + y). Summarise
+# directly — no recomputation needed.
+conj_summary <- inv_simp_summary |>
   mutate(label = sub("^L2-\\d+: ", "", level_2_mid))
 
-p1 <- ggplot(trend_summary, aes(x = year)) +
+p1 <- ggplot(conj_summary, aes(x = year)) +
   geom_point(data = emp_diversity,
              aes(y = inv_simp_emp, colour = "Observed (annual)"),
              size = 0.8, alpha = 0.7) +
   geom_ribbon(aes(ymin = lo90, ymax = hi90), alpha = 0.15, fill = "steelblue") +
   geom_ribbon(aes(ymin = lo50, ymax = hi50), alpha = 0.30, fill = "steelblue") +
-  geom_line(aes(y = median, colour = "Model trend"), linewidth = 0.6) +
+  geom_line(aes(y = median, colour = "Posterior median"), linewidth = 0.6) +
   geom_vline(xintercept = 2023, linetype = "dashed", colour = "firebrick", linewidth = 0.4) +
   annotate("text", x = 2023, y = Inf, label = "LLM adoption",
            hjust = -0.05, vjust = 1.5, size = 2, colour = "firebrick") +
   scale_colour_manual(
-    values = c("Observed (annual)" = "grey40", "Model trend" = "steelblue4"),
+    values = c("Observed (annual)" = "grey40", "Posterior median" = "steelblue4"),
     name   = NULL
   ) +
   facet_wrap(~ label, scales = "free_y", ncol = 6) +
@@ -165,7 +136,7 @@ p1 <- ggplot(trend_summary, aes(x = year)) +
     x        = "Year",
     y        = "Inverse Simpson (effective N of L3 methods)",
     title    = "Methodological diversity within L2 groups over time",
-    subtitle = "Grey dots = observed annual diversity; ribbon = 50%/90% CI on structural trend (mu + beta only)"
+    subtitle = "Grey dots = observed annual diversity; ribbon = 50%/90% posterior credible intervals"
   ) +
   theme_minimal(base_size = 8) +
   theme(

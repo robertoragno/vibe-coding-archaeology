@@ -18,7 +18,11 @@ data {
 }
 
 parameters {
-  real<lower=0> kappa;
+  // Log-scale parameterisation of phi (precision/concentration parameter).
+  // Equivalent prior to phi ~ lognormal(log(100), 1.0), but HMC mixes much
+  // better in unbounded log space than in the constrained positive reals.
+  // Higher phi = tighter concentration around the mean shares (less overdispersion).
+  real log_phi;
   array[N_groups] vector[K_max] mu_raw;
   array[N_groups] vector[K_max] beta_method_raw;
   real<lower=0> sigma_beta;
@@ -27,6 +31,8 @@ parameters {
 }
 
 transformed parameters {
+  real<lower=0> phi = exp(log_phi);  // precision parameter; phi > 0
+
   // Non-centred reparameterisation for both slope parameters
   array[N_groups] vector[K_max] beta_method;
   array[N_groups] vector[K_max] gamma_method;
@@ -37,8 +43,10 @@ transformed parameters {
 }
 
 model {
-  // Prior on kappa: weakly informative, centred on 25, spanning ~5-130
-  kappa ~ lognormal(log(25), 0.8);
+  // Prior on log_phi: N(log(100), 1.0)
+  // => phi ~ lognormal(log(100), 1.0): median=100, 90% CI ~[14, 716]
+  // Sampling on log scale avoids boundary effects and improves HMC geometry.
+  log_phi ~ normal(log(100), 1.0);
 
   // Hyperpriors: tighter on gamma (post-LLM shift expected smaller)
   sigma_beta  ~ exponential(2);
@@ -75,7 +83,7 @@ model {
       vector[K] eta   = mu_raw[g][1:K]
                         + beta_method[g][1:K]  * year_std[t]
                         + gamma_method[g][1:K] * post_llm[t];
-      vector[K] alpha = softmax(eta) * kappa;
+      vector[K] alpha = softmax(eta) * phi;
       array[K] int y  = counts[g, t, 1:K];
 
       target += dm_log(y, alpha);
@@ -100,7 +108,7 @@ generated quantities {
       if (N_gt > 0) {
         vector[K] y_k;
         for (k in 1:K) y_k[k] = counts[g, t, k];
-        p = dirichlet_rng(softmax(eta) * kappa + y_k);
+        p = dirichlet_rng(softmax(eta) * phi + y_k);
       } else {
         p = softmax(eta);
       }

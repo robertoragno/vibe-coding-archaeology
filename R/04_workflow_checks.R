@@ -13,7 +13,7 @@ rstan_options(auto_write = TRUE)
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 FIT_RDS       <- "data/output/fit.rds"
-FIT_K50_RDS   <- "data/output/fit_kappa50.rds"
+FIT_P50_RDS   <- "data/output/fit_phi50.rds"
 VOCAB_RDS     <- "data/output/vocab.rds"
 STAN_DATA_RDS <- "data/output/stan_data.rds"
 STAN_FILE     <- "stan/diversity_model.stan"
@@ -370,12 +370,12 @@ N_gt_obs <- sapply(seq_len(N_years),
                    function(t) sum(counts_arr[g_fake, t, 1:K_fake]))
 
 # Generate fake DM counts
-kappa_fake  <- 10.0
+phi_fake  <- 10.0
 fake_counts <- array(0L, dim = c(1L, N_years, K_fake))
 for (t in seq_len(N_years)) {
   if (N_gt_obs[t] == 0L) next
   eta   <- mu_true + beta_true * year_std[t] + gamma_true * post_llm[t]
-  alpha <- softmax_r(eta) * kappa_fake
+  alpha <- softmax_r(eta) * phi_fake
   fake_counts[1L, t, 1:K_fake] <- rdm_sample(N_gt_obs[t], alpha)
 }
 
@@ -385,7 +385,7 @@ stan_data_fake <- list(
   K_max    = K_fake,
   K_g      = array(K_fake, dim = 1L),
   counts   = fake_counts,
-  kappa    = kappa_fake,
+  phi    = phi_fake,
   year_std = year_std,
   post_llm = post_llm
 )
@@ -464,25 +464,25 @@ tg_photo(PLOT_FAKE, "Workflow check: Section 3 — Fake data recovery (sigma_gam
 # ══════════════════════════════════════════════════════════════════════════════
 # SECTION 4 — Prior Sensitivity Analysis (Gelman et al. §6.3)
 # ══════════════════════════════════════════════════════════════════════════════
-cat("\n===== SECTION 4: Prior Sensitivity Analysis (kappa) =====\n")
+cat("\n===== SECTION 4: Prior Sensitivity Analysis (phi) =====\n")
 
 sensitivity_done <- FALSE
 spearman_rho     <- NA_real_
 PLOT_SENS        <- file.path(OUT_DIR, "plot_prior_sensitivity.png")
 
-if (!file.exists(FIT_K50_RDS)) {
-  cat("Waiting for kappa=50 run — rerun this script after fit_kappa50.rds is available\n")
+if (!file.exists(FIT_P50_RDS)) {
+  cat("Waiting for phi=50 run — rerun this script after fit_phi50.rds is available\n")
 } else {
-  cat("fit_kappa50.rds found. Loading...\n")
-  fit_k50 <- readRDS(FIT_K50_RDS)
+  cat("fit_phi50.rds found. Loading...\n")
+  fit_p50 <- readRDS(FIT_P50_RDS)
 
   sg_k10 <- sigma_gamma_post
-  sg_k50 <- rstan::extract(fit_k50, pars = "sigma_gamma")$sigma_gamma
+  sg_k50 <- rstan::extract(fit_p50, pars = "sigma_gamma")$sigma_gamma
   sb_k10 <- sigma_beta_post
-  sb_k50 <- rstan::extract(fit_k50, pars = "sigma_beta")$sigma_beta
+  sb_k50 <- rstan::extract(fit_p50, pars = "sigma_beta")$sigma_beta
 
   gm_k10 <- rstan::extract(fit,     pars = "gamma_method")$gamma_method  # [S, G, K_max]
-  gm_k50 <- rstan::extract(fit_k50, pars = "gamma_method")$gamma_method
+  gm_k50 <- rstan::extract(fit_p50, pars = "gamma_method")$gamma_method
 
   # Posterior means and CI widths per (g, k) — padded slots included but near-zero
   gm10_means <- as.vector(apply(gm_k10, c(2, 3), mean))
@@ -494,28 +494,28 @@ if (!file.exists(FIT_K50_RDS)) {
 
   spearman_rho <- cor(gm10_means, gm50_means, method = "spearman")
   sensitivity_label <- dplyr::case_when(
-    spearman_rho > 0.95 ~ "ROBUST — kappa choice does not affect method rankings",
+    spearman_rho > 0.95 ~ "ROBUST — phi choice does not affect method rankings",
     spearman_rho > 0.70 ~ "MODERATE — some sensitivity, worth reporting",
-    TRUE                ~ "SENSITIVE — individual method conclusions depend on kappa"
+    TRUE                ~ "SENSITIVE — individual method conclusions depend on phi"
   )
 
-  # Top 10 gamma_method by |mean| at kappa=10
+  # Top 10 gamma_method by |mean| at phi=10
   top10_idx <- order(abs(gm10_means), decreasing = TRUE)[seq_len(min(10L, length(gm10_means)))]
-  cat("\nTop 10 gamma_method (kappa=10 vs kappa=50):\n")
+  cat("\nTop 10 gamma_method (phi=10 vs phi=50):\n")
   top10_df <- data.frame(
-    kappa10_mean = gm10_means[top10_idx],
-    kappa50_mean = gm50_means[top10_idx]
+    phi10_mean = gm10_means[top10_idx],
+    phi50_mean = gm50_means[top10_idx]
   )
   print(round(top10_df, 4))
 
   cat("\nsigma_gamma comparison:\n")
-  cat(sprintf("  kappa=10: mean=%.4f  SD=%.4f  90%%CI=[%.4f, %.4f]\n",
+  cat(sprintf("  phi=10: mean=%.4f  SD=%.4f  90%%CI=[%.4f, %.4f]\n",
               mean(sg_k10), sd(sg_k10),
               quantile(sg_k10, 0.05), quantile(sg_k10, 0.95)))
-  cat(sprintf("  kappa=50: mean=%.4f  SD=%.4f  90%%CI=[%.4f, %.4f]\n",
+  cat(sprintf("  phi=50: mean=%.4f  SD=%.4f  90%%CI=[%.4f, %.4f]\n",
               mean(sg_k50), sd(sg_k50),
               quantile(sg_k50, 0.05), quantile(sg_k50, 0.95)))
-  cat("Gamma rank correlation kappa=10 vs kappa=50: rho =", round(spearman_rho, 3), "\n")
+  cat("Gamma rank correlation phi=10 vs phi=50: rho =", round(spearman_rho, 3), "\n")
   cat("Sensitivity assessment:", sensitivity_label, "\n")
   cat("Note: in a Bayesian analysis we do not test significance of this correlation.\n")
   cat("We ask whether the ordinal story is consistent across model variants.\n")
@@ -523,25 +523,25 @@ if (!file.exists(FIT_K50_RDS)) {
   # ── Four-panel sensitivity plot ───────────────────────────────────────────
   df_sg <- data.frame(
     value = c(sg_k10, sg_k50),
-    kappa = rep(c("kappa=10", "kappa=50"), c(length(sg_k10), length(sg_k50)))
+    phi = rep(c("phi=10", "phi=50"), c(length(sg_k10), length(sg_k50)))
   )
   df_sb <- data.frame(
     value = c(sb_k10, sb_k50),
-    kappa = rep(c("kappa=10", "kappa=50"), c(length(sb_k10), length(sb_k50)))
+    phi = rep(c("phi=10", "phi=50"), c(length(sb_k10), length(sb_k50)))
   )
 
-  kappa_pal <- c("kappa=10" = "steelblue", "kappa=50" = "darkorange2")
+  phi_pal <- c("phi=10" = "steelblue", "phi=50" = "darkorange2")
 
-  p1s <- ggplot(df_sg, aes(x = value, fill = kappa)) +
+  p1s <- ggplot(df_sg, aes(x = value, fill = phi)) +
     geom_density(alpha = 0.50, colour = NA) +
-    scale_fill_manual(values = kappa_pal, name = NULL) +
+    scale_fill_manual(values = phi_pal, name = NULL) +
     labs(x = "sigma_gamma", y = "Density",
          title = "(1) sigma_gamma posteriors") +
     theme_minimal(base_size = 9) + theme(legend.position = "bottom")
 
-  p2s <- ggplot(df_sb, aes(x = value, fill = kappa)) +
+  p2s <- ggplot(df_sb, aes(x = value, fill = phi)) +
     geom_density(alpha = 0.50, colour = NA) +
-    scale_fill_manual(values = kappa_pal, name = NULL) +
+    scale_fill_manual(values = phi_pal, name = NULL) +
     labs(x = "sigma_beta", y = "Density",
          title = "(2) sigma_beta posteriors") +
     theme_minimal(base_size = 9) + theme(legend.position = "bottom")
@@ -551,7 +551,7 @@ if (!file.exists(FIT_K50_RDS)) {
     geom_point(alpha = 0.20, size = 0.7, colour = "grey30") +
     geom_abline(slope = 1, intercept = 0,
                 colour = "firebrick", linewidth = 0.6, linetype = "dashed") +
-    labs(x = "gamma mean (kappa=10)", y = "gamma mean (kappa=50)",
+    labs(x = "gamma mean (phi=10)", y = "gamma mean (phi=50)",
          title = sprintf("(3) gamma means  rho=%.3f", spearman_rho)) +
     theme_minimal(base_size = 9)
 
@@ -560,7 +560,7 @@ if (!file.exists(FIT_K50_RDS)) {
     geom_point(alpha = 0.20, size = 0.7, colour = "grey30") +
     geom_abline(slope = 1, intercept = 0,
                 colour = "firebrick", linewidth = 0.6, linetype = "dashed") +
-    labs(x = "CI width (kappa=10)", y = "CI width (kappa=50)",
+    labs(x = "CI width (phi=10)", y = "CI width (phi=50)",
          title = "(4) gamma 90% CI widths") +
     theme_minimal(base_size = 9)
 
@@ -570,7 +570,7 @@ if (!file.exists(FIT_K50_RDS)) {
     library(patchwork)
     p_sens <- (p1s | p2s) / (p3s | p4s) +
       plot_annotation(
-        title    = "Section 4 — Prior Sensitivity: kappa=10 vs kappa=50",
+        title    = "Section 4 — Prior Sensitivity: phi=10 vs phi=50",
         subtitle = sprintf("Spearman rho = %.4f — %s",
                            spearman_rho, sensitivity_label)
       )
@@ -579,7 +579,7 @@ if (!file.exists(FIT_K50_RDS)) {
   }
   if (!combined_ok && requireNamespace("gridExtra", quietly = TRUE)) {
     grob_title <- sprintf(
-      "Section 4 — Prior Sensitivity: kappa=10 vs kappa=50\nSpearman rho = %.4f — %s",
+      "Section 4 — Prior Sensitivity: phi=10 vs phi=50\nSpearman rho = %.4f — %s",
       spearman_rho, sensitivity_label
     )
     png(PLOT_SENS, width = 12, height = 9, units = "in", res = 150)
@@ -601,7 +601,7 @@ if (!file.exists(FIT_K50_RDS)) {
   }
 
   cat("Saved:", PLOT_SENS, "\n")
-  tg_photo(PLOT_SENS, "Workflow check: Section 4 — Prior sensitivity kappa=10 vs kappa=50")
+  tg_photo(PLOT_SENS, "Workflow check: Section 4 — Prior sensitivity phi=10 vs phi=50")
   sensitivity_done <- TRUE
 }
 
@@ -619,9 +619,9 @@ cat(sprintf("Fake data recovery:   sigma_gamma recovered [%s] — true value %s 
             if (inside_ci) "YES" else "NO",
             if (inside_ci) "inside" else "outside"))
 if (sensitivity_done) {
-  cat(sprintf("Prior sensitivity (kappa): [DONE] — Spearman rho = %.4f\n", spearman_rho))
+  cat(sprintf("Prior sensitivity (phi): [DONE] — Spearman rho = %.4f\n", spearman_rho))
 } else {
-  cat("Prior sensitivity (kappa): [PENDING] — rerun after fit_kappa50.rds is available\n")
+  cat("Prior sensitivity (phi): [PENDING] — rerun after fit_phi50.rds is available\n")
 }
 cat("=== RECOMMENDATION ===\n")
 
@@ -632,13 +632,13 @@ core_pass <- ppc1_pass &&
 if (core_pass) {
   cat("Model passes all core workflow checks. Results are credible for inference.\n")
   if (sensitivity_done && spearman_rho > 0.95) {
-    cat("Prior sensitivity: gamma rankings ROBUST to kappa choice (rho=",
+    cat("Prior sensitivity: gamma rankings ROBUST to phi choice (rho=",
         round(spearman_rho, 3), ").\n", sep = "")
   } else if (sensitivity_done && spearman_rho <= 0.95) {
-    cat("Prior sensitivity: kappa affects gamma rankings (rho=",
-        round(spearman_rho, 3), ") — discuss kappa choice in paper.\n", sep = "")
+    cat("Prior sensitivity: phi affects gamma rankings (rho=",
+        round(spearman_rho, 3), ") — discuss phi choice in paper.\n", sep = "")
   } else {
-    cat("Sensitivity pending: rerun after fit_kappa50.rds is available.\n")
+    cat("Sensitivity pending: rerun after fit_phi50.rds is available.\n")
   }
 } else {
   issues <- character(0)
@@ -662,10 +662,10 @@ cat("\nFilling docs/workflow_results.md and pushing to GitHub...\n")
 sensitivity_body <- if (sensitivity_done) {
   rho_line <- sprintf("Spearman ρ = %.4f (threshold 0.95) — gamma rankings are %s.",
                       spearman_rho, if (spearman_rho > 0.95) "ROBUST" else "SENSITIVE")
-  sg10_line <- sprintf("  kappa=10: mean=%.4f  SD=%.4f  90%%CI=[%.4f, %.4f]",
+  sg10_line <- sprintf("  phi=10: mean=%.4f  SD=%.4f  90%%CI=[%.4f, %.4f]",
                        mean(sg_k10), sd(sg_k10),
                        quantile(sg_k10, 0.05), quantile(sg_k10, 0.95))
-  sg50_line <- sprintf("  kappa=50: mean=%.4f  SD=%.4f  90%%CI=[%.4f, %.4f]",
+  sg50_line <- sprintf("  phi=50: mean=%.4f  SD=%.4f  90%%CI=[%.4f, %.4f]",
                        mean(sg_k50), sd(sg_k50),
                        quantile(sg_k50, 0.05), quantile(sg_k50, 0.95))
   paste0(
@@ -675,13 +675,13 @@ sensitivity_body <- if (sensitivity_done) {
     "![Prior sensitivity](../data/output/workflow/plot_prior_sensitivity.png)"
   )
 } else {
-  "_fit_kappa50.rds not yet available. Rerun `R/04_workflow_checks.R` after the kappa=50 fit completes._"
+  "_fit_phi50.rds not yet available. Rerun `R/04_workflow_checks.R` after the phi=50 fit completes._"
 }
 
 spearman_line <- if (sensitivity_done) {
   sprintf("Spearman ρ = %.4f", spearman_rho)
 } else {
-  "pending kappa=50 fit"
+  "pending phi=50 fit"
 }
 
 doc <- readLines("docs/workflow_results.md")
