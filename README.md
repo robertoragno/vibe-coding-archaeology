@@ -1,5 +1,7 @@
 ## Did LLMs cause convergence in computational archaeology methods?
 
+![Research workflow](docs/workflow_diagram.png)
+
 Imagine that every graduate student in a department suddenly started asking the same AI assistant for methodological advice. The assistant, trained on the same corpus, would naturally recommend the same handful of techniques — not because those techniques are best, but because they are most represented in its training data. Over time, the department's research would start to look eerily similar. This paper asks whether something like that is happening across computational archaeology.
 
 We assembled roughly 68,000 archaeology papers published between 2010 and 2025 and classified each one's methodology into a three-level taxonomy: broad families (L1), sub-disciplines (L2), and specific techniques (L3). The taxonomy was built with Qwen, a large language model, applied consistently to all abstracts. This gives us a record of how the methodological menu of the discipline has changed, year by year, at fine granularity.
