@@ -96,3 +96,45 @@ Posterior mean and 90% CI for gamma_method for each L2 sub-discipline whose CI e
 
 ![Raw counts](../data/output/l2/l2_plot_raw_counts.png)
 Raw observed paper counts for the same top 10 sub-disciplines. The orange curve is a non-parametric loess smoother fitted directly to the observed counts — not derived from the Bayesian model. Sanity check that the sub-disciplines flagged by the model show plausible trends in the raw data.
+
+## Phi-free results (concentration estimated from data)
+
+This section repeats the L2 analysis with phi treated as a free parameter estimated from data rather than fixed at 10. The model parameterises phi on the log scale (`log_phi ~ Normal(log(100), 1.0)`, i.e. `phi ~ lognormal(log(100), 1.0)`, median=100, 90% CI ≈ [14, 716]). This is the principled Bayesian alternative to the fixed-phi assumption.
+
+### Diagnostics
+
+| Quantity | Value |
+|---|---|
+| Divergent transitions | 0 |
+| sigma_gamma Rhat | {{L2_PHI_FREE_RHAT}} |
+| sigma_gamma ESS | {{L2_PHI_FREE_ESS}} |
+| Runtime (minutes) | {{L2_PHI_FREE_RUNTIME}} |
+| Converged? | {{L2_PHI_FREE_CONVERGED}} |
+
+### Key results
+
+| Parameter | phi-free |
+|---|---|
+| phi mean | {{L2_PHI_FREE_PHI_MEAN}} |
+| phi 95% CI | {{L2_PHI_FREE_PHI_CI}} |
+| sigma_gamma mean | {{L2_PHI_FREE_SIGMA_GAMMA_MEAN}} |
+| sigma_gamma 90% CI | {{L2_PHI_FREE_SIGMA_GAMMA_CI}} |
+| sigma_beta mean | {{L2_PHI_FREE_SIGMA_BETA_MEAN}} |
+| ratio gamma/beta | {{L2_PHI_FREE_RATIO}} |
+
+### Plots
+
+![Sigma and phi posteriors](../data/output/l2/phi_free/l2_kf_plot_sigma_posteriors.png)
+Three-panel: sigma_beta (left), sigma_gamma (centre) each compared to the phi=10 reference, and phi posterior vs prior (right). A phi posterior far above 100 means the data favour near-Multinomial behaviour — less overdispersion than the prior assumed.
+
+![Diversity by L1 group](../data/output/l2/phi_free/l2_kf_plot_diversity_by_group.png)
+Inverse Simpson index within each L1 family over 2010–2025 under the phi-free model. Compare to the fixed-phi version above.
+
+![Gamma dotplot](../data/output/l2/phi_free/l2_kf_plot_gamma_dotplot.png)
+L2 sub-disciplines with 90% CI for gamma excluding zero under the phi-free model. Red = gaining share post-2023, blue = losing share.
+
+![Top gamma trajectories](../data/output/l2/phi_free/l2_kf_plot_top_gamma_trajectories.png)
+Fitted share trajectories for the top 15 L2 sub-disciplines by |gamma| under the phi-free model. Ribbon = 80%/90% CI from 200 posterior draws.
+
+![Raw counts](../data/output/l2/phi_free/l2_kf_plot_raw_counts.png)
+Raw observed paper counts for the same top 15 sub-disciplines. Pure data sanity check — no model involved.

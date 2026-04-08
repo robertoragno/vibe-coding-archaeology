@@ -57,7 +57,7 @@ Methods losing share post-2023 (negative gamma):
 
 These are domain-specialised or statistically rigorous techniques that require methodological understanding to apply correctly — exactly the methods a vibe coder would bypass in favour of more generic alternatives.
 
-Note: individual gamma estimates are sensitive to the phi assumption (Spearman rho=0.565 between phi=10 and phi=50). The directional pattern is indicative but requires corroboration from Step 3.
+Note: the ranking of individual gamma estimates is moderately sensitive to the phi assumption — the ordinal agreement between posterior mean gammas under phi=10 and phi=50 is rho=0.565, meaning the specific methods identified as gaining or losing share change when phi changes. This is not a significance test but a consistency check: a value near 1 would mean the two models tell the same ordinal story; 0.565 means they agree only partially. The directional pattern (generic methods gaining, specialised methods losing) is consistent across specifications but requires corroboration from Step 3 before causal claims can be made.
 
 **Step 3 — Are the gaining methods the ones LLMs actually recommend? (in progress)**
 
