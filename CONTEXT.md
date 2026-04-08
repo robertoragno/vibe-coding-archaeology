@@ -12,9 +12,9 @@ Created 2026-04-03. Auto-push implemented in R/02_extract_plot.R (L3) and R/03_l
 ## File structure
 - R/00_data_prep.R         → reads qwen_dataset.xlsx, saves stan_data.rds + vocab.rds
 - R/01_fit_model.R         → fits Stan model (phi=10), saves fit.rds (guarded), sends Telegram
-- R/01b_fit_phi_free.R   → phi-free sensitivity fit; saves fit_phi_free.rds; auto-pushes docs/phi_results.md
+- R/01b_fit_phi_free.R   → phi-free sensitivity fit; saves fit_phi_free.rds; auto-pushes docs/l2_l3_results.md
 - R/02_extract_plot.R      → extracts draws, saves plots to data/output/l3/, auto-pushes docs/l3_results.md
-- R/03_l2_analysis.R       → L1->L2 complementary analysis; saves fit_l2.rds (guarded); auto-pushes docs/l2_results.md
+- R/03_l2_analysis.R       → L1->L2 complementary analysis; saves fit_l2.rds (guarded); auto-pushes docs/l1_l2_results.md
 - R/04_workflow_checks.R   → automated diagnostics and workflow validation
 - R/00b_phi_exploration.R → empirical phi estimation across L2 groups
 - stan/diversity_model.stan          → primary Stan model (L3-level, phi=10 fixed)
@@ -24,9 +24,10 @@ Created 2026-04-03. Auto-push implemented in R/02_extract_plot.R (L3) and R/03_l
 - data/output/phi_free/  → phi-free sensitivity PNGs
 - data/output/stan_data.rds + vocab.rds → committed
 - data/output/fit.rds + l2/fit_l2.rds + fit_phi_free.rds → gitignored (too large)
-- docs/l3_results.md       → auto-filled and pushed by R/02_extract_plot.R
-- docs/l2_results.md       → auto-filled and pushed by R/03_l2_analysis.R
-- docs/phi_results.md    → auto-filled and pushed by R/01b_fit_phi_free.R
+- docs/l2_l3_results.md    → primary analysis results (L2→L3, phi-free); pushed by R/02_extract_plot.R
+- docs/l1_l2_results.md   → sensitivity analysis results (L1→L2, phi-free); pushed by R/03_l2_analysis.R
+- docs/workflow_results.md → Bayesian workflow checks (prior predictive, PPC, fake data, phi sensitivity)
+- docs/archive/            → old docs (l3_results_old.md, l2_results_old.md, phi_results_old.md)
 - experiment/prompts/, experiment/responses/, experiment/analysis/ → LLM experiment scaffold
 
 ## Key technical facts
@@ -77,6 +78,11 @@ Created 2026-04-03. Auto-push implemented in R/02_extract_plot.R (L3) and R/03_l
 2. Compare sigma_gamma posteriors at L3 (fit.rds) vs L2 (fit_l2.rds)
 3. Run prompting experiment (see experiment/README.md)
 4. Correlate LLM recommendation frequencies with posterior mean gamma per L3 method
+
+## Naming conventions
+- phi is the Dirichlet-Multinomial concentration parameter throughout — never k, kappa, or κ
+- phi = 10: "conservative fixed baseline"; phi = 50: "higher regularisation fixed"; phi-free: lognormal(log(100), 1.0) prior
+- docs/l2_l3_results.md = primary analysis results; docs/l1_l2_results.md = sensitivity analysis results
 
 ## Hard constraints (read before editing scripts)
 - vocab.rds and stan_data.rds are in data/output/ — always load from there, never reconstruct inline

@@ -15,7 +15,6 @@ rstan_options(auto_write = TRUE)
 INPUT_FILE <- "data/input/qwen_dataset.xlsx"
 OUTPUT_DIR <- "data/output/l2"
 FIT_L2_RDS    <- "data/output/l2/fit_l2.rds"
-FIT_L2_K50_RDS <- "data/output/l2/fit_l2_phi50.rds"
 dir.create(OUTPUT_DIR, recursive = TRUE, showWarnings = FALSE)
 
 token   <- "TELEGRAM_BOT_TOKEN_REDACTED"
@@ -254,7 +253,8 @@ tryCatch({
   n_div    <- sum(rstan::get_divergent_iterations(l2_fit))
   div_flag <- if (n_div == 0) "Divergences: 0" else paste0("Divergences: ", n_div, " !!!")
 
-  sm <- rstan::summary(l2_fit, pars = c("sigma_beta", "sigma_gamma"))$summary
+  sm <- rstan::summary(l2_fit, pars = c("sigma_beta", "sigma_gamma"),
+                       probs = c(0.05, 0.95))$summary
 
   rhat_sb <- round(sm["sigma_beta",  "Rhat"],  3)
   rhat_sg <- round(sm["sigma_gamma", "Rhat"],  3)
@@ -317,98 +317,6 @@ tryCatch({
 }, warning = function(w) {
   message("Telegram diagnostics warning: ", conditionMessage(w))
 })
-
-# ── phi=50 robustness fit (guarded) ─────────────────────────────────────────
-if (!file.exists(FIT_L2_K50_RDS)) {
-  cat("\nFitting L2 phi=50 robustness check...\n")
-  stan_data_k50       <- stan_data
-  stan_data_k50$phi <- 50.0
-
-  cat("Compiling Stan model for phi=50...\n")
-  l2_mod_k50 <- stan_model(model_code = stan_code)
-
-  t_start50 <- proc.time()
-
-  l2_fit_k50 <- suppressWarnings(sampling(
-    l2_mod_k50,
-    data    = stan_data_k50,
-    chains  = 4,
-    iter    = 2000,
-    warmup  = 1000,
-    cores   = 4,
-    seed    = 42,
-    control = list(adapt_delta = 0.95, max_treedepth = 15),
-    refresh = 100
-  ))
-
-  t_elapsed50   <- proc.time() - t_start50
-  elapsed_min50 <- round(t_elapsed50["elapsed"] / 60, 1)
-  cat("phi=50 sampling done. Elapsed:", elapsed_min50, "minutes\n")
-
-  cat("\n--- phi=50 HMC diagnostics ---\n")
-  check_hmc_diagnostics(l2_fit_k50)
-
-  saveRDS(l2_fit_k50, FIT_L2_K50_RDS)
-  cat("L2 phi=50 fit saved to:", FIT_L2_K50_RDS, "\n")
-
-  # ── Telegram: L2 phi=50 robustness check ───────────────────────────────────
-  tryCatch({
-    n_div50    <- sum(rstan::get_divergent_iterations(l2_fit_k50))
-    div_flag50 <- if (n_div50 == 0) "Divergences: 0" else paste0("Divergences: ", n_div50, " !!!")
-
-    sm50 <- rstan::summary(l2_fit_k50, pars = c("sigma_beta", "sigma_gamma"))$summary
-
-    rhat_sb50 <- round(sm50["sigma_beta",  "Rhat"],  3)
-    rhat_sg50 <- round(sm50["sigma_gamma", "Rhat"],  3)
-    ess_sb50  <- round(sm50["sigma_beta",  "n_eff"])
-    ess_sg50  <- round(sm50["sigma_gamma", "n_eff"])
-
-    sg50_mean <- round(sm50["sigma_gamma", "mean"], 4)
-    sg50_lo   <- round(sm50["sigma_gamma", "5%"],   4)
-    sg50_hi   <- round(sm50["sigma_gamma", "95%"],  4)
-
-    msg50 <- paste(
-      "phi=50 robustness check",
-      div_flag50,
-      paste0("sigma_beta Rhat = ",  rhat_sb50),
-      paste0("sigma_gamma Rhat = ", rhat_sg50),
-      paste0("sigma_beta ESS = ",   ess_sb50),
-      paste0("sigma_gamma ESS = ",  ess_sg50),
-      paste0("sigma_gamma (KEY): mean = ", sg50_mean, ", 90% CI [", sg50_lo, ", ", sg50_hi, "]"),
-      paste0("Elapsed: ", elapsed_min50, " min"),
-      sep = "\n"
-    )
-
-    resp50 <- httr::POST(
-      url    = paste0("https://api.telegram.org/bot", token, "/sendMessage"),
-      body   = list(chat_id = chat_id, text = msg50),
-      encode = "form"
-    )
-    cat("Telegram L2 phi=50 status:", httr::status_code(resp50), "\n")
-  }, error = function(e) {
-    message("Telegram L2 phi=50 error: ", conditionMessage(e))
-  })
-
-} else {
-  message("fit_l2_phi50.rds already exists — skipping phi=50 fit.")
-  l2_fit_k50 <- readRDS(FIT_L2_K50_RDS)
-}
-
-# ── Robustness comparison: phi=10 vs phi=50 (L2) ─────────────────────────
-sm10_l2 <- rstan::summary(l2_fit,     pars = "sigma_gamma")$summary
-sm50_l2 <- rstan::summary(l2_fit_k50, pars = "sigma_gamma")$summary
-
-sg10_mean <- round(sm10_l2["sigma_gamma", "mean"], 4)
-sg10_lo   <- round(sm10_l2["sigma_gamma", "5%"],   4)
-sg10_hi   <- round(sm10_l2["sigma_gamma", "95%"],  4)
-sg50_mean <- round(sm50_l2["sigma_gamma", "mean"], 4)
-sg50_lo   <- round(sm50_l2["sigma_gamma", "5%"],   4)
-sg50_hi   <- round(sm50_l2["sigma_gamma", "95%"],  4)
-
-cat("=== ROBUSTNESS CHECK: phi=10 vs phi=50 ===\n")
-cat("sigma_gamma phi=10: mean=", sg10_mean, "90% CI [", sg10_lo, ",", sg10_hi, "]\n")
-cat("sigma_gamma phi=50: mean=", sg50_mean, "90% CI [", sg50_lo, ",", sg50_hi, "]\n")
-cat("Ratio of means:", round(sg50_mean/sg10_mean, 3), "\n")
 
 # ── Extract arrays ────────────────────────────────────────────────────────────
 mu_raw_arr       <- rstan::extract(l2_fit, pars = "mu_raw")$mu_raw
@@ -647,33 +555,6 @@ p4 <- ggplot(raw_all, aes(x = year, y = n_papers)) +
 out4 <- file.path(OUTPUT_DIR, "l2_plot_raw_counts.png")
 ggsave(out4, p4, width = 16, height = 10, units = "in", dpi = 150)
 cat("Plot saved to:", out4, "\n")
-
-# ── Telegram: send all L2 plots ───────────────────────────────────────────────
-all_plots <- c(out1, out2, out3, out4)
-
-cat("\nSending L2 plots via Telegram...\n")
-for (plot_path in all_plots) {
-  cat("Sending:", basename(plot_path), "\n")
-  tryCatch({
-    resp <- httr::POST(
-      url  = paste0("https://api.telegram.org/bot", token, "/sendPhoto"),
-      body = list(
-        chat_id = chat_id,
-        photo   = httr::upload_file(plot_path),
-        caption = paste0("L2 analysis: ", basename(plot_path))
-      ),
-      encode = "multipart"
-    )
-    status <- httr::status_code(resp)
-    cat("HTTP status:", status, "\n")
-    if (status != 200) {
-      cat("Response content:\n")
-      print(httr::content(resp, as = "text", encoding = "UTF-8"))
-    }
-  }, error = function(e) {
-    cat("WARNING: failed to send", basename(plot_path), ":", conditionMessage(e), "\n")
-  })
-}
 
 # ── Extract diagnostic values for L2 doc auto-fill ────────────────────────────
 n_divergences_l2    <- sum(rstan::get_divergent_iterations(l2_fit))

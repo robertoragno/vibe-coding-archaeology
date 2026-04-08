@@ -108,31 +108,31 @@ Note: with only 3 post-LLM years and moderate sample sizes, σ_gamma is weakly i
 
 ## Section 4 — Prior Sensitivity Analysis (§6.3)
 
-**Question:** do the conclusions change if we use κ = 50 instead of κ = 10?
+**Question:** do the conclusions change if we use phi = 50 (higher regularisation fixed) instead of phi = 10 (conservative fixed baseline)?
 
-κ controls the Dirichlet-Multinomial concentration: how closely observed proportions are expected to track the model's predicted shares in any given year. κ = 10 (primary analysis) allows moderate year-to-year deviation; κ = 50 implies much tighter tracking and less overdispersion.
+phi controls the Dirichlet-Multinomial concentration: how closely observed proportions are expected to track the model's predicted shares in any given year. phi = 10 (conservative fixed baseline) allows moderate year-to-year deviation; phi = 50 (higher regularisation fixed) implies much tighter tracking and less overdispersion.
 
 **Posterior comparison of σ_gamma:**
 
 | | mean | SD | 90% CI |
 |---|---|---|---|
-| κ = 10 (fixed) | 0.054 | 0.042 | [0.004, 0.132] |
-| κ = 50 (fixed) | 0.095 | 0.070 | [0.007, 0.229] |
+| phi = 10 (fixed) | 0.054 | 0.042 | [0.004, 0.132] |
+| phi = 50 (fixed) | 0.095 | 0.070 | [0.007, 0.229] |
 | φ free (v3) | 0.250 | 0.073 | [0.125, 0.365] |
 
-σ_gamma increases monotonically as the model gains freedom to fit φ. With κ = 10, some between-method variation is absorbed by the DM noise floor. With κ = 50, that escape route is closed and the model attributes more variation to β and γ. When φ is estimated from data (v3), φ concentrates at ~605 — far above both fixed values — and σ_gamma rises to 0.25 (90% CI [0.125, 0.365]). Across all three settings, σ_gamma remains credibly above zero, supporting the robustness of the global post-LLM signal.
+σ_gamma increases monotonically as the model gains freedom to fit φ. With phi = 10, some between-method variation is absorbed by the DM noise floor. With phi = 50, that escape route is closed and the model attributes more variation to β and γ. When φ is estimated from data (v3), φ concentrates at ~605 — far above both fixed values — and σ_gamma rises to 0.25 (90% CI [0.125, 0.365]). Across all three settings, σ_gamma remains credibly above zero, supporting the robustness of the global post-LLM signal.
 
-σ_beta also shifts monotonically (0.097 → 0.185 → 0.215 across φ = 10, 50, free), consistent with the same variance-reallocation mechanism.
+σ_beta also shifts monotonically (0.097 → 0.185 → 0.215 across phi = 10, phi = 50, phi free), consistent with the same variance-reallocation mechanism.
 
 **Rank stability of individual γ estimates:**
 
-The Spearman rank correlation between per-method posterior mean γ under κ=10 vs κ=50 is ρ = 0.565. In a Bayesian analysis we do not test whether this is 'significant' — we ask whether the ordinal story is consistent. A threshold of ρ > 0.95 would indicate that the ranking of methods by their post-LLM slope is essentially unchanged by the phi assumption. ρ = 0.565 means it is not: the specific methods identified as gaining or losing share post-2023 change meaningfully depending on the concentration assumption.
+The Spearman rank correlation between per-method posterior mean γ under phi=10 vs phi=50 is ρ = 0.565. In a Bayesian analysis we do not test whether this is 'significant' — we ask whether the ordinal story is consistent. A threshold of ρ > 0.95 would indicate that the ranking of methods by their post-LLM slope is essentially unchanged by the phi assumption. ρ = 0.565 means it is not: the specific methods identified as gaining or losing share post-2023 change meaningfully depending on the concentration assumption.
 
-**Implication:** the global finding (σ_gamma credibly above zero at both κ values) appears robust. The identification of specific methods does not. This has three consequences for the paper:
+**Implication:** the global finding (σ_gamma credibly above zero at both phi values) appears robust. The identification of specific methods does not. This has three consequences for the paper:
 
-1. Individual γ estimates should be presented with explicit caveats about κ sensitivity
-2. The prompting experiment is no longer optional corroboration — it is essential to identify which specific methods are genuinely LLM-driven, independent of the κ assumption
-3. The next modelling iteration treats κ as a parameter with a weakly informative lognormal prior — see Section 5 below.
+1. Individual γ estimates should be presented with explicit caveats about phi sensitivity
+2. The prompting experiment is no longer optional corroboration — it is essential to identify which specific methods are genuinely LLM-driven, independent of the phi assumption
+3. The next modelling iteration treats phi as a parameter with a weakly informative lognormal prior — see Section 5 below.
 
 ![Prior sensitivity](../data/output/workflow/plot_prior_sensitivity.png)
 
@@ -145,9 +145,9 @@ The Spearman rank correlation between per-method posterior mean γ under κ=10 v
 | Prior predictive | [PASS] prior covers plausible inv_simpson range |
 | Posterior predictive | 44 / 48 groups pass at 0.05–0.95 |
 | Fake data recovery | [YES] true σ_gamma inside 90% CI |
-| Prior sensitivity (κ / φ) | SENSITIVE — σ_gamma scales with φ; γ rankings shift (ρ=0.565 at fixed φ). φ-free v3: σ_gamma=0.25 (90% CI [0.125, 0.365]). Global signal robust across all three settings. |
+| Prior sensitivity (phi) | SENSITIVE — σ_gamma scales with phi; γ rankings shift (ρ=0.565 at fixed phi). phi-free v3: σ_gamma=0.25 (90% CI [0.125, 0.365]). Global signal robust across all three settings. |
 
-> Model passes core calibration checks. Global post-LLM signal (σ_gamma > 0) is robust across all three φ settings (fixed 10, fixed 50, estimated ~605). Individual method rankings are sensitive to φ — do not over-interpret specific γ estimates without prompting experiment corroboration. φ-free fit complete: see `docs/phi_results.md`.
+> Model passes core calibration checks. Global post-LLM signal (σ_gamma > 0) is robust across all three phi settings (phi=10 fixed, phi=50 fixed, phi estimated ~604). Individual method rankings are sensitive to phi — do not over-interpret specific γ estimates without prompting experiment corroboration. phi-free fit complete: see `docs/l2_l3_results.md`.
 
 ---
 

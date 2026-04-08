@@ -32,7 +32,7 @@ Yes. The global scale of post-2023 method-level change (sigma_gamma) is credibly
 |---|---|---|---|
 | Conservative baseline | 0.054 | [0.004, 0.132] | 10 (fixed) |
 | Higher regularisation | 0.095 | [0.007, 0.229] | 50 (fixed) |
-| phi estimated from data | 0.250 | [0.095, 0.387] | 604 (estimated) |
+| phi estimated from data | 0.250 | [0.125, 0.365] | 604 (estimated) |
 
 The empirical phi exploration (R/00b_phi_exploration.R) shows that most L2 groups have phi well above 10 — many above 100 — meaning the data are compositionally regular: observed proportions track the structural trend closely year to year. This makes phi=604 plausible and suggests the primary analysis (phi=10) substantially underestimates the signal.
 
@@ -77,9 +77,8 @@ In the 2–3 years since LLMs entered academic use, computational archaeology ha
 
 | Analysis | Description | Results |
 |---|---|---|
-| L2→L3 primary | Within each sub-discipline, specific technique shares over time | [View](docs/l3_results.md) |
-| L1→L2 sensitivity | Within each broad family, sub-discipline shares over time | [View](docs/l2_results.md) |
-| Phi analysis | Concentration parameter sensitivity and estimation | [View](docs/phi_results.md) |
+| L2→L3 primary | Within each sub-discipline, specific technique shares over time | [View](docs/l2_l3_results.md) |
+| L1→L2 sensitivity | Within each broad family, sub-discipline shares over time | [View](docs/l1_l2_results.md) |
 | Bayesian workflow | Prior predictive, PPC, fake data recovery, phi sensitivity | [View](docs/workflow_results.md) |
 
 ## Repository structure
@@ -102,10 +101,10 @@ In the 2–3 years since LLMs entered academic use, computational archaeology ha
 │   ├── phi_free/
 │   └── workflow/
 ├── docs/
-│   ├── l3_results.md
-│   ├── l2_results.md
-│   ├── phi_results.md
-│   └── workflow_results.md
+│   ├── l2_l3_results.md
+│   ├── l1_l2_results.md
+│   ├── workflow_results.md
+│   └── archive/
 └── experiment/
     ├── prompts/
     ├── responses/
