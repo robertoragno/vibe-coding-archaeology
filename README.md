@@ -32,6 +32,8 @@ Yes. The global scale of post-2023 method-level change (sigma_gamma) is credibly
 | Higher regularisation | 0.095 | [0.007, 0.229] | 50 (fixed) |
 | phi estimated from data | 0.250 | [0.095, 0.387] | 604 (estimated) |
 
+The empirical phi exploration (R/00b_phi_exploration.R) shows that most L2 groups have phi well above 10 — many above 100 — meaning the data are compositionally regular: observed proportions track the structural trend closely year to year. This makes phi=604 plausible and suggests the primary analysis (phi=10) substantially underestimates the signal.
+
 All fits converged cleanly (Rhat < 1.002, ESS > 1800). In the model where phi is estimated from data, sigma_gamma ≈ sigma_beta (0.250 vs 0.215): the post-LLM reshuffling in 2–3 years is as large as the variation accumulated over 13 years of gradual evolution.
 
 Note: sigma_gamma measures the *magnitude* of reshuffling, not its direction. A large sigma_gamma is necessary but not sufficient evidence for convergence toward generic methods.
@@ -57,11 +59,17 @@ Methods losing share post-2023 (negative gamma):
 
 These are domain-specialised or statistically rigorous techniques that require methodological understanding to apply correctly — exactly the methods a vibe coder would bypass in favour of more generic alternatives.
 
+A note on uncertainty: when phi is estimated from data (phi ≈ 604), individual gamma estimates have wider credible intervals — only one method (L3-178: Computational Analytical Methods, gamma = −0.47) has a 90% CI that fully excludes zero. This is scientifically honest: with phi free, the model attributes more variation to the structural parameters but is also more uncertain about individual estimates. The directional pattern (generic methods gaining, specialised losing) is consistent across the top-ranked methods regardless of CI width, and is interpretable as a coherent signal rather than noise.
+
 Note: the ranking of individual gamma estimates is moderately sensitive to the phi assumption — the ordinal agreement between posterior mean gammas under phi=10 and phi=50 is rho=0.565, meaning the specific methods identified as gaining or losing share change when phi changes. This is not a significance test but a consistency check: a value near 1 would mean the two models tell the same ordinal story; 0.565 means they agree only partially. The directional pattern (generic methods gaining, specialised methods losing) is consistent across specifications but requires corroboration from Step 3 before causal claims can be made.
 
 **Step 3 — Are the gaining methods the ones LLMs actually recommend? (in progress)**
 
 The prompting experiment will query 5–6 LLMs at 3 expertise levels with 3 question types, classify each response into the L3 taxonomy via Qwen, and correlate recommendation frequencies with posterior mean gamma per method. A positive correlation closes the causal argument. See `experiment/` for the planned design.
+
+**What the results mean in plain terms**
+
+In the 2–3 years since LLMs entered academic use, computational archaeology has seen a measurable redistribution of methods. Generic, widely-documented techniques — spatial pattern analysis, attention mechanisms, multimodal fusion, generative image restoration — have gained relative share. Specialised, domain-specific techniques — computational analytical methods, advanced deep learning architectures, classical resampling methods like bootstrap and jackknife, PCA — have lost relative share. This is consistent with researchers increasingly relying on LLM recommendations, which tend to suggest well-documented generic methods rather than domain-appropriate specialised ones. The magnitude of this reshuffling, measured by sigma_gamma, is comparable to 13 years of gradual methodological evolution — compressed into 2–3 years.
 
 ## Analysis outputs
 

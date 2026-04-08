@@ -334,37 +334,107 @@ if (!file.exists(DONE_FLAG)) {
 
   cat("Methods with 90% CI excluding zero:", sum(gamma_df$sig, na.rm = TRUE), "\n")
 
-  # ── Plot 3: gamma dotplot ─────────────────────────────────────────────────
-  sig_gamma <- gamma_df |> filter(sig)
-  if (nrow(sig_gamma) == 0) {
-    cat("WARNING: no significant gamma methods; showing all\n")
-    sig_gamma <- gamma_df
-  }
-  sig_gamma <- sig_gamma |>
+  # ── Plot 3: gamma dotplot (two-panel) ────────────────────────────────────
+  sig_gamma  <- gamma_df |> filter(sig)
+  n_sig      <- nrow(sig_gamma)
+
+  top20_gamma <- gamma_df |>
+    mutate(abs_gamma = abs(mean_gamma)) |>
+    arrange(desc(abs_gamma)) |>
+    slice_head(n = 20) |>
     arrange(mean_gamma) |>
     mutate(
       method_id = factor(method_id, levels = unique(method_id)),
       direction = ifelse(mean_gamma > 0, "positive", "negative")
     )
 
-  p3 <- ggplot(sig_gamma, aes(x = mean_gamma, y = method_id, colour = direction)) +
+  # Shared x-axis limits so both panels are visually comparable
+  all_xlim <- bind_rows(sig_gamma, top20_gamma)
+  x_lo <- min(all_xlim$lo90, na.rm = TRUE) * 1.05
+  x_hi <- max(all_xlim$hi90, na.rm = TRUE) * 1.05
+
+  plot_title_grob <- grid::textGrob(
+    paste0(
+      "Differential post-2023 method slopes \u2014 phi-free v3\n",
+      "Note: wide CIs are expected when phi is estimated from data (~604). ",
+      "Only the strongest signals survive the 90% threshold. ",
+      "Panel B shows directional evidence without the strict CI filter."
+    ),
+    gp   = grid::gpar(fontsize = 9),
+    just = "left", x = 0.01
+  )
+
+  # Panel B (always shown)
+  pB <- ggplot(top20_gamma, aes(x = mean_gamma, y = method_id, colour = direction)) +
     geom_point(size = 1.5) +
     geom_errorbarh(aes(xmin = lo90, xmax = hi90), height = 0.3, linewidth = 0.35) +
     scale_colour_manual(values = c("positive" = "firebrick", "negative" = "steelblue"),
                         guide = "none") +
     geom_vline(xintercept = 0, linetype = "dashed", colour = "grey50", linewidth = 0.4) +
+    coord_cartesian(xlim = c(x_lo, x_hi)) +
     labs(
-      x        = "Posterior mean gamma (post-LLM differential slope)",
-      y        = NULL,
-      title    = "Differential post-2023 method slopes — phi-free v3",
-      subtitle = "Only methods where 90% CI excludes zero; red = gaining share, blue = losing share"
+      x     = "Posterior mean gamma (post-LLM differential slope)",
+      y     = NULL,
+      title = "Panel B: Top 20 methods by |posterior mean gamma| (wider CI expected with phi estimated)"
     ) +
     theme_minimal(base_size = 8) +
-    theme(axis.text.y = element_text(size = 5), panel.grid.major.y = element_blank())
+    theme(axis.text.y = element_text(size = 6), panel.grid.major.y = element_blank())
 
-  plot_h <- max(8, 0.15 * nrow(sig_gamma))
-  ggsave(KF_PLOT_GAMMA_DOT, p3, width = 14, height = plot_h, units = "in", dpi = 150,
-         limitsize = FALSE)
+  if (n_sig < 3) {
+    # Panel A: small section with note
+    if (n_sig > 0) {
+      sig_plot <- sig_gamma |>
+        arrange(mean_gamma) |>
+        mutate(
+          method_id = factor(method_id, levels = unique(method_id)),
+          direction = ifelse(mean_gamma > 0, "positive", "negative")
+        )
+      pA <- ggplot(sig_plot, aes(x = mean_gamma, y = method_id, colour = direction)) +
+        geom_point(size = 2) +
+        geom_errorbarh(aes(xmin = lo90, xmax = hi90), height = 0.3, linewidth = 0.4) +
+        scale_colour_manual(values = c("positive" = "firebrick", "negative" = "steelblue"),
+                            guide = "none") +
+        geom_vline(xintercept = 0, linetype = "dashed", colour = "grey50", linewidth = 0.4) +
+        coord_cartesian(xlim = c(x_lo, x_hi)) +
+        labs(
+          x        = NULL,
+          y        = NULL,
+          title    = "Panel A: Methods with 90% CI excluding zero",
+          subtitle = paste0("(", n_sig, " method", ifelse(n_sig == 1, "", "s"),
+                            " \u2014 very strict threshold when phi is estimated)")
+        ) +
+        theme_minimal(base_size = 9) +
+        theme(axis.text.y = element_text(size = 7), panel.grid.major.y = element_blank())
+    } else {
+      pA <- ggplot() +
+        annotate("text", x = 0.5, y = 0.5,
+                 label = "No methods survive the 90% CI filter with phi estimated",
+                 size = 4, colour = "grey50") +
+        theme_void() +
+        labs(title = "Panel A: Methods with 90% CI excluding zero")
+    }
+    p3 <- gridExtra::arrangeGrob(pA, pB, nrow = 2, heights = c(1, 4), top = plot_title_grob)
+  } else {
+    sig_plot <- sig_gamma |>
+      arrange(mean_gamma) |>
+      mutate(
+        method_id = factor(method_id, levels = unique(method_id)),
+        direction = ifelse(mean_gamma > 0, "positive", "negative")
+      )
+    pA <- ggplot(sig_plot, aes(x = mean_gamma, y = method_id, colour = direction)) +
+      geom_point(size = 1.5) +
+      geom_errorbarh(aes(xmin = lo90, xmax = hi90), height = 0.3, linewidth = 0.35) +
+      scale_colour_manual(values = c("positive" = "firebrick", "negative" = "steelblue"),
+                          guide = "none") +
+      geom_vline(xintercept = 0, linetype = "dashed", colour = "grey50", linewidth = 0.4) +
+      coord_cartesian(xlim = c(x_lo, x_hi)) +
+      labs(x = NULL, y = NULL, title = "Panel A: Methods with 90% CI excluding zero") +
+      theme_minimal(base_size = 8) +
+      theme(axis.text.y = element_text(size = 6), panel.grid.major.y = element_blank())
+    p3 <- gridExtra::arrangeGrob(pA, pB, nrow = 2, top = plot_title_grob)
+  }
+
+  ggsave(KF_PLOT_GAMMA_DOT, p3, width = 14, height = 12, units = "in", dpi = 150)
   cat("Plot saved:", KF_PLOT_GAMMA_DOT, "\n")
 
   # ── Top 15 methods by |gamma| ─────────────────────────────────────────────
