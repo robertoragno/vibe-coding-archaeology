@@ -48,31 +48,16 @@ _v3 key change: phi sampled as log_phi (unbounded) for better HMC geometry; warm
 
 | Parameter | phi free v3 |
 |---|---|
-| phi mean | — |
-| phi 90% CI | — |
-| sigma_gamma mean | — |
-| sigma_gamma 90% CI | — |
-| sigma_beta mean | — |
-| Rhat sigma_gamma | — |
-| ESS sigma_gamma | — |
-| Runtime | — |
-
-### Phi-free results (v2, unconverged — for reference only)
-
-| Parameter | phi free v2 |
-|---|---|
-| phi mean | 599.6 |
-| phi 90% CI | [254.1, 1505.7] |
-| sigma_gamma mean | 0.25 |
-| sigma_gamma 90% CI | [0.0426, 0.3825] |
-| sigma_beta mean | 0.2129 |
-| Rhat sigma_gamma | 1.0818 |
-| ESS sigma_gamma | 67 |
-| Runtime | 157.5 min |
+| phi mean | 604.6 |
+| phi 90% CI | [254.1, 1503.5] |
+| sigma_gamma mean | 0.2502 |
+| sigma_gamma 90% CI | [0.095, 0.3865] |
+| sigma_beta mean | 0.2148 |
+| Rhat sigma_gamma | 1.0019 |
+| ESS sigma_gamma | 1824 |
+NA
 
 ### Plots (phi-free v3)
-
-> Plots will be updated when v3 fit completes.
 
 #### 1. Parameter posteriors
 Left: sigma_beta (baseline linear trend), centre: sigma_gamma (post-LLM shift scale) —
@@ -90,15 +75,24 @@ Dashed red line = 2023 LLM adoption boundary.
 ![Diversity by L2 group](../data/output/phi_free/kf_plot_diversity_by_group.png)
 
 #### 3. Differential post-2023 slopes (gamma_method)
-Methods where the 90% posterior CI for gamma excludes zero — i.e., credible post-LLM
-slope change. Red = gaining share, blue = losing share. With ESS=67, almost no methods
-pass this threshold; the near-empty plot is a convergence symptom, not a scientific finding.
+Methods where the 90% posterior CI for gamma excludes zero — credible evidence of a
+post-LLM slope change. Red = gaining share post-2023, blue = losing share.
 
 ![Gamma dotplot](../data/output/phi_free/kf_plot_gamma_dotplot.png)
 
 #### 4. Share trajectories: top 15 methods by |gamma|
-Model-fitted share trajectories for the 15 methods with the largest absolute posterior mean
-gamma. Shows whether the post-2023 trend change is visible in the fitted shares.
+
+**How this differs from plot 2**: Plot 2 shows _aggregate diversity_ — the effective number
+of L3 techniques in active use within each L2 group (inverse Simpson index), one panel per
+group. That answers "is this sub-discipline becoming more or less methodologically diverse?"
+
+This plot shows _individual method shares_ for the 15 specific L3 techniques with the largest
+|gamma| (the biggest estimated post-2023 slope change). Each panel is one method; the y-axis
+is that method's estimated proportion of papers within its L2 group. The ribbon is the 80%/90%
+posterior CI from 200 posterior draws. The trajectory change at the 2023 boundary (dashed line)
+is the signal sigma_gamma is measuring at the global level.
+
+In short: plot 2 = the forest (group-level diversity); plot 4 = the individual trees that moved most.
 
 ![Top gamma trajectories](../data/output/phi_free/kf_plot_top_gamma_trajectories.png)
 
@@ -114,5 +108,4 @@ Useful sanity check: does the raw signal match what the model recovers?
 |---|---|---|---|---|---|
 | Fixed phi = 10 | 10 (fixed) | 0.0563 | [0.0018, 0.1671] | YES | Primary model; phi is a Dirac-delta prior |
 | Fixed phi = 50 | 50 (fixed) | ~0.095 | — | YES | Sensitivity check; not Bayesian |
-| Phi free (v2) | 599.6 (estimated) | 0.25 | [0.0426, 0.3825] | PARTIAL (ESS=67) | phi ~ lognormal, direct parameterisation |
-| Phi free (v3) | — | — | — | PENDING | log_phi parameterisation; genuinely Bayesian |
+| Phi free (v3) | 604.6 (estimated) | 0.2502 | [0.095, 0.3865] | YES (Rhat OK, ESS OK) | log_phi parameterisation; genuinely Bayesian |
