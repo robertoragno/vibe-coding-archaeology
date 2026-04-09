@@ -85,7 +85,7 @@ Note: change = (exp(gamma) − 1) × 100. At the L1→L2 level, fewer papers per
 ## Plots
 
 ![Sigma posteriors](../data/output/l2/phi_free/l2_kf_plot_sigma_posteriors.png)
-Three-panel: sigma_beta (left), sigma_gamma (centre) each compared to a fixed-phi reference, and phi posterior vs prior (right). Phi concentrating far above 100 confirms near-Multinomial behaviour at this taxonomic level too.
+Three-panel: sigma_beta posterior (left), sigma_gamma posterior (centre), phi posterior vs prior (right). Phi concentrating far above 100 confirms near-Multinomial behaviour at this taxonomic level too.
 
 ![Diversity by L1 group](../data/output/l2/phi_free/l2_kf_plot_diversity_by_group.png)
 Inverse Simpson index within each L1 family over 2010–2025 under the phi-free model. Grey dots = observed annual diversity; ribbon = 50%/90% posterior credible intervals. Dashed line = 2023 LLM adoption boundary.

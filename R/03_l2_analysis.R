@@ -780,10 +780,6 @@ if (!file.exists(FIT_L2_KF_RDS)) {
   phi_draws_kf <- rstan::extract(l2_fit_kf, pars = "phi")$phi
   sg_draws_kf  <- rstan::extract(l2_fit_kf, pars = "sigma_gamma")$sigma_gamma
   sb_draws_kf  <- rstan::extract(l2_fit_kf, pars = "sigma_beta")$sigma_beta
-  # also grab fixed-phi reference draws for comparison panels
-  sb_draws_ref <- rstan::extract(l2_fit,    pars = "sigma_beta")$sigma_beta
-  sg_draws_ref <- rstan::extract(l2_fit,    pars = "sigma_gamma")$sigma_gamma
-
   S_kf <- dim(mu_raw_kf)[1]
 
   KF_PLOT_SIGMA     <- file.path(KF_OUTPUT_DIR, "l2_kf_plot_sigma_posteriors.png")
@@ -793,18 +789,6 @@ if (!file.exists(FIT_L2_KF_RDS)) {
   KF_PLOT_RAW       <- file.path(KF_OUTPUT_DIR, "l2_kf_plot_raw_counts.png")
 
   # ── Plot 1: sigma posteriors + phi ─────────────────────────────────────────
-  sigma_df_kf <- data.frame(
-    value     = c(sb_draws_kf, sb_draws_ref, sg_draws_kf, sg_draws_ref),
-    parameter = c(rep("sigma_beta",  length(sb_draws_kf)),
-                  rep("sigma_beta",  length(sb_draws_ref)),
-                  rep("sigma_gamma", length(sg_draws_kf)),
-                  rep("sigma_gamma", length(sg_draws_ref))),
-    model     = c(rep("phi free",      length(sb_draws_kf)),
-                  rep("fixed-phi ref", length(sb_draws_ref)),
-                  rep("phi free",      length(sg_draws_kf)),
-                  rep("fixed-phi ref", length(sg_draws_ref)))
-  )
-
   x_phi_max <- quantile(phi_draws_kf, 0.999)
   x_phi_seq <- seq(0.1, x_phi_max * 1.5, length.out = 500)
   phi_prior_df_kf <- data.frame(
@@ -812,22 +796,15 @@ if (!file.exists(FIT_L2_KF_RDS)) {
     density = dlnorm(x_phi_seq, log(100), 1.0)
   )
 
-  p_sb_kf <- ggplot(sigma_df_kf |> filter(parameter == "sigma_beta"),
-                    aes(x = value, colour = model, linetype = model)) +
-    geom_density(fill = NA) +
-    scale_colour_manual(values = c("phi free" = "steelblue", "fixed-phi ref" = "steelblue4")) +
-    scale_linetype_manual(values = c("phi free" = "solid", "fixed-phi ref" = "dashed")) +
-    labs(x = "sigma_beta", y = "Density", title = "sigma_beta", colour = NULL, linetype = NULL) +
-    theme_minimal(base_size = 11) + theme(legend.position = "bottom")
+  p_sb_kf <- ggplot(data.frame(value = sb_draws_kf), aes(x = value)) +
+    geom_density(fill = "steelblue", colour = "steelblue", alpha = 0.4) +
+    labs(x = "sigma_beta", y = "Density", title = "sigma_beta") +
+    theme_minimal(base_size = 11)
 
-  p_sg_kf <- ggplot(sigma_df_kf |> filter(parameter == "sigma_gamma"),
-                    aes(x = value, colour = model, linetype = model)) +
-    geom_density(fill = NA) +
-    scale_colour_manual(values = c("phi free" = "firebrick", "fixed-phi ref" = "firebrick4")) +
-    scale_linetype_manual(values = c("phi free" = "solid", "fixed-phi ref" = "dashed")) +
-    labs(x = "sigma_gamma", y = "Density", title = "sigma_gamma (post-LLM shift)",
-         colour = NULL, linetype = NULL) +
-    theme_minimal(base_size = 11) + theme(legend.position = "bottom")
+  p_sg_kf <- ggplot(data.frame(value = sg_draws_kf), aes(x = value)) +
+    geom_density(fill = "firebrick", colour = "firebrick", alpha = 0.4) +
+    labs(x = "sigma_gamma", y = "Density", title = "sigma_gamma (post-LLM shift)") +
+    theme_minimal(base_size = 11)
 
   p_phi_kf <- ggplot(data.frame(value = phi_draws_kf), aes(x = value)) +
     geom_density(colour = "darkorchid", fill = "darkorchid", alpha = 0.3) +

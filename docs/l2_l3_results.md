@@ -87,7 +87,7 @@ Note: change = (exp(gamma) − 1) × 100. Individual estimates are sensitive to 
 ## Plots
 
 ![Sigma posteriors](../data/output/phi_free/kf_plot_sigma_posteriors.png)
-Three-panel: sigma_beta (left), sigma_gamma (centre) each compared to a fixed-phi reference, and phi posterior vs prior (right). Phi concentrating far above its prior median (100) confirms the data favour near-Multinomial behaviour.
+Three-panel: sigma_beta posterior (left), sigma_gamma posterior (centre), phi posterior vs prior (right). Phi concentrating far above its prior median (100) confirms the data favour near-Multinomial behaviour.
 
 ![Diversity by group](../data/output/phi_free/kf_plot_diversity_by_group.png)
 Inverse Simpson index (effective number of L3 techniques) within each L2 sub-discipline over 2010–2025. Ribbon = 50%/90% posterior credible intervals. Dashed line = 2023 LLM adoption boundary.

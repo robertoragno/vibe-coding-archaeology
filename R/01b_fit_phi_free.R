@@ -122,7 +122,6 @@ if (!file.exists(DONE_FLAG)) {
     fmt_par("sigma_beta"),
     fmt_par("sigma_gamma"),
     fmt_par("phi"),
-    paste("Reference (fixed-phi): sigma_gamma_ref~0.054"),
     runtime_flag,
     sep = "\n"
   )
@@ -155,27 +154,9 @@ if (!file.exists(DONE_FLAG)) {
   K_max <- dim(mu_raw_arr)[3]
 
   # ── Plot 1: sigma posteriors — 3 panels ─────────────────────────────────────
-  sigma_beta_draws_kf  <- rstan::extract(fit, pars = "sigma_beta")$sigma_beta
-  sigma_gamma_draws_kf <- rstan::extract(fit, pars = "sigma_gamma")$sigma_gamma
-  phi_draws_kf       <- rstan::extract(fit, pars = "phi")$phi
-
-  fit_ref <- readRDS("data/output/fit.rds")
-  sigma_beta_draws_ref  <- rstan::extract(fit_ref, pars = "sigma_beta")$sigma_beta
-  sigma_gamma_draws_ref <- rstan::extract(fit_ref, pars = "sigma_gamma")$sigma_gamma
-  rm(fit_ref)
-
-  sigma_df <- data.frame(
-    value     = c(sigma_beta_draws_kf,  sigma_beta_draws_ref,
-                  sigma_gamma_draws_kf, sigma_gamma_draws_ref),
-    parameter = c(rep("sigma_beta",  length(sigma_beta_draws_kf)),
-                  rep("sigma_beta",  length(sigma_beta_draws_ref)),
-                  rep("sigma_gamma", length(sigma_gamma_draws_kf)),
-                  rep("sigma_gamma", length(sigma_gamma_draws_ref))),
-    model     = c(rep("phi free v3",      length(sigma_beta_draws_kf)),
-                  rep("fixed-phi ref",   length(sigma_beta_draws_ref)),
-                  rep("phi free v3",      length(sigma_gamma_draws_kf)),
-                  rep("fixed-phi ref",   length(sigma_gamma_draws_ref)))
-  )
+  sigma_beta_draws  <- rstan::extract(fit, pars = "sigma_beta")$sigma_beta
+  sigma_gamma_draws <- rstan::extract(fit, pars = "sigma_gamma")$sigma_gamma
+  phi_draws_kf      <- rstan::extract(fit, pars = "phi")$phi
 
   x_phi_max    <- quantile(phi_draws_kf, 0.999)
   x_phi_seq    <- seq(0.1, x_phi_max * 1.5, length.out = 500)
@@ -184,27 +165,17 @@ if (!file.exists(DONE_FLAG)) {
     density = dlnorm(x_phi_seq, log(100), 1.0)
   )
 
-  p_sb <- ggplot(sigma_df |> filter(parameter == "sigma_beta"),
-                 aes(x = value, colour = model, linetype = model)) +
-    geom_density(fill = NA) +
-    scale_colour_manual(values = c("phi free v3" = "steelblue", "fixed-phi ref" = "steelblue4")) +
-    scale_linetype_manual(values = c("phi free v3" = "solid", "fixed-phi ref" = "dashed")) +
+  p_sb <- ggplot(data.frame(value = sigma_beta_draws), aes(x = value)) +
+    geom_density(fill = "steelblue", colour = "steelblue", alpha = 0.4) +
     labs(x = "sigma_beta", y = "Density",
-         title = "sigma_beta (baseline trend)",
-         colour = "Model", linetype = "Model") +
-    theme_minimal(base_size = 11) +
-    theme(legend.position = "bottom")
+         title = "sigma_beta (baseline trend)") +
+    theme_minimal(base_size = 11)
 
-  p_sg <- ggplot(sigma_df |> filter(parameter == "sigma_gamma"),
-                 aes(x = value, colour = model, linetype = model)) +
-    geom_density(fill = NA) +
-    scale_colour_manual(values = c("phi free v3" = "firebrick", "fixed-phi ref" = "firebrick4")) +
-    scale_linetype_manual(values = c("phi free v3" = "solid", "fixed-phi ref" = "dashed")) +
+  p_sg <- ggplot(data.frame(value = sigma_gamma_draws), aes(x = value)) +
+    geom_density(fill = "firebrick", colour = "firebrick", alpha = 0.4) +
     labs(x = "sigma_gamma", y = "Density",
-         title = "sigma_gamma (post-LLM shift)",
-         colour = "Model", linetype = "Model") +
-    theme_minimal(base_size = 11) +
-    theme(legend.position = "bottom")
+         title = "sigma_gamma (post-LLM shift)") +
+    theme_minimal(base_size = 11)
 
   p_phi <- ggplot(data.frame(value = phi_draws_kf), aes(x = value)) +
     geom_density(colour = "darkorchid", fill = "darkorchid", alpha = 0.3) +
@@ -218,7 +189,7 @@ if (!file.exists(DONE_FLAG)) {
 
   p2 <- gridExtra::arrangeGrob(
     p_sb, p_sg, p_phi, nrow = 1,
-    top = "Sigma posteriors: phi-free model (solid) vs fixed-phi reference (dashed)"
+    top = "Sigma posteriors — phi-free model"
   )
   ggsave(KF_PLOT_SIGMA, p2, width = 10, height = 5, units = "in", dpi = 150)
   cat("Plot saved:", KF_PLOT_SIGMA, "\n")
