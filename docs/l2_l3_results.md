@@ -87,7 +87,7 @@ Note: change = (exp(gamma) − 1) × 100. Individual estimates are sensitive to 
 ## Plots
 
 ![Sigma posteriors](../data/output/phi_free/kf_plot_sigma_posteriors.png)
-Three-panel: sigma_beta (left), sigma_gamma (centre) each compared to the phi=10 reference, and phi posterior vs prior (right). Phi concentrating far above its prior median (100) confirms the data favour near-Multinomial behaviour.
+Three-panel: sigma_beta (left), sigma_gamma (centre) each compared to a fixed-phi reference, and phi posterior vs prior (right). Phi concentrating far above its prior median (100) confirms the data favour near-Multinomial behaviour.
 
 ![Diversity by group](../data/output/phi_free/kf_plot_diversity_by_group.png)
 Inverse Simpson index (effective number of L3 techniques) within each L2 sub-discipline over 2010–2025. Ribbon = 50%/90% posterior credible intervals. Dashed line = 2023 LLM adoption boundary.
@@ -100,3 +100,74 @@ Fitted share trajectories for the top 15 L3 techniques by |gamma|. Each panel is
 
 ![Raw counts](../data/output/phi_free/kf_plot_raw_counts.png)
 Observed paper counts (grey dots) with loess smoother (orange). Pure data — no model. Sanity check that the raw signal matches what the model recovers.
+
+## The model — full parameter description
+
+### The generative story
+
+We start by asking: if we knew the true proportion of papers using each method in a given year and sub-discipline, what would the count data look like? The answer is a Multinomial. But we don't know the true proportions — they vary year to year around a structural trend. So we place a Dirichlet prior on those proportions. Integrating out the proportions analytically gives us the Dirichlet-Multinomial, which is what we observe directly.
+
+### Marginalisation
+
+We never sample pi directly. Instead, pi is marginalised out of the model — the DM likelihood is the result of integrating pi over its Dirichlet prior. This is mathematically equivalent to sampling pi explicitly, but much faster for HMC because it removes thousands of latent variables from the parameter space (one pi vector per group-year cell).
+
+### Full generative model
+
+```
+phi        ~ LogNormal(log(100), 1.0)           [sampled]
+sigma_beta ~ Exponential(2)                      [sampled]
+sigma_gamma~ Exponential(4)                      [sampled]
+
+for each group g, method k:
+  mu[g,k]        ~ Normal(0, 1)                 [sampled]
+  beta_raw[g,k]  ~ Normal(0, 1)                 [sampled, non-centred]
+  gamma_raw[g,k] ~ Normal(0, 1)                 [sampled, non-centred]
+
+  beta[g,k]  = sigma_beta  * beta_raw[g,k]      [derived]
+  gamma[g,k] = sigma_gamma * gamma_raw[g,k]     [derived]
+
+for each group g, year t:
+  eta[g,k,t] = mu[g,k] + beta[g,k]*year_std[t] + gamma[g,k]*post_llm[t]
+  pi[g,t]    = softmax(eta[g,:,t])              [derived, then marginalised]
+  alpha[g,t] = pi[g,t] * phi                    [derived, not sampled]
+  y[g,t]     ~ DM(N[g,t], alpha[g,t])           [observed]
+```
+
+g indexes L2 sub-disciplines; k indexes L3 techniques within each sub-discipline; t indexes years 2010–2025.
+
+### Parameter meanings
+
+- **phi** — the Dirichlet-Multinomial concentration parameter. Controls how tightly observed proportions are expected to track the model's structural trend in any given year. Higher phi means less overdispersion and a more compositionally regular field. Prior: LogNormal(log(100), 1.0), median 100. Sampled as log_phi (unbounded) for better HMC geometry.
+
+- **sigma_beta** — the global scale of the distribution from which long-run method trends are drawn. Encodes how much methods vary in their historical trajectories across the full 2010–2025 period. Prior: Exponential(2), weakly regularising. Sampled.
+
+- **sigma_gamma** — the global scale of post-2023 slope changes. This is the key estimand: if sigma_gamma is credibly above zero, real post-LLM heterogeneous reshuffling occurred across methods. Prior: Exponential(4), more regularising than sigma_beta because we expect the post-LLM change (2–3 years) to be smaller than the cumulative 13-year trend. Sampled.
+
+- **mu[g,k]** — the baseline log-weight of method k in group g, representing its average relative share across the full period. Prior: Normal(0, 1) with a soft sum-to-zero constraint across k within each g. Sampled.
+
+- **beta_raw[g,k]** — non-centred auxiliary parameter for the long-run trend. Sampled as Normal(0,1); scaled by sigma_beta to give beta[g,k]. The non-centred form improves HMC mixing when sigma is small.
+
+- **gamma_raw[g,k]** — non-centred auxiliary parameter for the post-2023 slope increment. Sampled as Normal(0,1); scaled by sigma_gamma to give gamma[g,k].
+
+- **beta[g,k]** — the long-run linear trend of method k in group g. Was this method already rising or falling before LLMs existed? Derived: beta = sigma_beta * beta_raw. Not directly sampled.
+
+- **gamma[g,k]** — the post-2023 slope increment for method k in group g. The anomalous change after LLM adoption, over and above the pre-existing trend. Derived: gamma = sigma_gamma * gamma_raw. Not directly sampled.
+
+- **alpha[g,t]** — the Dirichlet concentration vector passed to the DM likelihood. Derived as pi[g,t] * phi. Not sampled.
+
+- **pi[g,t]** — the true method proportions in group g at year t. Marginalised out of the model — never sampled, integrated analytically via the DM likelihood.
+
+## Parameter table
+
+| Parameter | What it measures | Sampled? | Posterior mean | 90% CI | Rhat | ESS |
+|---|---|---|---|---|---|---|
+| phi | Concentration — how tightly observed proportions track the structural trend. Higher = more regular field | Yes | 604.6 | [280, 1210] | 1.0002 | 5472 |
+| sigma_beta | Global scale of long-run method trends (2010–2025). How much methods vary in their historical trajectories | Yes | 0.215 | [0.151, 0.278] | 1.0004 | 2522 |
+| sigma_gamma | Global scale of post-2023 slope changes. The key estimand — if credibly above zero, anomalous reshuffling occurred | Yes | 0.250 | [0.125, 0.365] | 1.0019 | 1824 |
+| mu[g,k] | Baseline log-weight of method k in group g — its average relative share across the full period | Yes | (varies by method) | — | — | — |
+| beta[g,k] | Long-run linear trend of method k — was it already rising or falling before LLMs? | No (derived) | (varies by method) | — | — | — |
+| gamma[g,k] | Post-2023 slope increment — the anomalous change after LLM adoption | No (derived) | (varies by method) | — | — | — |
+| alpha[g,t] | Dirichlet concentration vector passed to DM likelihood | No (derived) | — | — | — | — |
+| pi[g,t] | True method proportions — marginalised out, never sampled | No (marginalised) | — | — | — | — |
+
+> beta[g,k] and gamma[g,k] are derived from sampled parameters via beta = sigma_beta * beta_raw and gamma = sigma_gamma * gamma_raw (non-centred parameterisation). The individual method-level estimates are available in the fit object but not shown here for brevity — see the gamma dotplot for the post-2023 estimates.

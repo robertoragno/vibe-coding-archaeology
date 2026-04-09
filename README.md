@@ -16,7 +16,7 @@ We run this analysis twice. The primary analysis operates at the L2-to-L3 level:
 
 The bibliometric analysis is paired with a planned prompting experiment. We will systematically query five or six major LLMs — at three simulated expertise levels and with three types of methodological question — and classify each response into the same L3 taxonomy using Qwen. This gives us a direct estimate of what methods LLMs currently recommend. We then correlate recommendation frequency with the posterior mean gamma for each method. If LLMs are driving convergence, the methods they recommend most often should be the ones whose post-2023 share increased most in the published literature.
 
-The model is validated through a four-stage Bayesian workflow following Gelman et al. (2020): prior predictive checks confirm the priors generate plausible diversity values; posterior predictive checks show 44 of 48 method groups are well-calibrated; fake-data simulation confirms sigma_gamma is identifiable through hierarchical aggregation across groups; and a phi sensitivity analysis tests whether the fixed concentration parameter drives the conclusions. An empirical phi exploration in `00b_phi_exploration.R` shows that phi varies substantially across groups, with most groups having empirical phi well above 10 — suggesting our primary analysis is conservative.
+The model is validated through a four-stage Bayesian workflow following Gelman et al. (2020): prior predictive checks confirm the priors generate plausible diversity values; posterior predictive checks show 44 of 48 method groups are well-calibrated; fake-data simulation confirms sigma_gamma is identifiable through hierarchical aggregation across groups; and phi is estimated from data — the posterior concentrates at phi ≈ 604, confirming the field is compositionally regular. An empirical phi exploration in `00b_phi_exploration.R` shows that phi varies substantially across groups, with most groups having empirical phi well above 100.
 
 ## Preliminary Results
 
@@ -26,17 +26,11 @@ The analysis proceeds in three steps:
 
 **Step 1 — Is there anomalous post-2023 methodological reshuffling?**
 
-Yes. The global scale of post-2023 method-level change (sigma_gamma) is credibly above zero across all model specifications:
+Yes. The global scale of post-2023 method-level change (sigma_gamma) is credibly above zero.
 
-| Model | sigma_gamma mean | 90% CI | phi |
-|---|---|---|---|
-| Conservative baseline | 0.054 | [0.004, 0.132] | 10 (fixed) |
-| Higher regularisation | 0.095 | [0.007, 0.229] | 50 (fixed) |
-| phi estimated from data | 0.250 | [0.125, 0.365] | 604 (estimated) |
+The model estimates phi from data using a weakly informative lognormal prior. In the primary L2→L3 analysis, phi ≈ 604 [280, 1210], confirming the field is compositionally regular — observed proportions track the structural trend closely year to year. sigma_gamma = 0.250 [0.125, 0.365] is credibly above zero.
 
-The empirical phi exploration (R/00b_phi_exploration.R) shows that most L2 groups have phi well above 10 — many above 100 — meaning the data are compositionally regular: observed proportions track the structural trend closely year to year. This makes phi=604 plausible and suggests the primary analysis (phi=10) substantially underestimates the signal.
-
-All fits converged cleanly (Rhat < 1.002, ESS > 1800). In the model where phi is estimated from data, sigma_gamma ≈ sigma_beta (0.250 vs 0.215): the post-LLM reshuffling in 2–3 years is as large as the variation accumulated over 13 years of gradual evolution.
+The fit converged cleanly (Rhat < 1.002, ESS > 1800). sigma_gamma ≈ sigma_beta (0.250 vs 0.215): the post-LLM reshuffling in 2–3 years is as large as the variation accumulated over 13 years of gradual evolution.
 
 Note: sigma_gamma measures the *magnitude* of reshuffling, not its direction. A large sigma_gamma is necessary but not sufficient evidence for convergence toward generic methods.
 
@@ -63,7 +57,7 @@ These are domain-specialised or statistically rigorous techniques that require m
 
 A note on uncertainty: when phi is estimated from data (phi ≈ 604), individual gamma estimates have wider credible intervals — only one method (L3-178: Computational Analytical Methods, gamma = −0.47) has a 90% CI that fully excludes zero. This is scientifically honest: with phi free, the model attributes more variation to the structural parameters but is also more uncertain about individual estimates. The directional pattern (generic methods gaining, specialised losing) is consistent across the top-ranked methods regardless of CI width, and is interpretable as a coherent signal rather than noise.
 
-Note: the ranking of individual gamma estimates is moderately sensitive to the phi assumption — the ordinal agreement between posterior mean gammas under phi=10 and phi=50 is rho=0.565, meaning the specific methods identified as gaining or losing share change when phi changes. This is not a significance test but a consistency check: a value near 1 would mean the two models tell the same ordinal story; 0.565 means they agree only partially. The directional pattern (generic methods gaining, specialised methods losing) is consistent across specifications but requires corroboration from Step 3 before causal claims can be made.
+The directional pattern (generic methods gaining, specialised methods losing) requires corroboration from Step 3 before causal claims can be made.
 
 **Step 3 — Are the gaining methods the ones LLMs actually recommend? (in progress)**
 

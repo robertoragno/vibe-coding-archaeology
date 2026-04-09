@@ -85,7 +85,7 @@ Note: change = (exp(gamma) − 1) × 100. At the L1→L2 level, fewer papers per
 ## Plots
 
 ![Sigma posteriors](../data/output/l2/phi_free/l2_kf_plot_sigma_posteriors.png)
-Three-panel: sigma_beta (left), sigma_gamma (centre) each compared to the phi=10 reference, and phi posterior vs prior (right). Phi concentrating far above 100 confirms near-Multinomial behaviour at this taxonomic level too.
+Three-panel: sigma_beta (left), sigma_gamma (centre) each compared to a fixed-phi reference, and phi posterior vs prior (right). Phi concentrating far above 100 confirms near-Multinomial behaviour at this taxonomic level too.
 
 ![Diversity by L1 group](../data/output/l2/phi_free/l2_kf_plot_diversity_by_group.png)
 Inverse Simpson index within each L1 family over 2010–2025 under the phi-free model. Grey dots = observed annual diversity; ribbon = 50%/90% posterior credible intervals. Dashed line = 2023 LLM adoption boundary.
@@ -98,3 +98,74 @@ Fitted share trajectories for the top 15 L2 sub-disciplines by |gamma|. Ribbon =
 
 ![Raw counts](../data/output/l2/phi_free/l2_kf_plot_raw_counts.png)
 Raw observed paper counts for the same top 15 sub-disciplines. Pure data sanity check — no model involved.
+
+## The model — full parameter description
+
+### The generative story
+
+We start by asking: if we knew the true proportion of sub-disciplines within each broad methodological family in a given year, what would the count data look like? The answer is a Multinomial. But we don't know the true proportions — they vary year to year around a structural trend. So we place a Dirichlet prior on those proportions. Integrating out the proportions analytically gives us the Dirichlet-Multinomial, which is what we observe directly.
+
+### Marginalisation
+
+We never sample pi directly. Instead, pi is marginalised out of the model — the DM likelihood is the result of integrating pi over its Dirichlet prior. This is mathematically equivalent to sampling pi explicitly, but much faster for HMC because it removes thousands of latent variables from the parameter space (one pi vector per group-year cell).
+
+### Full generative model
+
+```
+phi        ~ LogNormal(log(100), 1.0)           [sampled]
+sigma_beta ~ Exponential(2)                      [sampled]
+sigma_gamma~ Exponential(4)                      [sampled]
+
+for each group g, method k:
+  mu[g,k]        ~ Normal(0, 1)                 [sampled]
+  beta_raw[g,k]  ~ Normal(0, 1)                 [sampled, non-centred]
+  gamma_raw[g,k] ~ Normal(0, 1)                 [sampled, non-centred]
+
+  beta[g,k]  = sigma_beta  * beta_raw[g,k]      [derived]
+  gamma[g,k] = sigma_gamma * gamma_raw[g,k]     [derived]
+
+for each group g, year t:
+  eta[g,k,t] = mu[g,k] + beta[g,k]*year_std[t] + gamma[g,k]*post_llm[t]
+  pi[g,t]    = softmax(eta[g,:,t])              [derived, then marginalised]
+  alpha[g,t] = pi[g,t] * phi                    [derived, not sampled]
+  y[g,t]     ~ DM(N[g,t], alpha[g,t])           [observed]
+```
+
+g indexes L1 families; k indexes L2 sub-disciplines within each family; t indexes years 2010–2025. Structure is identical to the L2→L3 analysis — see [docs/l2_l3_results.md](l2_l3_results.md) for a full line-by-line explanation of the shared model.
+
+### Parameter meanings
+
+- **phi** — the Dirichlet-Multinomial concentration parameter. Controls how tightly observed proportions are expected to track the model's structural trend in any given year. Higher phi means less overdispersion and a more compositionally regular field. Prior: LogNormal(log(100), 1.0), median 100. Sampled as log_phi (unbounded) for better HMC geometry.
+
+- **sigma_beta** — the global scale of the distribution from which long-run sub-discipline trends are drawn. Encodes how much sub-disciplines vary in their historical trajectories across the full 2010–2025 period. Prior: Exponential(2), weakly regularising. Sampled.
+
+- **sigma_gamma** — the global scale of post-2023 slope changes. This is the key estimand: if sigma_gamma is credibly above zero, real post-LLM heterogeneous reshuffling occurred across sub-disciplines. Prior: Exponential(4), more regularising than sigma_beta. Sampled.
+
+- **mu[g,k]** — the baseline log-weight of sub-discipline k in family g, representing its average relative share across the full period. Prior: Normal(0, 1) with a soft sum-to-zero constraint across k within each g. Sampled.
+
+- **beta_raw[g,k]** — non-centred auxiliary parameter for the long-run trend. Sampled as Normal(0,1); scaled by sigma_beta to give beta[g,k].
+
+- **gamma_raw[g,k]** — non-centred auxiliary parameter for the post-2023 slope increment. Sampled as Normal(0,1); scaled by sigma_gamma to give gamma[g,k].
+
+- **beta[g,k]** — the long-run linear trend of sub-discipline k in family g. Was this sub-discipline already rising or falling before LLMs existed? Derived: beta = sigma_beta * beta_raw. Not directly sampled.
+
+- **gamma[g,k]** — the post-2023 slope increment for sub-discipline k in family g. The anomalous change after LLM adoption, over and above the pre-existing trend. Derived: gamma = sigma_gamma * gamma_raw. Not directly sampled.
+
+- **alpha[g,t]** — the Dirichlet concentration vector passed to the DM likelihood. Derived as pi[g,t] * phi. Not sampled.
+
+- **pi[g,t]** — the true sub-discipline proportions in family g at year t. Marginalised out of the model — never sampled, integrated analytically via the DM likelihood.
+
+## Parameter table
+
+| Parameter | What it measures | Sampled? | Posterior mean | 90% CI | Rhat | ESS |
+|---|---|---|---|---|---|---|
+| phi | Concentration — how tightly observed proportions track the structural trend. Higher = more regular field | Yes | 695.6 | [306, 1434] | 1.0012 | 3635 |
+| sigma_beta | Global scale of long-run sub-discipline trends (2010–2025). How much sub-disciplines vary in their historical trajectories | Yes | 0.206 | [0.145, 0.275] | 1.0004 | 1995 |
+| sigma_gamma | Global scale of post-2023 slope changes. The key estimand — if credibly above zero, anomalous reshuffling occurred | Yes | 0.121 | [0.018, 0.225] | 1.0002 | 1230 |
+| mu[g,k] | Baseline log-weight of sub-discipline k in family g — its average relative share across the full period | Yes | (varies by sub-discipline) | — | — | — |
+| beta[g,k] | Long-run linear trend of sub-discipline k — was it already rising or falling before LLMs? | No (derived) | (varies by sub-discipline) | — | — | — |
+| gamma[g,k] | Post-2023 slope increment — the anomalous change after LLM adoption | No (derived) | (varies by sub-discipline) | — | — | — |
+| alpha[g,t] | Dirichlet concentration vector passed to DM likelihood | No (derived) | — | — | — | — |
+| pi[g,t] | True sub-discipline proportions — marginalised out, never sampled | No (marginalised) | — | — | — | — |
+
+> beta[g,k] and gamma[g,k] are derived from sampled parameters via beta = sigma_beta * beta_raw and gamma = sigma_gamma * gamma_raw (non-centred parameterisation). The individual sub-discipline-level estimates are available in the fit object but not shown here for brevity — see the gamma dotplot for the post-2023 estimates.

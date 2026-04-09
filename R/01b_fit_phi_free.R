@@ -122,7 +122,7 @@ if (!file.exists(DONE_FLAG)) {
     fmt_par("sigma_beta"),
     fmt_par("sigma_gamma"),
     fmt_par("phi"),
-    paste("Reference: phi=10 sigma_gamma~0.054; phi=50 sigma_gamma~0.095"),
+    paste("Reference (fixed-phi): sigma_gamma_ref~0.054"),
     runtime_flag,
     sep = "\n"
   )
@@ -171,10 +171,10 @@ if (!file.exists(DONE_FLAG)) {
                   rep("sigma_beta",  length(sigma_beta_draws_ref)),
                   rep("sigma_gamma", length(sigma_gamma_draws_kf)),
                   rep("sigma_gamma", length(sigma_gamma_draws_ref))),
-    model     = c(rep("phi free v3", length(sigma_beta_draws_kf)),
-                  rep("phi=10",      length(sigma_beta_draws_ref)),
-                  rep("phi free v3", length(sigma_gamma_draws_kf)),
-                  rep("phi=10",      length(sigma_gamma_draws_ref)))
+    model     = c(rep("phi free v3",      length(sigma_beta_draws_kf)),
+                  rep("fixed-phi ref",   length(sigma_beta_draws_ref)),
+                  rep("phi free v3",      length(sigma_gamma_draws_kf)),
+                  rep("fixed-phi ref",   length(sigma_gamma_draws_ref)))
   )
 
   x_phi_max    <- quantile(phi_draws_kf, 0.999)
@@ -187,8 +187,8 @@ if (!file.exists(DONE_FLAG)) {
   p_sb <- ggplot(sigma_df |> filter(parameter == "sigma_beta"),
                  aes(x = value, colour = model, linetype = model)) +
     geom_density(fill = NA) +
-    scale_colour_manual(values = c("phi free v3" = "steelblue", "phi=10" = "steelblue4")) +
-    scale_linetype_manual(values = c("phi free v3" = "solid", "phi=10" = "dashed")) +
+    scale_colour_manual(values = c("phi free v3" = "steelblue", "fixed-phi ref" = "steelblue4")) +
+    scale_linetype_manual(values = c("phi free v3" = "solid", "fixed-phi ref" = "dashed")) +
     labs(x = "sigma_beta", y = "Density",
          title = "sigma_beta (baseline trend)",
          colour = "Model", linetype = "Model") +
@@ -198,8 +198,8 @@ if (!file.exists(DONE_FLAG)) {
   p_sg <- ggplot(sigma_df |> filter(parameter == "sigma_gamma"),
                  aes(x = value, colour = model, linetype = model)) +
     geom_density(fill = NA) +
-    scale_colour_manual(values = c("phi free v3" = "firebrick", "phi=10" = "firebrick4")) +
-    scale_linetype_manual(values = c("phi free v3" = "solid", "phi=10" = "dashed")) +
+    scale_colour_manual(values = c("phi free v3" = "firebrick", "fixed-phi ref" = "firebrick4")) +
+    scale_linetype_manual(values = c("phi free v3" = "solid", "fixed-phi ref" = "dashed")) +
     labs(x = "sigma_gamma", y = "Density",
          title = "sigma_gamma (post-LLM shift)",
          colour = "Model", linetype = "Model") +
@@ -218,7 +218,7 @@ if (!file.exists(DONE_FLAG)) {
 
   p2 <- gridExtra::arrangeGrob(
     p_sb, p_sg, p_phi, nrow = 1,
-    top = "Sigma posteriors: phi-free v3 (solid) vs phi=10 (dashed)"
+    top = "Sigma posteriors: phi-free model (solid) vs fixed-phi reference (dashed)"
   )
   ggsave(KF_PLOT_SIGMA, p2, width = 10, height = 5, units = "in", dpi = 150)
   cat("Plot saved:", KF_PLOT_SIGMA, "\n")

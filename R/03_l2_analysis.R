@@ -780,7 +780,7 @@ if (!file.exists(FIT_L2_KF_RDS)) {
   phi_draws_kf <- rstan::extract(l2_fit_kf, pars = "phi")$phi
   sg_draws_kf  <- rstan::extract(l2_fit_kf, pars = "sigma_gamma")$sigma_gamma
   sb_draws_kf  <- rstan::extract(l2_fit_kf, pars = "sigma_beta")$sigma_beta
-  # also grab phi=10 reference draws for comparison panels
+  # also grab fixed-phi reference draws for comparison panels
   sb_draws_ref <- rstan::extract(l2_fit,    pars = "sigma_beta")$sigma_beta
   sg_draws_ref <- rstan::extract(l2_fit,    pars = "sigma_gamma")$sigma_gamma
 
@@ -799,10 +799,10 @@ if (!file.exists(FIT_L2_KF_RDS)) {
                   rep("sigma_beta",  length(sb_draws_ref)),
                   rep("sigma_gamma", length(sg_draws_kf)),
                   rep("sigma_gamma", length(sg_draws_ref))),
-    model     = c(rep("phi free", length(sb_draws_kf)),
-                  rep("phi=10",   length(sb_draws_ref)),
-                  rep("phi free", length(sg_draws_kf)),
-                  rep("phi=10",   length(sg_draws_ref)))
+    model     = c(rep("phi free",      length(sb_draws_kf)),
+                  rep("fixed-phi ref", length(sb_draws_ref)),
+                  rep("phi free",      length(sg_draws_kf)),
+                  rep("fixed-phi ref", length(sg_draws_ref)))
   )
 
   x_phi_max <- quantile(phi_draws_kf, 0.999)
@@ -815,16 +815,16 @@ if (!file.exists(FIT_L2_KF_RDS)) {
   p_sb_kf <- ggplot(sigma_df_kf |> filter(parameter == "sigma_beta"),
                     aes(x = value, colour = model, linetype = model)) +
     geom_density(fill = NA) +
-    scale_colour_manual(values = c("phi free" = "steelblue", "phi=10" = "steelblue4")) +
-    scale_linetype_manual(values = c("phi free" = "solid", "phi=10" = "dashed")) +
+    scale_colour_manual(values = c("phi free" = "steelblue", "fixed-phi ref" = "steelblue4")) +
+    scale_linetype_manual(values = c("phi free" = "solid", "fixed-phi ref" = "dashed")) +
     labs(x = "sigma_beta", y = "Density", title = "sigma_beta", colour = NULL, linetype = NULL) +
     theme_minimal(base_size = 11) + theme(legend.position = "bottom")
 
   p_sg_kf <- ggplot(sigma_df_kf |> filter(parameter == "sigma_gamma"),
                     aes(x = value, colour = model, linetype = model)) +
     geom_density(fill = NA) +
-    scale_colour_manual(values = c("phi free" = "firebrick", "phi=10" = "firebrick4")) +
-    scale_linetype_manual(values = c("phi free" = "solid", "phi=10" = "dashed")) +
+    scale_colour_manual(values = c("phi free" = "firebrick", "fixed-phi ref" = "firebrick4")) +
+    scale_linetype_manual(values = c("phi free" = "solid", "fixed-phi ref" = "dashed")) +
     labs(x = "sigma_gamma", y = "Density", title = "sigma_gamma (post-LLM shift)",
          colour = NULL, linetype = NULL) +
     theme_minimal(base_size = 11) + theme(legend.position = "bottom")
@@ -841,7 +841,7 @@ if (!file.exists(FIT_L2_KF_RDS)) {
 
   p2_kf <- gridExtra::arrangeGrob(
     p_sb_kf, p_sg_kf, p_phi_kf, nrow = 1,
-    top = "L2 phi-free: sigma posteriors vs phi=10 reference"
+    top = "L2 phi-free: sigma posteriors — phi estimated from data"
   )
   ggsave(KF_PLOT_SIGMA, p2_kf, width = 10, height = 5, units = "in", dpi = 150)
   cat("Plot saved:", KF_PLOT_SIGMA, "\n")
