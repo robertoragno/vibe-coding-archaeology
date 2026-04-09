@@ -89,11 +89,14 @@ In the 2–3 years since LLMs entered academic use, computational archaeology ha
 ├── stan/
 │   ├── diversity_model.stan
 │   └── diversity_model_phi_free.stan
-├── data/output/
-│   ├── l3/
-│   ├── l2/
-│   ├── phi_free/
-│   └── workflow/
+├── data/
+│   ├── input/
+│   └── output/
+│       ├── l3/
+│       ├── l2/
+│       ├── phi_free/
+│       └── workflow/
+├── logs/
 ├── docs/
 │   ├── l2_l3_results.md
 │   ├── l1_l2_results.md
