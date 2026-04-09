@@ -184,14 +184,14 @@ if (!file.exists(DONE_FLAG)) {
     coord_cartesian(xlim = c(0, x_phi_max * 1.2)) +
     labs(x = "phi (precision: higher = less overdispersion)", y = "Density",
          title = "phi: posterior (solid) vs prior (dashed)",
-         subtitle = "phi ~ lognormal(log(100), 1.0); sampled as log_phi") +
+         subtitle = "phi ~ lognormal(log(100), 1.0)") +
     theme_minimal(base_size = 11)
 
   p2 <- gridExtra::arrangeGrob(
     p_sb, p_sg, p_phi, nrow = 1,
     top = "Sigma posteriors — phi-free model"
   )
-  ggsave(KF_PLOT_SIGMA, p2, width = 10, height = 5, units = "in", dpi = 150)
+  ggsave(KF_PLOT_SIGMA, p2, width = 16, height = 5, units = "in", dpi = 150)
   cat("Plot saved:", KF_PLOT_SIGMA, "\n")
 
   # ── Plot 2: diversity by group ────────────────────────────────────────────

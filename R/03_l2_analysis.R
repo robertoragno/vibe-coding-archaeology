@@ -813,14 +813,14 @@ if (!file.exists(FIT_L2_KF_RDS)) {
     coord_cartesian(xlim = c(0, x_phi_max * 1.2)) +
     labs(x = "phi", y = "Density",
          title = "phi: posterior (solid) vs prior (dashed)",
-         subtitle = "log_phi ~ N(log(100), 1.0)") +
+         subtitle = "phi ~ lognormal(log(100), 1.0)") +
     theme_minimal(base_size = 11)
 
   p2_kf <- gridExtra::arrangeGrob(
     p_sb_kf, p_sg_kf, p_phi_kf, nrow = 1,
     top = "L2 phi-free: sigma posteriors — phi estimated from data"
   )
-  ggsave(KF_PLOT_SIGMA, p2_kf, width = 10, height = 5, units = "in", dpi = 150)
+  ggsave(KF_PLOT_SIGMA, p2_kf, width = 16, height = 5, units = "in", dpi = 150)
   cat("Plot saved:", KF_PLOT_SIGMA, "\n")
 
   # ── Plot 2: diversity by L1 group ─────────────────────────────────────────
