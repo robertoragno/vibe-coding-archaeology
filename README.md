@@ -1,6 +1,6 @@
 ## Did LLMs cause convergence in computational archaeology methods?
 
-![Research workflow](docs/workflow_diagram.png)
+![Research workflow](docs/pipeline_v2.png)
 
 Imagine that every graduate student in a department suddenly started asking the same AI assistant for methodological advice. The assistant, trained on the same corpus, would naturally recommend the same handful of techniques — not because those techniques are best, but because they are most represented in its training data. Over time, the department's research would start to look eerily similar. This paper asks whether something like that is happening across computational archaeology.
 
