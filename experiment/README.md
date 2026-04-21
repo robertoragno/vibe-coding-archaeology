@@ -1,76 +1,203 @@
-# Prompting Experiment
+# LLM Recommendation Simulation
 
-## Purpose
+## What this pipeline does
 
-The bibliometric analysis establishes whether methodological diversity in archaeology changed after 2023. This experiment asks whether LLMs are a plausible mechanism: do their method recommendations match the post-2023 shifts we observe in the literature?
+This pipeline tests whether the post-2023 reshuffling of computational methods identified by the Bayesian model is consistent with the recommendation behaviour of a large language model. The core idea is simple: if LLMs are driving archaeologists towards a narrower, more canonical set of methods, then asking an LLM to recommend computational approaches for a given archaeological problem should reproduce — or predict — the methods that gained share in the empirical corpus.
 
-For each L3 method, we have a posterior mean γ from the Stan model — a signed, quantified estimate of how much that method's share changed after 2023 relative to its pre-existing trend. The experiment produces a parallel dataset: how often each method is recommended by LLMs. We then correlate the two.
+The pipeline simulates three types of researcher interacting with an LLM assistant. Each type brings a different degree of methodological prior knowledge to the conversation. The LLM's outputs — called L4 methods — are then mapped back onto the L3 taxonomy and compared to the gamma estimates from the Bayesian model.
 
-The underlying logic is that LLMs default to methods that are dominant in their training data regardless of user expertise level. If the methods LLMs recommend most frequently are precisely those that gained ground post-2023 in the literature, this supports the vibe-coding mechanism: researchers increasingly adopt LLM-default methods rather than domain-appropriate ones.
+---
 
-## Design
+## The mean-collapse hypothesis
 
-The experiment crosses three dimensions:
+The Bayesian model identified a set of methods gaining share post-2023 and a set losing share .The question this pipeline asks is: **are the methods gaining share precisely the ones an LLM recommends by default?**
 
-- **LLMs** (5–6 models): a mix of frontier models likely to be used by researchers in 2023–2025
-- **Expertise levels** (3): prompts framed as coming from a novice (graduate student with no methods background), a practitioner (postdoc familiar with the domain and data), and an expert (senior researcher who uses precise methodological vocabulary and asks for justifications)
-- **Question types** (3): open-ended, dataset-grounded, and comparative (see below)
+LLMs are trained on the aggregate of the literature. When asked for a recommendation, they are expected to collapse towards the most statistically frequent and widely cited approaches — a phenomenon we call **mean collapse**. Mean collapse is not a failure; it is a structural property of how language models generalise. The hypothesis is that this property is now being transmitted to researchers who consult LLMs during study design, producing the convergence visible in sigma_gamma.
 
-This gives approximately 45–54 prompts per methodological domain, depending on final model selection. Domains are selected to cover the L2 groups with the largest γ variation in the L3 analysis.
+A key observable implication: mean collapse should be **stronger when the researcher provides less methodological guidance**. Profile C (novice, no method specified) should produce the most canonical recommendations; Profile A (expert, specific L2 provided) should constrain the LLM and produce more varied outputs. The difference between profiles is itself a test of the hypothesis.
 
-### Question types
+---
 
-**Q1 — Open task** (`prompts/q1_open/`): the LLM is asked to recommend a method for a broadly described archaeological problem, with no data or alternatives specified. This elicits the model's unconditional default.
+## Input data
 
-> *Novice:* "I'm an archaeology student and I want to analyze patterns in artifact distributions across sites. What should I use?"
-> *Practitioner:* "I have a presence/absence matrix of ceramic types across 40 sites. What multivariate method would you recommend for identifying site clusters?"
-> *Expert:* "For a Q-mode classification of assemblage composition data with Aitchison geometry, what are the current best-practice dimensionality reduction approaches?"
+Three Excel files are loaded at runtime:
 
-**Q2 — Dataset-grounded** (`prompts/q2_data/`): the LLM is given a concrete dataset description and asked to choose a method. This tests whether grounding the prompt in real data structure shifts recommendations away from defaults.
+| File | Content |
+|---|---|---|
+| `L2.xlsx` | L2 sub-discipline labels from the existing taxonomy | |
+| `Vague.xlsx` | Broad methodological families expressed in informal language |
+| `Questions.xlsx` | Pre-defined archaeological research questions, one per thematic category |
 
-> *Novice:* "I have a spreadsheet with dates, site locations, and pottery counts. How do I find patterns?"
-> *Practitioner:* "I have radiocarbon dates from 3 sites, lithic counts per stratigraphic unit, and GPS coordinates. I want to identify occupational phases."
-> *Expert:* "I have a 200×15 compositional matrix (XRF data, ILR-transformed). I need to model provenance groupings accounting for within-group heteroscedasticity."
+The 28 research questions were constructed to cover the full thematic space of the SCOPUS corpus (all periods, all regions) and are **methodologically neutral** — they describe a substantive archaeological problem without implying any computational solution. This is essential for Profile C, where lexical priming from the question itself would confound the LLM's recommendation.
 
-**Q3 — Comparative** (`prompts/q3_compare/`): the LLM is asked to choose between two named methods. This forces an explicit preference, directly revealing bias toward specific L3 techniques.
+### Research questions by thematic category
 
-> *Novice:* "Is it better to use clustering or PCA to group archaeological sites?"
-> *Practitioner:* "Should I use k-means or hierarchical clustering for ceramic typology? What are the trade-offs?"
-> *Expert:* "For spatiotemporal modelling of settlement patterns, what are the relative merits of geographically weighted regression vs. Bayesian spatial CAR models?"
+| # | Category | Question |
+|---|---|---|
+| 1 | Artefacts / Finds | How do I classify and interpret a heterogeneous assemblage of artefacts recovered from an archaeological context? |
+| 2 | Excavation / Survey report | How do I systematically document and communicate the results of an excavation or surface survey? |
+| 3 | Architecture and other features | How do I analyse and interpret architectural structures or built features at a site? |
+| 4 | Burials / Human remains | How do I study funerary practices and biological characteristics of a past population from skeletal remains? |
+| 5 | Period / Tradition discussion | How do I characterise and compare material cultures from different periods or traditions to identify continuities and discontinuities? |
+| 6 | Approaches / Theories / Methodology | How do I evaluate the effectiveness of a theoretical or methodological approach applied to a specific archaeological problem? |
+| 7 | Site(s) discussion | How do I interpret the function, chronology, and overall significance of an archaeological site? |
+| 8 | Art history / Iconography | How do I systematically analyse and interpret images, symbols, or figurative representations in an archaeological context? |
+| 9 | Tablet find / Texts / Inscriptions / Philology | How do I extract historical and cultural information from a corpus of ancient epigraphic or textual sources? |
+| 10 | Palaeoenvironment / Geoarchaeology / Geology | How do I reconstruct the environmental and geomorphological conditions in which past human activities took place? |
+| 11 | Political / Economic / Social Organisation | How do I reconstruct the social, economic, or political structure of a community from material evidence? |
+| 12 | Zooarchaeology | How do I analyse faunal remains to reconstruct hunting, herding practices, and human-animal relationships? |
+| 13 | Resource exploitation / Manufacture / Technology | How do I reconstruct the chaîne opératoire and raw material processing techniques of past societies? |
+| 14 | Ritual / Cult / Myths / Religion | How do I identify and interpret ritual or religious behaviour from material and contextual evidence? |
+| 15 | Evental History / Historical Geography | How do I integrate written historical sources and material data to reconstruct past events and geographical transformations? |
+| 16 | Subsistence economy / Food / Diet | How do I reconstruct the dietary and subsistence strategies of a past community? |
+| 17 | Urban archaeology / Urbanism | How do I analyse the organisation, growth, and transformation of an ancient urban context? |
+| 18 | Archaeometry | How do I determine the composition, provenance, or manufacturing techniques of an artefact through physicochemical analysis? |
+| 19 | Chronology / Dating | How do I build a reliable chronological sequence when available dating evidence is uncertain or fragmentary? |
+| 20 | History of archaeological research | How do I reconstruct the evolution of approaches and research interests within a discipline over time? |
+| 21 | Landscape / Settlement / Territorial studies | How do I analyse the distribution and organisation of human settlements across a territory over the long term? |
+| 22 | Archaeobotany / Palynology | How do I reconstruct past vegetation, plant use, and landscape change through botanical remains? |
+| 23 | Textile / Textile tools | How do I analyse textile production and its economic and cultural significance in a past society? |
+| 24 | Architectural decorations | How do I document, classify, and interpret architectural decorative programmes within a historical and cultural context? |
+| 25 | Trade / Exchange / Interactions | How do I reconstruct exchange networks and cultural interaction between distant communities? |
+| 26 | Heritage / Conservation | How do I assess, manage, and communicate the value of a cultural asset within a protection and risk framework? |
+| 27 | Experimental archaeology / Ethnoarchaeology | How do I use comparisons with modern or experimental practices to interpret material evidence from the past? |
+| 28 | Rock art | How do I document, classify, and interpret rock art manifestations within their spatial and cultural context? |
 
-### Fixed design decisions
+### Vague methodological families (Profile B)
 
-- **Language**: all prompts in English, for uniformity across models
-- **Domain**: held constant within each prompt set (the subdomain varies across Q1/Q2/Q3 to maintain naturalness, but is drawn from the same L2 group)
-- **Response format**: prompts request the top 3 methods as a ranked list, to simplify downstream L3 classification
-- **Temperature**: 0 where supported, for reproducibility; models that do not expose temperature are run as-is and flagged
+These are **independent of the 28 questions** and represent the methodological axis of Profile B. They are sampled separately and combined with any question, including non-obvious pairings (e.g. *rock art + network analysis*), to test whether the LLM can bridge uncommon combinations or collapses to canonical defaults.
 
-## Classification pipeline
+| Vague methodological family |
+|---|
+| "some kind of statistical or quantitative analysis" |
+| "some kind of spatial or geographic approach" |
+| "some kind of image or visual analysis" |
+| "some kind of network or relational analysis" |
+| "some kind of text or document analysis" |
+| "some kind of dating or chronological modelling" |
+| "some kind of 3D reconstruction or modelling" |
+| "some kind of machine learning or pattern recognition" |
+| "some kind of simulation or agent-based modelling" |
 
-Raw LLM responses are saved verbatim in `responses/`. Each response is then passed to Qwen with the same taxonomy prompt used to classify the original papers, producing an L3 method label for each recommendation. Classification scripts live in `analysis/`.
+---
 
-The output is a frequency table: for each (LLM, expertise level, question type, L3 method) combination, the number of times that method was recommended. This is aggregated to method-level recommendation frequencies and merged with the γ posteriors from `data/output/`.
+## Researcher profiles
 
-## Output
+The pipeline simulates three researcher profiles. The profiles differ in a single dimension: **how much methodological prior knowledge the researcher contributes to the prompt**. Everything else — the model, the system prompt, the output format instruction — is held constant across profiles.
 
-The primary output is a scatter plot of posterior mean γ (x-axis) against LLM recommendation frequency (y-axis), with one point per L3 method. A positive correlation supports the hypothesis that LLMs reinforce the methods that gained disproportionate ground post-2023. 
+### Profile A — Expert
 
-Secondary outputs include breakdowns by:
-- **LLM**: does the effect concentrate in certain models?
-- **Expertise level**: does the LLM default converge regardless of how expert the framing is?
-- **Question type**: does grounding the prompt in real data (Q2) shift recommendations relative to open elicitation (Q1)?
-
-A flat expertise-level effect — where novice and expert prompts yield similar recommendation distributions — would be particularly strong evidence for the default-method mechanism.
-
-## Folder structure
+The researcher specifies a concrete L2 method. The LLM is asked to recommend specific tools, algorithms, or variants within that method family. This profile constrains the LLM's output space and is expected to produce the most diverse L4 recommendations.
 
 ```
-experiment/
-├── prompts/
-│   ├── q1_open/          # one file per expertise level
-│   ├── q2_data/
-│   └── q3_compare/
-├── responses/            # raw outputs, named {model}_{level}_{qtype}_{domain}.txt
-├── analysis/             # classification and correlation scripts
-└── README.md
+You are a research assistant for computational archaeologists.
+
+A researcher comes to you with the following problem:
+
+"I am working on: [QUESTION]
+I already know I want to apply [L2 SPECIFIC METHOD] to my analysis.
+Which specific tools, algorithms, or variants of this method would you
+recommend, and how would you apply them concretely to this problem?"
+
+List the computational methods you would use, being as specific as possible.
+For each method, provide a one-sentence justification.
 ```
+
+### Profile B — Intermediate
+
+The researcher specifies a vague methodological family but no specific method. The LLM must choose both the method family and the specific technique. This profile produces partial constraint.
+
+```
+You are a research assistant for computational archaeologists.
+
+A researcher comes to you with the following problem:
+
+"I am working on: [QUESTION]
+I have a rough idea that I need [VAGUE METHODOLOGICAL FAMILY],
+but I do not know which specific method to choose.
+What would you recommend?"
+
+List the computational methods you would use, being as specific as possible.
+For each method, provide a one-sentence justification.
+```
+
+### Profile C — Novice
+
+The researcher provides only the archaeological problem. The LLM has full freedom to choose method family and specific technique. This profile is expected to produce the strongest mean collapse signal.
+
+```
+You are a research assistant for computational archaeologists.
+
+A researcher comes to you with the following problem:
+
+"I am working on: [QUESTION]
+I have no specific computational background.
+Which digital methods could I use to address this research problem?"
+
+List the computational methods you would use, being as specific as possible.
+For each method, provide a one-sentence justification.
+```
+
+---
+
+## Sampling design
+
+For each iteration, a single triplet `(question, L2, vague)` is sampled once and passed to all three profiles. This means the three profiles in a given iteration face the same archaeological problem, and differ only in how much methodological context they are given. The triplet is fixed across profiles to make profile comparisons valid.
+
+```python
+def sample_inputs():
+    l2       = L2[l2_col].dropna().sample(1).values[0]
+    vague    = VAGUE[vague_col].dropna().sample(1).values[0]
+    question = QUESTIONS[question_col].dropna().sample(1).values[0]
+    return l2, vague, question
+```
+
+The number of iterations should be sufficient to cover the full combinatorial space of questions × L2 methods. A minimum of 28 × n(L2) iterations is recommended to ensure each question appears with each L2 at least once.
+
+---
+
+## The model
+
+**Qwen3 (local instance).** A local model is used for two reasons: (1) the number of iterations required makes API costs prohibitive; (2) a local model with a fixed checkpoint ensures reproducibility — the same prompt always produces the same output distribution. The model version and training cutoff must be reported explicitly in any publication, as the mean collapse signal is model-specific and cutoff-dependent.
+
+The system prompt is identical across all profiles and all iterations. Temperature is set to a low value to minimise stochastic variation and isolate the structural recommendation behaviour of the model.
+
+---
+
+## Output structure — L4 methods
+
+Each LLM response is parsed into a list of specific computational methods: these are the **L4 methods**. L4 is finer-grained than L3 — it names concrete tools, algorithms, or implementations rather than technique families.
+
+Each L4 response item has the structure:
+
+```
+method_name | one-sentence justification
+```
+
+The justification is retained for two purposes: (1) to verify that the recommendation is archaeologically coherent rather than generic; (2) as a qualitative trace for post-hoc analysis of why the LLM recommended a given method.
+
+---
+
+## L4 → L3 mapping
+
+Each L4 method is mapped back onto the existing L3 taxonomy by a second LLM call. The mapping prompt provides the full L3 taxonomy as context and asks the model to assign the single most appropriate L3 category to each L4 item. The mapping is run multiple times per L4 item to measure consistency; items with low cross-run agreement are flagged for manual review.
+
+The mapping must be performed with the **same taxonomy** used in the original topic modelling pipeline to ensure that L4 frequencies are directly comparable to the L3 frequencies modelled in the Bayesian analysis.
+
+---
+
+## Comparison with Bayesian results
+
+Once L4 methods are mapped to L3, their frequency distribution across profiles is compared to the gamma estimates from the Bayesian model. The key comparison is:
+
+- **Methods with high positive gamma** (gaining share post-2023) should appear more frequently in Profile C outputs than in Profile A outputs.
+- **Methods with high negative gamma** (losing share post-2023) should appear less frequently or not at all in Profile C outputs.
+- The **rank correlation** between LLM recommendation frequency (Profile C) and gamma estimates is the primary quantitative test of the mean-collapse hypothesis.
+
+A secondary comparison examines whether the LLM introduces methods **not present** in the existing L3 taxonomy — i.e. whether the LLM goes beyond the corpus. Such methods would appear as unmappable L4 items and would constitute evidence against a purely circular explanation of the results.
+
+---
+
+## Limitations
+
+**Circularity (partial).** The L2 methods used as Profile A inputs are drawn from the same taxonomy built from the corpus. This means Profile A partially asks the LLM to elaborate on methods it already knows from training. The circularity is intentional — it tests the depth of LLM knowledge within known categories — but it means Profile A results cannot be used to claim that LLMs *introduced* novel methods to the field. Profile C is the primary evidence for that claim.
