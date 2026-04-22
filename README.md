@@ -61,7 +61,9 @@ A note on uncertainty: when phi is estimated from data (phi ≈ 604), individual
 
 **Step 3 — Are the gaining methods the ones LLMs actually recommend? (in progress)**
 
-The prompting experiment will query 5–6 LLMs at 3 expertise levels with 3 question types, classify each response into the L3 taxonomy via Qwen, and correlate recommendation frequencies with posterior mean gamma per method. The comparison is specifically designed to test excess post-2023 share (gamma) rather than overall prevalence, thereby distinguishing LLM influence from mere reflection of pre-existing trends in training data. A positive correlation closes the causal argument. See `experiment/` for the planned design.
+The prompting experiment will query 5–6 LLMs at 3 expertise levels with 3 question types, classify each response into the L3 taxonomy via Qwen, and correlate recommendation frequencies with posterior mean gamma per method. The comparison is specifically designed to test excess post-2023 share (gamma) rather than overall prevalence, thereby distinguishing LLM influence from mere reflection of pre-existing trends in training data.
+
+The statistical test is a fully Bayesian Poisson regression (`stan/poisson_gamma_regression.stan`): `n_recommended_i ~ Poisson(exp(alpha + beta * |gamma_true_i|))`, where `gamma_true` is a latent variable with a Normal prior centred on the posterior summary from the main model. This propagates predictor uncertainty (from Stage 1) into the posterior of beta via sequential Bayesian updating. A positive beta — meaning methods with larger post-2023 deviation are recommended more often — closes the causal argument. The model is run separately for overall counts and for each expertise profile (novice/intermediate/expert) to test whether expertise modulates trend-chasing. See `experiment/` for the planned design and `R/06_step3_llm_comparison.R` for the analysis.
 
 **What the results mean in plain terms**
 
@@ -85,10 +87,13 @@ In the 2–3 years since LLMs entered academic use, computational archaeology ha
 │   ├── 01b_fit_phi_free.R
 │   ├── 02_extract_plot.R
 │   ├── 03_l2_analysis.R
-│   └── 04_workflow_checks.R
+│   ├── 04_workflow_checks.R
+│   ├── 05_robustness_2022.R
+│   └── 06_step3_llm_comparison.R
 ├── stan/
 │   ├── diversity_model.stan
-│   └── diversity_model_phi_free.stan
+│   ├── diversity_model_phi_free.stan
+│   └── poisson_gamma_regression.stan
 ├── data/
 │   ├── input/
 │   └── output/
