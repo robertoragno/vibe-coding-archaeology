@@ -139,9 +139,13 @@ The honest summary is: the regression does not confirm the mechanism, and the pr
 
 ### Plot A — Overall β posterior
 
+*This plot shows the full posterior distribution of β estimated from all 186 L3 methods combined (pooling across novice, intermediate, and expert profiles). The x-axis is the value of β; the y-axis is posterior density. A distribution centred near zero with a wide spread means the model is uncertain whether the LLM systematically favours methods that gained share post-2023. The 90% credible interval and posterior mean are typically marked; if the whole distribution sits well above zero, that would support mean collapse.*
+
 <img src="../data/output/plot_beta_posterior_overall.png" width="520">
 
 ### Plot B — β posterior by expertise profile
+
+*This plot overlays or panels the β posteriors separately for the three researcher profiles (novice, intermediate, expert). The mean-collapse hypothesis predicts novice > intermediate > expert (a researcher who gives the LLM less guidance should get output more aligned with recent trends). In our data the ordering is reversed (expert most positive, novice most negative), which is visible here as the novice distribution sitting furthest left. All three distributions still straddle zero, so no individual profile produces a credibly nonzero β.*
 
 <img src="../data/output/plot_beta_posterior_by_profile.png" width="520">
 
