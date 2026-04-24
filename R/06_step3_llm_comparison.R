@@ -85,7 +85,7 @@ experiment_raw <- read.csv(EXPERIMENT_CSV, stringsAsFactors = FALSE)
 cat("Experiment rows (raw):", nrow(experiment_raw), "\n")
 
 exp_consistent <- experiment_raw |>
-  filter(l3_mapping_consistent == TRUE)
+  filter(toupper(as.character(l3_mapping_consistent)) == "TRUE")
 
 cat("Consistent mappings:", nrow(exp_consistent), "\n")
 
