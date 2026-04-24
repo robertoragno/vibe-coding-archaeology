@@ -50,6 +50,7 @@ OUT_BETA_PROFILE <- here("data/output/plot_beta_posterior_by_profile.pdf")
 OUT_SCATTER      <- here("data/output/plot_gamma_vs_recommendations.pdf")
 OUT_DIRECTION    <- here("data/output/plot_top_recommended_direction.pdf")
 OUT_TABLE        <- here("data/output/step3_joined_table.csv")
+OUT_BETA_SUMMARY <- here("data/output/step3_beta_summary.csv")
 
 # ── 2. Check for experiment CSV (graceful exit if absent) ──────────────────────
 
@@ -353,7 +354,18 @@ out_table <- joined |>
 write.csv(out_table, OUT_TABLE, row.names = FALSE)
 cat("Saved:", OUT_TABLE, "\n")
 
-# ── 9. Console summary ─────────────────────────────────────────────────────────
+# ── 9. Console summary + saved summary ────────────────────────────────────────
+
+beta_summary <- data.frame(
+  profile   = c("overall", "novice", "intermediate", "expert"),
+  beta_mean = c(mean(beta_overall), mean(beta_novice),
+                mean(beta_inter),   mean(beta_expert)),
+  p_pos     = c(p_pos(beta_overall), p_pos(beta_novice),
+                p_pos(beta_inter),   p_pos(beta_expert)),
+  run_date  = Sys.Date()
+)
+write.csv(beta_summary, OUT_BETA_SUMMARY, row.names = FALSE)
+cat("Saved:", OUT_BETA_SUMMARY, "\n")
 
 cat("\n=== Step 3 summary ===\n")
 cat(sprintf("Overall   beta: mean = %.3f, P(beta>0) = %.3f\n",
