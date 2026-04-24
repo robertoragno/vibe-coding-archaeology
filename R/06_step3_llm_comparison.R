@@ -17,10 +17,10 @@
 #   experiment/analysis/experiment_results.csv  (exits gracefully if missing)
 #
 # Output:
-#   data/output/plot_beta_posterior_overall.pdf
-#   data/output/plot_beta_posterior_by_profile.pdf
-#   data/output/plot_gamma_vs_recommendations.pdf
-#   data/output/plot_top_recommended_direction.pdf
+#   data/output/plot_beta_posterior_overall.png
+#   data/output/plot_beta_posterior_by_profile.png
+#   data/output/plot_gamma_vs_recommendations.png
+#   data/output/plot_top_recommended_direction.png
 #   data/output/step3_joined_table.csv
 #   data/output/step3_beta_draws.csv
 #   data/output/step3_beta_summary.csv
@@ -47,10 +47,10 @@ VOCAB_PATH     <- here("data/output/vocab.rds")
 STAN_FILE      <- here("stan/poisson_gamma_regression.stan")
 EXPERIMENT_CSV <- here("experiment/analysis/experiment_results.csv")
 
-OUT_BETA_OVERALL <- here("data/output/plot_beta_posterior_overall.pdf")
-OUT_BETA_PROFILE <- here("data/output/plot_beta_posterior_by_profile.pdf")
-OUT_SCATTER      <- here("data/output/plot_gamma_vs_recommendations.pdf")
-OUT_DIRECTION    <- here("data/output/plot_top_recommended_direction.pdf")
+OUT_BETA_OVERALL <- here("data/output/plot_beta_posterior_overall.png")
+OUT_BETA_PROFILE <- here("data/output/plot_beta_posterior_by_profile.png")
+OUT_SCATTER      <- here("data/output/plot_gamma_vs_recommendations.png")
+OUT_DIRECTION    <- here("data/output/plot_top_recommended_direction.png")
 OUT_TABLE        <- here("data/output/step3_joined_table.csv")
 OUT_BETA_SUMMARY <- here("data/output/step3_beta_summary.csv")
 
@@ -225,7 +225,7 @@ pA <- ggplot(overall_df, aes(x = beta, y = 0)) +
   theme_minimal(base_size = 12) +
   theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
 
-ggsave(OUT_BETA_OVERALL, pA, width = 7, height = 5, units = "in")
+ggsave(OUT_BETA_OVERALL, pA, width = 7, height = 5, units = "in", dpi = 150)
 cat("Saved:", OUT_BETA_OVERALL, "\n")
 
 # Plot B: beta posteriors by profile
@@ -268,7 +268,7 @@ pB <- ggplot(profile_df, aes(x = beta, y = 0)) +
     strip.text   = element_text(face = "bold")
   )
 
-ggsave(OUT_BETA_PROFILE, pB, width = 7, height = 8, units = "in")
+ggsave(OUT_BETA_PROFILE, pB, width = 7, height = 8, units = "in", dpi = 150)
 cat("Saved:", OUT_BETA_PROFILE, "\n")
 
 # Plot C: scatter of signed posterior mean gamma vs recommendation count
@@ -301,7 +301,7 @@ pC <- ggplot(joined, aes(x = mean_gamma, y = n_recommended_total)) +
   theme_minimal(base_size = 11) +
   theme(legend.position = "bottom")
 
-ggsave(OUT_SCATTER, pC, width = 8, height = 6, units = "in")
+ggsave(OUT_SCATTER, pC, width = 8, height = 6, units = "in", dpi = 150)
 cat("Saved:", OUT_SCATTER, "\n")
 
 # Plot D: top 20 recommended, coloured by gamma direction
@@ -334,7 +334,7 @@ pD <- ggplot(top20_rec, aes(x = n_recommended_total, y = l3_label, fill = direct
   theme_minimal(base_size = 10) +
   theme(axis.text.y = element_text(size = 8), legend.position = "bottom")
 
-ggsave(OUT_DIRECTION, pD, width = 8, height = 7, units = "in")
+ggsave(OUT_DIRECTION, pD, width = 8, height = 7, units = "in", dpi = 150)
 cat("Saved:", OUT_DIRECTION, "\n")
 
 # ── 8. Save beta draws ────────────────────────────────────────────────────────

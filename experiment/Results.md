@@ -119,7 +119,7 @@ Four independent Stan fits (4 chains × 1000 post-warmup draws each). Diagnostic
 
 The posterior for β is wide and centred near zero in all four conditions. The model has looked at the data and is genuinely unsure. This is not a precise null; it is an uncertain answer.
 
-**Profile gradient.** The mean-collapse hypothesis predicts a monotone ordering novice > intermediate > expert: a researcher who gives the LLM less methodological guidance should get output more tightly aligned with recent trends. The observed means run in the **reverse** direction — novice (−0.293) < intermediate (+0.049) < expert (+0.126). P(β_novice > β_expert) = 0.341, meaning the draws slightly favour the counter-predicted direction. None of the individual CIs excludes zero, so this reversal carries no strong evidential weight; but the data give no support to the gradient prediction.
+**Profile gradient.** The mean-collapse hypothesis predicts a monotone ordering novice > intermediate > expert: a researcher who gives the LLM less methodological guidance should get output more tightly aligned with recent trends. The observed means run in the **reverse** direction — novice (−0.293) < intermediate (+0.049) < expert (+0.126). P(β_novice > β_expert) = 0.342, P(β_novice > β_inter) = 0.375, P(β_inter > β_expert) = 0.472 — all below 0.5, meaning the draws slightly favour the counter-predicted direction at every step of the gradient. None of the individual CIs excludes zero, so this reversal carries no strong evidential weight; but the data give no support to the gradient prediction.
 
 ---
 
@@ -169,7 +169,7 @@ The short answer is: **partially, and honestly.**
 **What the paper does not deliver:**
 
 - **The causal link is not closed.** Step 3 — the test of whether Qwen3's specific recommendations predict which methods gained post-2023 — returns β posteriors straddling zero with CIs spanning roughly [−1.2, +1.1]. The model cannot distinguish "LLMs are driving this" from "the signal is too noisy to detect."
-- **The profile gradient runs the wrong way.** The expert profile has the most positive β (+0.126) and the novice the most negative (−0.293), the opposite of the mean-collapse prediction. P(β_novice > β_expert) = 0.341.
+- **The profile gradient runs the wrong way.** The expert profile has the most positive β (+0.126) and the novice the most negative (−0.293), the opposite of the mean-collapse prediction. P(β_novice > β_expert) = 0.342.
 
 **Is this a failure?**
 
