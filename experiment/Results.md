@@ -180,3 +180,25 @@ The short answer is: **partially, and honestly.**
 A null result in Step 3 is not evidence against the hypothesis — it is an inconclusive result. Two structural problems make the regression likely to fail even if the hypothesis is true: γ is estimated with high uncertainty (only 1 of 186 methods has a credible non-zero γ, meaning the predictor is dominated by noise), and Qwen3 is a proxy for the specific LLMs that were actually shaping the corpus during 2023–2025 (primarily ChatGPT and GPT-4). A sharper test would need γ estimates precise enough to serve as predictors, and recommendation data from the actual models involved rather than a surrogate.
 
 The paper is best read as establishing the *pattern* of mean collapse with reasonable confidence — something changed post-2023 in a direction consistent with LLM-driven homogenisation — and as failing to close the *mechanistic* causal loop. That is a narrower claim than the paper may have intended, but it is defensible. The methodological infrastructure built here — the two-slope hierarchical model, the taxonomy, the simulation framework — is the foundation any follow-up study would need to make the causal argument more rigorously.
+
+---
+
+## Sensitivity and robustness notes
+
+### Would a frequentist correlation have changed the Step 3 result?
+
+Almost certainly not. The core result — β wide and centred near zero across all profiles — is driven by the structure of the data, not the inferential framework. A frequentist Pearson or Spearman correlation between γ̄ and n_rec would face the same problem: 185 of 186 methods have γ estimates so uncertain that the predictor is dominated by noise. A frequentist analysis would return a non-significant result for the same structural reason the Bayesian CIs are wide.
+
+The profile gradient reversal (novice most negative, expert most positive) is also a feature of the data, not the framework — a frequentist analysis would show the same ordering.
+
+What the Bayesian approach adds here is expressive precision. Instead of a binary "p > 0.05, fail to reject null," the posteriors communicate that the model is genuinely uncertain — P(β > 0) = 0.431 overall — rather than simply underpowered. The negative-binomial model also explicitly handles overdispersion in recommendation counts that a simple correlation ignores. The qualitative conclusion is the same; the Bayesian framing is more informative about the depth of the uncertainty.
+
+### Would adjusting the L2 taxonomy groupings change the results?
+
+**The headline finding (σ_γ credibly above zero) would almost certainly survive.** The post-2023 reshuffling signal is present in the raw counts. The existing L1→L2 sensitivity analysis (`R/03_l2_analysis.R`) already demonstrates this: the same model run one level up the hierarchy still finds a nonzero σ_γ, as expected from a real phenomenon rather than an artefact of a particular grouping choice.
+
+**Individual γ estimates would change, potentially substantially.** Each L3 method's γ is estimated relative to the other methods sharing its L2 group. Reassigning a method to a different L2 group changes its competitive reference set — its baseline, its pre-2023 trend, the zero-sum constraint it operates under. The specific list of "gaining" and "losing" methods from Step 2 could look different under a different taxonomy.
+
+**Step 3 (β) would almost certainly remain inconclusive.** The problem in the regression is not that the γ values are mis-specified — it is that *all* γ estimates carry so much uncertainty that they function as near-pure noise predictors. Different L2 groupings would produce a different set of γ values, but they would still be estimated with high uncertainty (only 1 method reaches sig90 regardless of grouping). β would remain wide and near zero.
+
+The one scenario in which L2 restructuring could materially change the Step 3 conclusion is if the current groupings are actively suppressing signal — for instance, if a genuinely gaining method is grouped with other gaining methods, making its *relative* gain within the group appear flat. This is theoretically possible but would require a substantive, theoretically motivated argument for which specific restructuring reveals the true signal rather than a different one.
