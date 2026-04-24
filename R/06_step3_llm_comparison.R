@@ -22,6 +22,8 @@
 #   data/output/plot_gamma_vs_recommendations.pdf
 #   data/output/plot_top_recommended_direction.pdf
 #   data/output/step3_joined_table.csv
+#   data/output/step3_beta_draws.csv
+#   data/output/step3_beta_summary.csv
 
 suppressPackageStartupMessages({
   library(here)
@@ -142,22 +144,24 @@ cat("Joined table rows:", nrow(joined), "\n")
 cat("Methods with n_recommended_total > 0:",
     sum(joined$n_recommended_total > 0, na.rm = TRUE), "\n")
 
-# ── 6. Bayesian Poisson regression ────────────────────────────────────────────
+# ── 6. Bayesian negative-binomial regression ──────────────────────────────────
 #
-# Model: n_rec[i] ~ Poisson(exp(alpha + beta * |gamma_true[i]|))
-#        gamma_true[i] ~ Normal(mean_gamma[i], sd_gamma[i])   [stage-1 posterior as prior]
-#        alpha ~ Normal(0, 2),  beta ~ Normal(0, 1)
+# Model: n_rec[i] ~ NegBin2(exp(alpha + beta * gamma_signed[i]), phi)
+#        alpha ~ Normal(0, 2),  beta ~ Normal(0, 1),  phi ~ Exponential(1)
 #
-# This is sequential Bayesian updating: stage-1 gamma posterior ->
-# stage-2 prior on gamma_true -> proper joint posterior over (alpha, beta).
+# Signed mean_gamma is used as the predictor (not |gamma|). This is the correct
+# test of the mean-collapse hypothesis: beta > 0 means LLMs specifically favour
+# methods gaining post-2023 share, which is the directional prediction.
+# A latent-variable layer was tried previously but caused bimodal posteriors
+# (non-identifiability with 186 free gamma_true parameters); using the posterior
+# mean is the appropriate simplification. Negative-binomial handles over-dispersion.
 
-run_bayesian_poisson <- function(gamma_mean, gamma_sd, n_rec, label = "") {
-  cat("\nFitting Bayesian Poisson model", if (nchar(label) > 0) paste0("(", label, ")"), "...\n")
+run_bayesian_nb <- function(gamma_signed, n_rec, label = "") {
+  cat("\nFitting Bayesian NB model", if (nchar(label) > 0) paste0("(", label, ")"), "...\n")
   stan_data <- list(
-    M          = length(n_rec),
-    gamma_mean = gamma_mean,
-    gamma_sd   = gamma_sd,
-    n_rec      = as.integer(n_rec)
+    M            = length(n_rec),
+    gamma_signed = gamma_signed,
+    n_rec        = as.integer(n_rec)
   )
   fit <- suppressWarnings(stan(
     file    = STAN_FILE,
@@ -167,24 +171,31 @@ run_bayesian_poisson <- function(gamma_mean, gamma_sd, n_rec, label = "") {
     warmup  = 1000,
     cores   = 4,
     seed    = 42,
-    control = list(adapt_delta = 0.90),
+    control = list(adapt_delta = 0.95),
     refresh = 200
   ))
-  cat("Rhat (beta):", round(summary(fit, pars = "beta")$summary[, "Rhat"], 4), "\n")
-  rstan::extract(fit, pars = "beta")$beta
+  s <- summary(fit, pars = c("alpha", "beta", "phi"))$summary
+  rhat_max <- round(max(s[, "Rhat"]),   4)
+  neff_min <- round(min(s[, "n_eff"]),  0)
+  cat(sprintf("  max Rhat = %.4f | min n_eff = %d\n", rhat_max, neff_min))
+  list(
+    draws    = rstan::extract(fit, pars = "beta")$beta,
+    rhat_max = rhat_max,
+    neff_min = neff_min
+  )
 }
 
-gamma_mean <- joined$mean_gamma
-gamma_sd   <- joined$sd_gamma
+gamma_signed <- joined$mean_gamma
 
-beta_overall <- run_bayesian_poisson(gamma_mean, gamma_sd,
-                                     joined$n_recommended_total,    "overall")
-beta_novice  <- run_bayesian_poisson(gamma_mean, gamma_sd,
-                                     joined$n_recommended_novice,   "novice")
-beta_inter   <- run_bayesian_poisson(gamma_mean, gamma_sd,
-                                     joined$n_recommended_intermediate, "intermediate")
-beta_expert  <- run_bayesian_poisson(gamma_mean, gamma_sd,
-                                     joined$n_recommended_expert,   "expert")
+fit_overall <- run_bayesian_nb(gamma_signed, joined$n_recommended_total,        "overall")
+fit_novice  <- run_bayesian_nb(gamma_signed, joined$n_recommended_novice,       "novice")
+fit_inter   <- run_bayesian_nb(gamma_signed, joined$n_recommended_intermediate, "intermediate")
+fit_expert  <- run_bayesian_nb(gamma_signed, joined$n_recommended_expert,       "expert")
+
+beta_overall <- fit_overall$draws
+beta_novice  <- fit_novice$draws
+beta_inter   <- fit_inter$draws
+beta_expert  <- fit_expert$draws
 
 # ── 7. Plots ───────────────────────────────────────────────────────────────────
 
@@ -206,10 +217,10 @@ pA <- ggplot(overall_df, aes(x = beta, y = 0)) +
   annotate("text", x = Inf, y = 0.4, label = p_label,
            hjust = 1.1, size = 4, colour = "steelblue4") +
   labs(
-    x        = "β: Poisson log-link coefficient (|gamma|)",
+    x        = "β: log-link coefficient on mean γ (signed)",
     y        = NULL,
     title    = "Posterior distribution of LLM trend-chasing coefficient (overall)",
-    subtitle = "Bayesian Poisson: n_recommended ~ |gamma_true|; gamma_true uncertainty propagated via Normal prior"
+    subtitle = "Bayesian NB: n_recommended ~ mean_gamma; positive β = LLMs favour methods gaining post-2023"
   ) +
   theme_minimal(base_size = 12) +
   theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
@@ -245,7 +256,7 @@ pB <- ggplot(profile_df, aes(x = beta, y = 0)) +
   ) +
   facet_wrap(~ profile, ncol = 1) +
   labs(
-    x        = "β: Poisson log-link coefficient (|gamma|)",
+    x        = "β: log-link coefficient on mean γ (signed)",
     y        = NULL,
     title    = "Posterior trend-chasing coefficient by expertise profile",
     subtitle = "Does expertise level modulate alignment with LLM recommendations?"
@@ -260,26 +271,15 @@ pB <- ggplot(profile_df, aes(x = beta, y = 0)) +
 ggsave(OUT_BETA_PROFILE, pB, width = 7, height = 8, units = "in")
 cat("Saved:", OUT_BETA_PROFILE, "\n")
 
-# Plot C: scatter of posterior mean |gamma| vs recommendation count
-scatter_df <- joined |>
-  mutate(abs_mean_gamma = abs(mean_gamma))
-
-top_rec_labels <- scatter_df |>
+# Plot C: scatter of signed posterior mean gamma vs recommendation count
+top_rec_labels <- joined |>
   filter(n_recommended_total > 0) |>
   arrange(desc(n_recommended_total)) |>
   slice_head(n = 20)
 
-pC <- ggplot(scatter_df, aes(x = abs_mean_gamma, y = n_recommended_total)) +
+pC <- ggplot(joined, aes(x = mean_gamma, y = n_recommended_total)) +
+  geom_vline(xintercept = 0, linetype = "dashed", colour = "grey50", linewidth = 0.4) +
   geom_point(aes(colour = sig90), alpha = 0.6, size = 1.8) +
-  geom_smooth(
-    method      = "glm",
-    formula     = y ~ x,
-    method.args = list(family = "poisson"),
-    se          = TRUE,
-    colour      = "darkorange3",
-    fill        = "darkorange",
-    alpha       = 0.2
-  ) +
   geom_text_repel(
     data        = top_rec_labels,
     aes(label   = level_3_fine),
@@ -293,10 +293,10 @@ pC <- ggplot(scatter_df, aes(x = abs_mean_gamma, y = n_recommended_total)) +
     name   = NULL
   ) +
   labs(
-    x        = "Posterior mean |gamma| (magnitude of post-LLM method change)",
+    x        = "Posterior mean γ (signed; right = gaining post-2023, left = declining)",
     y        = "LLM recommendation count (n consistent mappings)",
-    title    = "Do LLMs recommend methods that changed most post-2023?",
-    subtitle = "Each point is one L3 method. Orange = Poisson smooth."
+    title    = "Do LLMs recommend methods gaining post-2023?",
+    subtitle = "Each point is one L3 method. Red = credible post-2023 shift (90% CI)."
   ) +
   theme_minimal(base_size = 11) +
   theme(legend.position = "bottom")
@@ -337,7 +337,31 @@ pD <- ggplot(top20_rec, aes(x = n_recommended_total, y = l3_label, fill = direct
 ggsave(OUT_DIRECTION, pD, width = 8, height = 7, units = "in")
 cat("Saved:", OUT_DIRECTION, "\n")
 
-# ── 8. Save joined table ────────────────────────────────────────────────────────
+# ── 8. Save beta draws ────────────────────────────────────────────────────────
+
+OUT_BETA_DRAWS       <- here("data/output/step3_beta_draws.csv")
+OUT_CONVERGENCE      <- here("data/output/step3_convergence.csv")
+draws_df <- data.frame(
+  beta_overall = beta_overall,
+  beta_novice  = beta_novice,
+  beta_inter   = beta_inter,
+  beta_expert  = beta_expert
+)
+write.csv(draws_df, OUT_BETA_DRAWS, row.names = FALSE)
+cat("Saved:", OUT_BETA_DRAWS, "\n")
+
+convergence_df <- data.frame(
+  profile  = c("overall", "novice", "intermediate", "expert"),
+  rhat_max = c(fit_overall$rhat_max, fit_novice$rhat_max,
+               fit_inter$rhat_max,   fit_expert$rhat_max),
+  neff_min = c(fit_overall$neff_min, fit_novice$neff_min,
+               fit_inter$neff_min,   fit_expert$neff_min),
+  run_date = Sys.Date()
+)
+write.csv(convergence_df, OUT_CONVERGENCE, row.names = FALSE)
+cat("Saved:", OUT_CONVERGENCE, "\n")
+
+# ── 10. Save joined table ───────────────────────────────────────────────────────
 
 out_table <- joined |>
   select(
@@ -354,7 +378,7 @@ out_table <- joined |>
 write.csv(out_table, OUT_TABLE, row.names = FALSE)
 cat("Saved:", OUT_TABLE, "\n")
 
-# ── 9. Console summary + saved summary ────────────────────────────────────────
+# ── 11. Console summary + saved summary ───────────────────────────────────────
 
 beta_summary <- data.frame(
   profile   = c("overall", "novice", "intermediate", "expert"),
