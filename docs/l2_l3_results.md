@@ -32,7 +32,7 @@ y[g, t]          ~ Dirichlet-Multinomial(α[g, t])
 log(phi)         ~ Normal(log(100), 1.0)   [phi ~ lognormal, median 100, 90% CI ~[14, 716]]
 ```
 
-g indexes L2 sub-disciplines; k indexes L3 techniques within each sub-discipline; t indexes years 2010–2025.
+g indexes L2 sub-disciplines; k indexes L3 techniques within each sub-discipline; t indexes years 2010–2026.
 
 **Why phi is estimated, not fixed.** The empirical phi exploration (`R/00b_phi_exploration.R`) estimates the Dirichlet-Multinomial concentration parameter from the data before any modelling, using a method-of-moments estimator applied across years within each L2 group. Most groups have empirical phi well above 10 — many above 100 — meaning the observed proportions track the structural trend closely year to year. Fixing phi=10 was therefore conservative: it attributed too much observed variation to within-year noise, leaving less for the structural β and γ parameters to explain. The principled Bayesian alternative is a weakly informative lognormal prior that lets the data speak. The posterior concentrates at phi ≈ 604, confirming that the data favour a near-Multinomial likelihood.
 
@@ -42,20 +42,20 @@ g indexes L2 sub-disciplines; k indexes L3 techniques within each sub-discipline
 
 | Parameter | Value |
 |---|---|
-| phi posterior mean | 604 |
-| phi 90% CI | [280, 1210] |
-| sigma_gamma mean | 0.250 |
-| sigma_gamma 90% CI | [0.125, 0.365] |
-| sigma_beta mean | 0.215 |
-| Rhat (all params) | < 1.002 |
-| ESS (sigma_gamma) | 1824 |
+| phi posterior mean | 591 |
+| phi 90% CI | [297, 1164] |
+| sigma_gamma mean | 0.138 |
+| sigma_gamma 90% CI | [0.021, 0.250] |
+| sigma_beta mean | 0.204 |
+| Rhat (all params) | < 1.003 |
+| ESS (sigma_gamma) | 862 |
 | Divergences | 0 |
 
 Rhat < 1.01 and ESS > 400 are the thresholds for acceptable convergence. Zero divergences is required.
 
 ## Key result
 
-sigma_gamma = 0.250 [0.125, 0.365] is credibly above zero. phi ≈ 604 — the field is compositionally regular, meaning observed proportions track the structural trend closely year to year. The post-LLM reshuffling in 2–3 years is comparable in magnitude to 13 years of gradual evolution: sigma_gamma ≈ sigma_beta (0.250 vs 0.215).
+sigma_gamma = 0.138 [0.021, 0.250] is above zero but with wider uncertainty than earlier estimates — the lower bound of the 90% CI is close to zero, indicating weaker evidence for post-LLM reshuffling than previously found. phi ≈ 591 — the field remains compositionally regular. The post-LLM reshuffling is now estimated to be smaller in magnitude than the long-run baseline trend: sigma_gamma < sigma_beta (0.138 vs 0.204). No individual methods clear the 90% CI threshold for a credible post-LLM slope change.
 
 ## What sigma_gamma means in plain terms
 
@@ -65,24 +65,27 @@ What does gamma = +0.250 look like in practice? The gamma operates on the log-sh
 
 ## Top methods gaining share post-2023
 
-| Method | Description | Change |
+No methods have a 90% CI for gamma that fully excludes zero. The estimates below are the top 5 by posterior mean but all carry wide uncertainty intervals that cross zero.
+
+| Method | mean gamma | 90% CI |
 |---|---|---|
-| L3-021: Spatial Pattern & Suitability Analysis | Generic GIS pattern analysis | +39% |
-| L3-067: Visual Perception & Saliency | What stands out in images | +36% |
-| L3-059: Generative Image Restoration | AI for damaged images | +34% |
-| L3-066: Attention Mechanism Architectures | Transformers — LLMs suggest by default | +31% |
-| L3-064: Multimodal Fusion and Alignment | Combining multiple data types | +26% |
+| L3-024: Bayesian Panel Data Methods | +0.146 | [−0.064, +0.501] |
+| L3-009: Real-Time Object Detection | +0.131 | [−0.067, +0.440] |
+| L3-101: Information-Theoretic Entropy Measures | +0.130 | [−0.072, +0.451] |
+| L3-006: Partial Least Squares Variants | +0.125 | [−0.053, +0.396] |
+| L3-123: Generalized Linear Modeling | +0.125 | [−0.060, +0.404] |
 
 ## Top methods losing share post-2023
 
-| Method | Description | Change |
+| Method | mean gamma | 90% CI |
 |---|---|---|
-| L3-178: Computational Analytical Methods | Specialised statistical techniques | −38% |
-| L3-107: Deep Learning Architectural Patterns | Specialised (not generic) architectures | −20% |
-| L3-044: Bootstrap and Jackknife Methods | Classical resampling — requires expertise | −20% |
-| L3-149: Principal Component Analysis | Dimensionality reduction — bypassed for newer methods | −17% |
+| L3-134: Logistic Regression Variants | −0.131 | [−0.417, +0.055] |
+| L3-103: Ecological Diversity Metrics | −0.117 | [−0.404, +0.071] |
+| L3-017: Kernel Methods and Matrix Factorization | −0.110 | [−0.402, +0.086] |
+| L3-109: Categorical Data Analysis | −0.106 | [−0.376, +0.073] |
+| L3-118: Hypothesis Testing Procedures | −0.103 | [−0.357, +0.077] |
 
-Note: change = (exp(gamma) − 1) × 100. Individual estimates are sensitive to phi — rankings may shift; directional pattern is consistent.
+Note: change = (exp(gamma) − 1) × 100. No individual estimates are credible at the 90% level — all CIs cross zero.
 
 ## Plots
 
@@ -90,7 +93,7 @@ Note: change = (exp(gamma) − 1) × 100. Individual estimates are sensitive to 
 Three-panel: sigma_beta posterior (left), sigma_gamma posterior (centre), phi posterior vs prior (right). Phi concentrating far above its prior median (100) confirms the data favour near-Multinomial behaviour.
 
 ![Diversity by group](../data/output/phi_free/kf_plot_diversity_by_group.png)
-Inverse Simpson index (effective number of L3 techniques) within each L2 sub-discipline over 2010–2025. Ribbon = 50%/90% posterior credible intervals. Dashed line = 2023 LLM adoption boundary.
+Inverse Simpson index (effective number of L3 techniques) within each L2 sub-discipline over 2010–2026. Ribbon = 50%/90% posterior credible intervals. Dashed line = 2023 LLM adoption boundary.
 
 ![Gamma dotplot](../data/output/phi_free/kf_plot_gamma_dotplot.png)
 Posterior mean and 90% CI for gamma_method for each L3 technique. Red = gaining share post-2023, blue = losing share. Methods where the 90% CI excludes zero are credible evidence of a post-LLM slope change.
@@ -133,13 +136,13 @@ for each group g, year t:
   y[g,t]     ~ DM(N[g,t], alpha[g,t])           [observed]
 ```
 
-g indexes L2 sub-disciplines; k indexes L3 techniques within each sub-discipline; t indexes years 2010–2025.
+g indexes L2 sub-disciplines; k indexes L3 techniques within each sub-discipline; t indexes years 2010–2026.
 
 ### Parameter meanings
 
 - **phi** — the Dirichlet-Multinomial concentration parameter. Controls how tightly observed proportions are expected to track the model's structural trend in any given year. Higher phi means less overdispersion and a more compositionally regular field. Prior: LogNormal(log(100), 1.0), median 100. Sampled as log_phi (unbounded) for better HMC geometry.
 
-- **sigma_beta** — the global scale of the distribution from which long-run method trends are drawn. Encodes how much methods vary in their historical trajectories across the full 2010–2025 period. Prior: Exponential(2), weakly regularising. Sampled.
+- **sigma_beta** — the global scale of the distribution from which long-run method trends are drawn. Encodes how much methods vary in their historical trajectories across the full 2010–2026 period. Prior: Exponential(2), weakly regularising. Sampled.
 
 - **sigma_gamma** — the global scale of post-2023 slope changes. This is the key estimand: if sigma_gamma is credibly above zero, real post-LLM heterogeneous reshuffling occurred across methods. Prior: Exponential(4), more regularising than sigma_beta because we expect the post-LLM change (2–3 years) to be smaller than the cumulative 13-year trend. Sampled.
 
@@ -161,9 +164,9 @@ g indexes L2 sub-disciplines; k indexes L3 techniques within each sub-discipline
 
 | Parameter | What it measures | Sampled? | Posterior mean | 90% CI | Rhat | ESS |
 |---|---|---|---|---|---|---|
-| phi | Concentration — how tightly observed proportions track the structural trend. Higher = more regular field | Yes | 604.6 | [280, 1210] | 1.0002 | 5472 |
-| sigma_beta | Global scale of long-run method trends (2010–2025). How much methods vary in their historical trajectories | Yes | 0.215 | [0.151, 0.278] | 1.0004 | 2522 |
-| sigma_gamma | Global scale of post-2023 slope changes. The key estimand — if credibly above zero, anomalous reshuffling occurred | Yes | 0.250 | [0.125, 0.365] | 1.0019 | 1824 |
+| phi | Concentration — how tightly observed proportions track the structural trend. Higher = more regular field | Yes | 591 | [297, 1164] | 1.0000 | 5293 |
+| sigma_beta | Global scale of long-run method trends (2010–2026). How much methods vary in their historical trajectories | Yes | 0.204 | [0.157, 0.251] | 1.0016 | 2154 |
+| sigma_gamma | Global scale of post-2023 slope changes. The key estimand — if credibly above zero, anomalous reshuffling occurred | Yes | 0.138 | [0.021, 0.250] | 1.0022 | 862 |
 | mu[g,k] | Baseline log-weight of method k in group g — its average relative share across the full period | Yes | (varies by method) | — | — | — |
 | beta[g,k] | Long-run linear trend of method k — was it already rising or falling before LLMs? | No (derived) | (varies by method) | — | — | — |
 | gamma[g,k] | Post-2023 slope increment — the anomalous change after LLM adoption | No (derived) | (varies by method) | — | — | — |

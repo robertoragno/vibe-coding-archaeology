@@ -6,7 +6,7 @@ library(tidyr)
 library(ggplot2)
 library(httr)
 
-FIT_RDS        <- "data/output/fit.rds"
+FIT_RDS        <- "data/output/fit_phi_free.rds"
 VOCAB_RDS      <- "data/output/vocab.rds"
 STAN_DATA_RDS  <- "data/output/stan_data.rds"
 SUMMARY_CSV    <- "data/output/inv_simpson_summary.csv"
