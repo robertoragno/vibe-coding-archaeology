@@ -4,21 +4,21 @@
 
 Imagine that every graduate student in a department suddenly started asking the same AI assistant for methodological advice. The assistant, trained on the same corpus, would naturally recommend the same handful of techniques — not because those techniques are best, but because they are most represented in its training data. Over time, the department's research would start to look eerily similar. This paper asks whether something like that is happening across computational archaeology.
 
-We retrieved roughly 68,000 archaeology papers published between 2010 and 2025 from Scopus. From this corpus, we retained the computational subset — papers whose abstracts describe a quantitative or computational methodology — for analysis. Each retained paper's methodology was classified into a three-level taxonomy: broad families (L1), sub-disciplines (L2), and specific techniques (L3). Classification was performed with Qwen, a large language model, applied consistently to all abstracts. This gives us a record of how the methodological menu of the discipline has changed, year by year, at fine granularity.
+We retrieved archaeology papers published between 2010 and 2026 from Scopus and retained the computational subset — papers whose abstracts describe a quantitative or computational methodology — yielding 7,763 papers for analysis. Each retained paper's methodology was classified into a three-level taxonomy: broad families (L1), sub-disciplines (L2), and specific techniques (L3). Classification was performed with Qwen, a large language model, applied consistently to all abstracts. This gives us a record of how the methodological menu of the discipline has changed, year by year, at fine granularity.
 
 The core question is whether that menu got more generic after 2023, the year ChatGPT entered serious academic use. Think of it like watching a restaurant's menu evolve over a decade, and then asking whether the dishes got blander — more convergent on a safe average — once the chef started relying on recipe apps rather than creative intuition.
 
-We measure diversity within each L2 sub-discipline using the Inverse Simpson index, which counts the effective number of distinct L3 methods in use. A score of 1 means one technique dominates completely; higher scores mean methods are more evenly spread. We model how this effective count changes over time using a Bayesian Dirichlet-Multinomial regression fit with Stan.
+We measure diversity within each L2 sub-discipline using the Inverse Simpson index, which counts the effective number of distinct L3 methods in use. A score of 1 means one technique dominates completely; higher scores mean methods are more evenly spread. We model how this effective count changes over time using a Bayesian Dirichlet-Multinomial regression fit with Stan. Because each paper can be tagged with multiple L3 methods, the 7,763 unique papers expand to 15,158 paper–method observations that are aggregated into the count array passed to Stan (counts of papers per L3 method, per L2 sub-discipline, per year).
 
-The model has a two-component structure. The first component, beta, captures each method's underlying linear trajectory from 2010 to 2025: some techniques were already rising or falling before LLMs existed. The second component, gamma, captures any additional deviation in log-odds share that began in 2023 and thereafter, encoded as a hard level shift via a binary `post_llm` indicator. Importantly, gamma measures a **step change in level** above the pre-existing beta trend — it cannot separately identify a sudden jump from a gradual post-2023 acceleration, though with only 2–3 years of post-adoption data these are not practically distinguishable. By separating these two components, we can ask not just whether methods changed after 2023, but whether that change was over and above what the pre-existing trend would have predicted. The key estimand is sigma_gamma, the global scale of across-method variation in the post-2023 deviation. If sigma_gamma is credibly above zero, there is real post-LLM heterogeneity in methodological trajectories — some methods accelerating, others declining — consistent with AI-driven recommendation effects.
+The model has a two-component structure. The first component, beta, captures each method's underlying linear trajectory from 2010 to 2026: some techniques were already rising or falling before LLMs existed. The second component, gamma, captures any additional deviation in log-odds share that began in 2023 and thereafter, encoded as a hard level shift via a binary `post_llm` indicator. Importantly, gamma measures a **step change in level** above the pre-existing beta trend — it cannot separately identify a sudden jump from a gradual post-2023 acceleration, though with only 3–4 years of post-adoption data these are not practically distinguishable. By separating these two components, we can ask not just whether methods changed after 2023, but whether that change was over and above what the pre-existing trend would have predicted. The key estimand is sigma_gamma, the global scale of across-method variation in the post-2023 deviation. If sigma_gamma is credibly above zero, there is real post-LLM heterogeneity in methodological trajectories — some methods accelerating, others declining — consistent with AI-driven recommendation effects.
 
-The prior on sigma_gamma (`exponential(4)`) is intentionally tighter than the prior on sigma_beta (`exponential(2)`), reflecting the expectation that post-LLM effects, accumulated over 2–3 years, should be smaller than baseline trends accumulated over 13 years. This conservative prior means individual gamma estimates carry substantial uncertainty, and results should be interpreted at the level of the global scale parameter and directional patterns rather than individual method estimates.
+The prior on sigma_gamma (`exponential(4)`) is intentionally tighter than the prior on sigma_beta (`exponential(2)`), reflecting the expectation that post-LLM effects, accumulated over 3–4 years, should be smaller than baseline trends accumulated over 13 years. This conservative prior means individual gamma estimates carry substantial uncertainty, and results should be interpreted at the level of the global scale parameter and directional patterns rather than individual method estimates.
 
 We run this analysis twice. The primary analysis operates at the L2-to-L3 level: within each sub-discipline, we watch the fine-grained technique mix evolve. A complementary sensitivity analysis operates at the L1-to-L2 level: within each broad family, we watch the sub-discipline mix. If both levels tell a consistent story, the finding is robust. As a robustness check on the temporal assumption, we re-run the primary analysis with the `post_llm` break set at 2022 (ChatGPT's launch) rather than 2023; stability of gamma estimates across both breakpoints would strengthen the temporal inference.
 
 The bibliometric analysis is paired with a prompting experiment. We systematically query Qwen3 (fixed local checkpoint) at three simulated expertise levels and with three types of methodological question, and classify each response into the same L3 taxonomy using Qwen. This gives us a direct estimate of what methods Qwen3 currently recommends. We then correlate recommendation frequency with the posterior mean gamma for each method. Critically, this comparison is made against **gamma specifically** — the excess share post-2023 above the pre-existing trend — rather than against raw method prevalence. This is what allows us to distinguish between two alternative explanations: the model recommending methods that were already trending before 2023 (reflecting its training data) versus recommending methods that accelerated specifically after LLM adoption (consistent with causal influence on research practice). If LLMs are driving convergence, the methods Qwen3 recommends most often should be the ones whose post-2023 share increased most in the published literature, after accounting for prior trajectories.
 
-The model is validated through a four-stage Bayesian workflow following Gelman et al. (2020): prior predictive checks confirm the priors generate plausible diversity values; posterior predictive checks show 44 of 48 method groups are well-calibrated; fake-data simulation confirms sigma_gamma is identifiable through hierarchical aggregation across groups; and phi is estimated from data — the posterior concentrates at phi ≈ 604, confirming the field is compositionally regular. An empirical phi exploration in `00b_phi_exploration.R` shows that phi varies substantially across groups, with most groups having empirical phi well above 100.
+The model is validated through a four-stage Bayesian workflow following Gelman et al. (2020): prior predictive checks confirm the priors generate plausible diversity values; posterior predictive checks show 44 of 48 method groups are well-calibrated; fake-data simulation confirms sigma_gamma is identifiable through hierarchical aggregation across groups; and phi is estimated from data — the posterior concentrates at phi ≈ 591, confirming the field is compositionally regular. An empirical phi exploration in `00b_phi_exploration.R` shows that phi varies substantially across groups, with most groups having empirical phi well above 100.
 
 ## Preliminary Results
 
@@ -28,36 +28,33 @@ The analysis proceeds in three steps:
 
 **Step 1 — Is there anomalous post-2023 methodological reshuffling?**
 
-Yes. The global scale of post-2023 method-level change (sigma_gamma) is credibly above zero.
+Weakly yes, but with wider uncertainty than earlier estimates. The global scale of post-2023 method-level change (sigma_gamma) is above zero, though the lower bound of the 90% CI is close to zero.
 
-The model estimates phi from data using a weakly informative lognormal prior. In the primary L2→L3 analysis, phi ≈ 604 [280, 1210], confirming the field is compositionally regular — observed proportions track the structural trend closely year to year. sigma_gamma = 0.250 [0.125, 0.365] is credibly above zero.
+The model estimates phi from data using a weakly informative lognormal prior. In the primary L2→L3 analysis, phi ≈ 591 [297, 1164], confirming the field is compositionally regular — observed proportions track the structural trend closely year to year. sigma_gamma = 0.138 [0.021, 0.250].
 
-The fit converged cleanly (Rhat < 1.002, ESS > 1800). sigma_gamma ≈ sigma_beta (0.250 vs 0.215): the post-LLM reshuffling in 2–3 years is as large as the variation accumulated over 13 years of gradual evolution. Given the conservative prior on sigma_gamma relative to sigma_beta, this convergence in estimated scales is notable — if anything, the prior works against detecting a large post-LLM signal.
+The fit converged cleanly (Rhat < 1.003, ESS (sigma_gamma) = 862, zero divergences). sigma_gamma < sigma_beta (0.138 vs 0.204): the post-LLM reshuffling is smaller in magnitude than the long-run baseline trend.
 
-Note: sigma_gamma measures the *magnitude* of reshuffling, not its direction. A large sigma_gamma is necessary but not sufficient evidence for convergence toward generic methods.
+Note: sigma_gamma measures the *magnitude* of reshuffling, not its direction. A sigma_gamma credibly above zero is necessary but not sufficient evidence for convergence toward generic methods.
 
 **Step 2 — Is the reshuffling directionally consistent with LLM-driven convergence?**
 
-Preliminary yes. Individual gamma estimates show a consistent directional pattern:
+Uncertain. No individual gamma estimates have a 90% CI that fully excludes zero — all directional claims are tentative. The top methods by posterior mean are reported below as directional indicators.
 
-Methods gaining share post-2023 (positive gamma, 90% CI excludes zero):
-- L3-021: Spatial Pattern & Suitability Analysis (+0.33)
-- L3-067: Visual Perception & Saliency (+0.31)
-- L3-059: Generative Image Restoration (+0.29)
-- L3-066: Attention Mechanism Architectures (+0.27)
-- L3-064: Multimodal Fusion and Alignment (+0.23)
+Methods gaining share post-2023 (positive gamma mean, all CIs cross zero):
+- L3-024: Bayesian Panel Data Methods (+0.146)
+- L3-009: Real-Time Object Detection (+0.131)
+- L3-101: Information-Theoretic Entropy Measures (+0.130)
+- L3-006: Partial Least Squares Variants (+0.125)
+- L3-123: Generalized Linear Modeling (+0.125)
 
-These are predominantly generic, widely-documented techniques that appear frequently in LLM training data and tutorials. A researcher asking an LLM "how should I analyse archaeological images?" would likely receive recommendations for attention mechanisms, image segmentation, or spatial pattern analysis.
+Methods losing share post-2023 (negative gamma mean, all CIs cross zero):
+- L3-134: Logistic Regression Variants (−0.131)
+- L3-103: Ecological Diversity Metrics (−0.117)
+- L3-017: Kernel Methods and Matrix Factorization (−0.110)
+- L3-109: Categorical Data Analysis (−0.106)
+- L3-118: Hypothesis Testing Procedures (−0.103)
 
-Methods losing share post-2023 (negative gamma):
-- L3-178: Computational Analytical Methods (-0.47)
-- L3-107: Deep Learning Architectural Patterns (-0.22)
-- L3-044: Bootstrap and Jackknife Methods (-0.22)
-- L3-149: Principal Component Analysis (-0.19)
-
-These are domain-specialised or statistically rigorous techniques that require methodological understanding to apply correctly — exactly the methods a vibe coder would bypass in favour of more generic alternatives.
-
-A note on uncertainty: when phi is estimated from data (phi ≈ 604), individual gamma estimates have wider credible intervals — only one method (L3-178: Computational Analytical Methods, gamma = −0.47) has a 90% CI that fully excludes zero. This reflects the conservative prior on sigma_gamma and is scientifically honest: the model is appropriately uncertain about individual-method estimates while remaining confident about the global reshuffling scale. The directional pattern (generic methods gaining, specialised losing) is consistent across the top-ranked methods regardless of CI width, and is interpretable as a coherent signal rather than noise. Individual estimates should be read as directional indicators, not precise effect sizes.
+Individual estimates should be read as directional indicators, not precise effect sizes. The conservative prior on sigma_gamma and the breadth of the new taxonomy mean that individual method gammas are appropriately uncertain. The global reshuffling scale (sigma_gamma) remains the primary inferential target.
 
 **Step 3 — Are the gaining methods the ones Qwen3 actually recommends? (in progress)**
 
@@ -67,7 +64,7 @@ The statistical test is a fully Bayesian Poisson regression (`stan/poisson_gamma
 
 **What the results mean in plain terms**
 
-In the 2–3 years since LLMs entered academic use, computational archaeology has seen a measurable redistribution of methods. Generic, widely-documented techniques — spatial pattern analysis, attention mechanisms, multimodal fusion, generative image restoration — have gained relative share. Specialised, domain-specific techniques — computational analytical methods, advanced deep learning architectures, classical resampling methods like bootstrap and jackknife, PCA — have lost relative share. This is consistent with researchers increasingly relying on LLM recommendations, which tend to suggest well-documented generic methods rather than domain-appropriate specialised ones. The magnitude of this reshuffling, measured by sigma_gamma, is comparable to 13 years of gradual methodological evolution — compressed into 2–3 years.
+In the 3–4 years since LLMs entered academic use, there is tentative evidence of methodological reshuffling in computational archaeology, though the signal is weaker than earlier estimates suggested. sigma_gamma = 0.138 [0.021, 0.250] is above zero but the lower bound is close to it, and no individual method shows a post-2023 shift credible at the 90% level. The magnitude of reshuffling is smaller than the long-run baseline trend (sigma_gamma < sigma_beta). Whether this pattern reflects LLM-driven convergence or other dynamics in the field remains to be established by Step 3.
 
 ## Analysis outputs
 
