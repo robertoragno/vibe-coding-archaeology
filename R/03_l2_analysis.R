@@ -23,7 +23,7 @@ chat_id <- Sys.getenv("TELEGRAM_CHAT_ID")
 # ── Data preparation ──────────────────────────────────────────────────────────
 cat("Loading data...\n")
 raw <- read_excel(INPUT_FILE) |>
-  filter(Year >= 2010, Year <= 2025)
+  filter(Year >= 2010, Year <= 2026)
 cat("Rows loaded:", nrow(raw), "\n")
 
 df_clean <- raw |>
@@ -70,11 +70,11 @@ for (i in seq_len(nrow(counts_long))) {
     counts_long$n_papers[i]
 }
 
-years_vec <- 2010:2025
+years_vec <- 2010:2026
 year_std  <- as.numeric(scale(year_levels))
 post_llm  <- as.integer(years_vec >= 2023)
 
-cat("post_llm vector (2010-2025):", post_llm, "\n")
+cat("post_llm vector (2010-2026):", post_llm, "\n")
 
 stan_data <- list(
   N_groups  = N_groups,

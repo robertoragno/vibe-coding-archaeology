@@ -360,7 +360,7 @@ p5 <- ggplot(raw_all, aes(x = year, y = n_papers)) +
   facet_wrap(~ method_id, scales = "free_y", ncol = 3) +
   labs(
     x = "Year", y = "Observed paper count",
-    title    = "Top 15 methods: raw observed paper counts 2010-2025",
+    title    = "Top 15 methods: raw observed paper counts 2010-2026",
     subtitle = "Orange = non-parametric loess smoother (NOT the Bayesian model); dashed = 2023 LLM adoption boundary"
   ) +
   theme_minimal(base_size = 7) +
