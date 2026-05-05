@@ -12,7 +12,7 @@ options(mc.cores = parallel::detectCores())
 rstan_options(auto_write = TRUE)
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
-FIT_RDS       <- "data/output/fit.rds"
+FIT_RDS       <- "data/output/fit_phi_free.rds"
 FIT_P50_RDS   <- "data/output/fit_phi50.rds"
 VOCAB_RDS     <- "data/output/vocab.rds"
 STAN_DATA_RDS <- "data/output/stan_data.rds"
@@ -84,7 +84,7 @@ for (g in seq_len(N_groups)) {
 }
 
 # ── Load fit.rds and extract posterior arrays ─────────────────────────────────
-cat("Loading fit.rds (309 MB — may take ~30 s)...\n")
+cat("Loading fit_phi_free.rds (642 MB — may take ~60 s)...\n")
 fit <- readRDS(FIT_RDS)
 
 cat("Extracting posterior arrays...\n")
@@ -469,6 +469,7 @@ cat("\n===== SECTION 4: Prior Sensitivity Analysis (phi) =====\n")
 sensitivity_done <- FALSE
 spearman_rho     <- NA_real_
 PLOT_SENS        <- file.path(OUT_DIR, "plot_prior_sensitivity.png")
+fit_p50          <- NULL
 
 if (!file.exists(FIT_P50_RDS)) {
   cat("Waiting for phi=50 run — rerun this script after fit_phi50.rds is available\n")
@@ -476,6 +477,20 @@ if (!file.exists(FIT_P50_RDS)) {
   cat("fit_phi50.rds found. Loading...\n")
   fit_p50 <- readRDS(FIT_P50_RDS)
 
+  # Guard: fit_phi50 may be stale (old taxonomy dimensions) after data re-prep
+  gm_k10_dims <- dim(rstan::extract(fit,     pars = "gamma_method")$gamma_method)
+  gm_k50_dims <- dim(rstan::extract(fit_p50, pars = "gamma_method")$gamma_method)
+  if (!identical(gm_k10_dims[-1], gm_k50_dims[-1])) {
+    cat(sprintf(
+      "SKIP sensitivity: fit_phi50.rds dimensions [G=%d, K=%d] don't match current fit [G=%d, K=%d].\n",
+      gm_k50_dims[2], gm_k50_dims[3], gm_k10_dims[2], gm_k10_dims[3]
+    ))
+    cat("Rerun 01b_fit_phi_free.R variant with phi=50 to regenerate.\n")
+    fit_p50 <- NULL
+  }
+}
+
+if (!is.null(fit_p50)) {
   sg_k10 <- sigma_gamma_post
   sg_k50 <- rstan::extract(fit_p50, pars = "sigma_gamma")$sigma_gamma
   sb_k10 <- sigma_beta_post
