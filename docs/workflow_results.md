@@ -32,7 +32,7 @@ Prior predictive 5th–95th percentile = [1.25, 5.54]; observed range = [1, 6.97
 
 **Interpretation.** If the prior predictive covers 1 to K_g — the full range from one dominant method to perfectly uniform distribution — the priors are weakly informative and acceptable. A prior that places all mass outside the observed range would indicate miscalibration and require tightening or widening the hyperpriors.
 
-![Prior predictive check](../data/output/workflow/plot_prior_predictive.png)
+![Prior predictive check](../data/output/figures/workflow/plot_prior_predictive.png)
 
 ---
 
@@ -58,13 +58,13 @@ The grey distribution is the posterior predictive — what the model expects inv
 
 What we observe: in most groups the red line falls in the left third of the grey distribution, meaning the model systematically predicts higher diversity than observed. This is a consistent pattern rather than random scatter. Two explanations are plausible: (1) phi=10 allows too much year-to-year flexibility, letting the model spread probability mass across more methods than actually appear; (2) some L3 methods in the taxonomy co-occur systematically (a paper using Random Forest also tends to use cross-validation), which the DM independence assumption cannot capture. The phi=50 sensitivity check in Section 4 tests explanation (1) directly — if the misfit shrinks with higher phi, concentration was the issue.
 
-![PPC density](../data/output/workflow/plot_ppc_density.png)
+![PPC density](../data/output/figures/workflow/plot_ppc_density.png)
 
 ### Section 2b — PPC tail probabilities
 
 Orange dashed lines = 0.05/0.95 (acceptable); green dotted lines = 0.10/0.90 (good); red points = flagged groups.
 
-![PPC tail probabilities](../data/output/workflow/plot_ppc_pvalues.png)
+![PPC tail probabilities](../data/output/figures/workflow/plot_ppc_pvalues.png)
 
 **Interpretation.** A group failing the PPC (tail probability outside 0.05–0.95) suggests the model is systematically misrepresenting the diversity of that group. Common causes: wrong K_g (methods collapsed at the wrong level), year-group cells with very small N that are noise-dominated, or a structural break not captured by the two-slope parameterisation.
 
@@ -98,7 +98,7 @@ Recovered mean    = 0.2119
 True value inside CI: TRUE
 ```
 
-![Fake data recovery](../data/output/workflow/plot_fake_data_recovery.png)
+![Fake data recovery](../data/output/figures/workflow/plot_fake_data_recovery.png)
 
 **Interpretation.** The dashed grey curve is the prior Exp(4); the solid blue curve is the posterior from the fake data. If the posterior contracts noticeably toward the true value (red line) relative to the prior, σ_gamma is identifiable from this data structure. A posterior that simply matches the prior indicates weak identifiability — the data carry almost no information about post-LLM heterogeneity at the group level.
 
@@ -134,7 +134,7 @@ The Spearman rank correlation between per-method posterior mean γ under phi=10 
 2. The prompting experiment is no longer optional corroboration — it is essential to identify which specific methods are genuinely LLM-driven, independent of the phi assumption
 3. The next modelling iteration treats phi as a parameter with a weakly informative lognormal prior — see Section 5 below.
 
-![Prior sensitivity](../data/output/workflow/plot_prior_sensitivity.png)
+![Prior sensitivity](../data/output/figures/workflow/plot_prior_sensitivity.png)
 
 ---
 

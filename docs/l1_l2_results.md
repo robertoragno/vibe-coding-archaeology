@@ -87,16 +87,16 @@ Note: change = (exp(gamma) − 1) × 100. At the L1→L2 level, fewer papers per
 
 ## Plots
 
-![Sigma posteriors](../data/output/l2/l2_plot_sigma_posteriors.png)
+![Sigma posteriors](../data/output/figures/l1_l2/l2_plot_sigma_posteriors.png)
 Two-panel: sigma_beta posterior (left), sigma_gamma posterior (right). phi is fixed at 10.
 
-![Diversity by L1 group](../data/output/l2/l2_plot_diversity_by_group.png)
+![Diversity by L1 group](../data/output/figures/l1_l2/l2_plot_diversity_by_group.png)
 Inverse Simpson index within each L1 family over 2010–2025. Grey dots = observed annual diversity; ribbon = 50%/90% posterior credible intervals. Dashed line = 2023 LLM adoption boundary.
 
-![Gamma dotplot](../data/output/l2/l2_plot_gamma_dotplot.png)
+![Gamma dotplot](../data/output/figures/l1_l2/l2_plot_gamma_dotplot.png)
 L2 sub-disciplines with posterior mean and 90% CI for gamma. Red = gaining share post-2023, blue = losing share.
 
-![Raw counts](../data/output/l2/l2_plot_raw_counts.png)
+![Raw counts](../data/output/figures/l1_l2/l2_plot_raw_counts.png)
 Raw observed paper counts for the top 10 sub-disciplines by |gamma|. Pure data sanity check — no model involved.
 
 ## The model — full parameter description

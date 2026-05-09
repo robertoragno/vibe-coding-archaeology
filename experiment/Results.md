@@ -141,21 +141,21 @@ The honest summary is: the regression does not confirm the mechanism, and the pr
 
 *This plot shows the full posterior distribution of β estimated from all 186 L3 methods combined (pooling across novice, intermediate, and expert profiles). The x-axis is the value of β; the y-axis is posterior density. A distribution centred near zero with a wide spread means the model is uncertain whether the LLM systematically favours methods that gained share post-2023. The 90% credible interval and posterior mean are typically marked; if the whole distribution sits well above zero, that would support mean collapse.*
 
-<img src="../data/output/plot_beta_posterior_overall.png" width="520">
+<img src="../data/output/figures/step3/plot_beta_posterior_overall.png" width="520">
 
 ### Plot B — β posterior by expertise profile
 
 *This plot overlays or panels the β posteriors separately for the three researcher profiles (novice, intermediate, expert). The mean-collapse hypothesis predicts novice > intermediate > expert (a researcher who gives the LLM less guidance should get output more aligned with recent trends). In our data the ordering is reversed (expert most positive, novice most negative), which is visible here as the novice distribution sitting furthest left. All three distributions still straddle zero, so no individual profile produces a credibly nonzero β.*
 
-<img src="../data/output/plot_beta_posterior_by_profile.png" width="520">
+<img src="../data/output/figures/step3/plot_beta_posterior_by_profile.png" width="520">
 
 ### Plot C — Signed γ vs. LLM recommendation count
 
-<img src="../data/output/plot_gamma_vs_recommendations.png" width="520">
+<img src="../data/output/figures/step3/plot_gamma_vs_recommendations.png" width="520">
 
 ### Plot D — Top 20 recommended methods and their post-2023 direction
 
-<img src="../data/output/plot_top_recommended_direction.png" width="520">
+<img src="../data/output/figures/step3/plot_top_recommended_direction.png" width="520">
 
 All bars in Plot D are grey: all 20 most-recommended methods have uncertain post-2023 trajectories (90% CI for γ crosses zero). This is a direct read from the main model's gamma posteriors and does not depend on the β regression. It reinforces the noise point above — the most-recommended methods are not ones whose post-2023 trajectory is well-identified, which limits what the regression can recover.
 
@@ -195,7 +195,7 @@ What the Bayesian approach adds here is expressive precision. Instead of a binar
 
 ### Would adjusting the L2 taxonomy groupings change the results?
 
-**The headline finding (σ_γ credibly above zero) would almost certainly survive.** The post-2023 reshuffling signal is present in the raw counts. The existing L1→L2 sensitivity analysis (`R/03_l2_analysis.R`) already demonstrates this: the same model run one level up the hierarchy still finds a nonzero σ_γ, as expected from a real phenomenon rather than an artefact of a particular grouping choice.
+**The headline finding (σ_γ credibly above zero) would almost certainly survive.** The post-2023 reshuffling signal is present in the raw counts. The existing L1→L2 sensitivity analysis (`R/03_l1_l2_analysis.R`) already demonstrates this: the same model run one level up the hierarchy still finds a nonzero σ_γ, as expected from a real phenomenon rather than an artefact of a particular grouping choice.
 
 **Individual γ estimates would change, potentially substantially.** Each L3 method's γ is estimated relative to the other methods sharing its L2 group. Reassigning a method to a different L2 group changes its competitive reference set — its baseline, its pre-2023 trend, the zero-sum constraint it operates under. The specific list of "gaining" and "losing" methods from Step 2 could look different under a different taxonomy.
 

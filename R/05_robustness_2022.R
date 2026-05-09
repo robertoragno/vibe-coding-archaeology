@@ -9,14 +9,13 @@
 
 suppressPackageStartupMessages({
   library(here)
-  library(rstan)
+  library(cmdstanr)
   library(dplyr)
   library(ggplot2)
   library(ggrepel)
 })
 
 options(mc.cores = parallel::detectCores())
-rstan_options(auto_write = TRUE)
 
 # ── 1. Paths ───────────────────────────────────────────────────────────────────
 
@@ -26,11 +25,13 @@ VOCAB_PATH  <- here("data/output/vocab.rds")
 FIT_2022    <- here("data/output/fit_phi_free_2022.rds")
 DONE_FLAG   <- here("data/output/fit_phi_free_2022.done")
 OUT_CSV     <- here("data/output/gamma_results_2022.csv")
-OUT_PLOT    <- here("data/output/plot_robustness_2022.pdf")
+OUT_PLOT    <- here("data/output/figures/robustness/plot_robustness_2022.pdf")
 
 gamma_csv_primary <- here("data/output/gamma_results.csv")
 gamma_csv_fallback <- here("data/output/phi_free/gamma_results.csv")
 GAMMA_2023_CSV <- if (file.exists(gamma_csv_primary)) gamma_csv_primary else gamma_csv_fallback
+
+dir.create(here("data/output/figures/robustness"), recursive = TRUE, showWarnings = FALSE)
 
 if (!file.exists(GAMMA_2023_CSV))
   stop("gamma_results.csv (2023 break) not found at:\n  ", gamma_csv_primary,
@@ -56,30 +57,31 @@ cat("post_llm sum = 5 (2022, 2023, 2024, 2025, 2026) — OK\n")
 
 # ── 3. Re-fit (guarded by DONE_FLAG) ──────────────────────────────────────────
 
+# phi is estimated (not data) in phi_free model; remove if present
+stan_data_2022$phi <- NULL
+
 if (!file.exists(DONE_FLAG)) {
   cat("\nCompiling and sampling (break=2022)...\n")
-  cat("Settings: chains=4, iter=4000, warmup=2000, adapt_delta=0.95, max_treedepth=14\n")
+  cat("Settings: chains=4, iter_sampling=2000, iter_warmup=2000, adapt_delta=0.95, max_treedepth=14\n")
   t_start <- proc.time()
 
-  fit_2022 <- suppressWarnings(stan(
-    file    = STAN_FILE,
-    data    = stan_data_2022,
-    chains  = 4,
-    iter    = 4000,
-    warmup  = 2000,
-    cores   = 4,
-    seed    = 42,
-    control = list(
-      adapt_delta   = 0.95,
-      max_treedepth = 14
-    ),
-    refresh = 200
-  ))
+  mod <- cmdstan_model(STAN_FILE)
+  fit_2022 <- mod$sample(
+    data            = stan_data_2022,
+    chains          = 4,
+    iter_sampling   = 2000,
+    iter_warmup     = 2000,
+    parallel_chains = 4,
+    seed            = 42,
+    adapt_delta     = 0.95,
+    max_treedepth   = 14,
+    refresh         = 200
+  )
 
   elapsed_min <- round((proc.time() - t_start)["elapsed"] / 60, 1)
   cat("Sampling done. Elapsed:", elapsed_min, "minutes\n")
 
-  saveRDS(fit_2022, FIT_2022)
+  fit_2022$save_object(FIT_2022)
   writeLines(as.character(Sys.time()), DONE_FLAG)
   cat("Fit saved to:", FIT_2022, "\n")
 } else {
@@ -90,10 +92,12 @@ if (!file.exists(DONE_FLAG)) {
 # ── 4. HMC diagnostics ─────────────────────────────────────────────────────────
 
 cat("\n--- HMC diagnostics (2022 break) ---\n")
-check_hmc_diagnostics(fit_2022)
-cat("\n--- sigma_beta ---\n"); print(summary(fit_2022, pars = "sigma_beta")$summary)
-cat("\n--- sigma_gamma ---\n"); print(summary(fit_2022, pars = "sigma_gamma")$summary)
-cat("\n--- phi ---\n");         print(summary(fit_2022, pars = "phi")$summary)
+diag <- fit_2022$diagnostic_summary()
+cat("Divergences:", sum(diag$num_divergent), "\n")
+cat("Max treedepth:", sum(diag$num_max_treedepth), "\n")
+cat("\n--- sigma_beta ---\n"); print(fit_2022$summary(variables = "sigma_beta"))
+cat("\n--- sigma_gamma ---\n"); print(fit_2022$summary(variables = "sigma_gamma"))
+cat("\n--- phi ---\n");         print(fit_2022$summary(variables = "phi"))
 
 # ── 5. Extract gamma_method posteriors ─────────────────────────────────────────
 
@@ -103,14 +107,17 @@ l2_levels <- vocab$l2_levels
 K_g_vec   <- vocab$K_g
 N_groups  <- length(l2_levels)
 
-gamma_arr <- rstan::extract(fit_2022, pars = "gamma_method")$gamma_method
-S         <- dim(gamma_arr)[1]
+draws <- fit_2022$draws(format = "draws_matrix")
+S     <- nrow(draws)
 cat("Draws S =", S, ", N_groups =", N_groups, "\n")
 
 gamma_list <- vector("list", N_groups)
 for (grp in seq_len(N_groups)) {
   K    <- K_g_vec[grp]
-  gm_g <- matrix(gamma_arr[, grp, 1:K], nrow = S, ncol = K)
+  gm_g <- matrix(NA_real_, nrow = S, ncol = K)
+  for (k in seq_len(K)) {
+    gm_g[, k] <- draws[, sprintf("gamma_method[%d,%d]", grp, k)]
+  }
 
   method_labels <- vocab$l3_vocab |>
     filter(g == grp) |>

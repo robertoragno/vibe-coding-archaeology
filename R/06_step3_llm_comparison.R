@@ -27,16 +27,13 @@
 
 suppressPackageStartupMessages({
   library(here)
-  library(rstan)
+  library(cmdstanr)
   library(dplyr)
   library(tidyr)
   library(ggplot2)
   library(ggdist)
   library(ggrepel)
 })
-
-options(mc.cores = parallel::detectCores())
-rstan_options(auto_write = TRUE)
 
 # ── 1. Paths ───────────────────────────────────────────────────────────────────
 
@@ -47,10 +44,12 @@ VOCAB_PATH     <- here("data/output/vocab.rds")
 STAN_FILE      <- here("stan/poisson_gamma_regression.stan")
 EXPERIMENT_CSV <- here("experiment/analysis/experiment_results.csv")
 
-OUT_BETA_OVERALL <- here("data/output/plot_beta_posterior_overall.png")
-OUT_BETA_PROFILE <- here("data/output/plot_beta_posterior_by_profile.png")
-OUT_SCATTER      <- here("data/output/plot_gamma_vs_recommendations.png")
-OUT_DIRECTION    <- here("data/output/plot_top_recommended_direction.png")
+dir.create(here("data/output/figures/step3"), recursive = TRUE, showWarnings = FALSE)
+
+OUT_BETA_OVERALL <- here("data/output/figures/step3/plot_beta_posterior_overall.png")
+OUT_BETA_PROFILE <- here("data/output/figures/step3/plot_beta_posterior_by_profile.png")
+OUT_SCATTER      <- here("data/output/figures/step3/plot_gamma_vs_recommendations.png")
+OUT_DIRECTION    <- here("data/output/figures/step3/plot_top_recommended_direction.png")
 OUT_TABLE        <- here("data/output/step3_joined_table.csv")
 OUT_BETA_SUMMARY <- here("data/output/step3_beta_summary.csv")
 
@@ -156,30 +155,33 @@ cat("Methods with n_recommended_total > 0:",
 # (non-identifiability with 186 free gamma_true parameters); using the posterior
 # mean is the appropriate simplification. Negative-binomial handles over-dispersion.
 
-run_bayesian_nb <- function(gamma_signed, n_rec, label = "") {
+mod <- cmdstan_model(STAN_FILE)
+
+run_bayesian_nb <- function(mod, gamma_signed, n_rec, label = "") {
   cat("\nFitting Bayesian NB model", if (nchar(label) > 0) paste0("(", label, ")"), "...\n")
   stan_data <- list(
     M            = length(n_rec),
     gamma_signed = gamma_signed,
     n_rec        = as.integer(n_rec)
   )
-  fit <- suppressWarnings(stan(
-    file    = STAN_FILE,
-    data    = stan_data,
-    chains  = 4,
-    iter    = 2000,
-    warmup  = 1000,
-    cores   = 4,
-    seed    = 42,
-    control = list(adapt_delta = 0.95),
-    refresh = 200
-  ))
-  s <- summary(fit, pars = c("alpha", "beta", "phi"))$summary
-  rhat_max <- round(max(s[, "Rhat"]),   4)
-  neff_min <- round(min(s[, "n_eff"]),  0)
+  fit <- mod$sample(
+    data            = stan_data,
+    chains          = 4,
+    iter_sampling   = 1000,
+    iter_warmup     = 1000,
+    parallel_chains = 4,
+    seed            = 42,
+    adapt_delta     = 0.95,
+    refresh         = 200
+  )
+  s <- fit$summary(variables = c("alpha", "beta", "phi"))
+  rhat_max <- round(max(s$rhat, na.rm = TRUE), 4)
+  neff_min <- round(min(s$ess_bulk, na.rm = TRUE), 0)
   cat(sprintf("  max Rhat = %.4f | min n_eff = %d\n", rhat_max, neff_min))
+
+  draws <- fit$draws(format = "draws_matrix")
   list(
-    draws    = rstan::extract(fit, pars = "beta")$beta,
+    draws    = as.numeric(draws[, "beta"]),
     rhat_max = rhat_max,
     neff_min = neff_min
   )
@@ -187,10 +189,10 @@ run_bayesian_nb <- function(gamma_signed, n_rec, label = "") {
 
 gamma_signed <- joined$mean_gamma
 
-fit_overall <- run_bayesian_nb(gamma_signed, joined$n_recommended_total,        "overall")
-fit_novice  <- run_bayesian_nb(gamma_signed, joined$n_recommended_novice,       "novice")
-fit_inter   <- run_bayesian_nb(gamma_signed, joined$n_recommended_intermediate, "intermediate")
-fit_expert  <- run_bayesian_nb(gamma_signed, joined$n_recommended_expert,       "expert")
+fit_overall <- run_bayesian_nb(mod, gamma_signed, joined$n_recommended_total,        "overall")
+fit_novice  <- run_bayesian_nb(mod, gamma_signed, joined$n_recommended_novice,       "novice")
+fit_inter   <- run_bayesian_nb(mod, gamma_signed, joined$n_recommended_intermediate, "intermediate")
+fit_expert  <- run_bayesian_nb(mod, gamma_signed, joined$n_recommended_expert,       "expert")
 
 beta_overall <- fit_overall$draws
 beta_novice  <- fit_novice$draws

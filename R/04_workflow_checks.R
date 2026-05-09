@@ -2,22 +2,18 @@ cat("=== 04_workflow_checks.R ===\n")
 cat("Gelman et al. (arXiv:2011.01808) Bayesian Workflow checks\n")
 cat("Sections: (1) Prior Predictive, (2) PPC, (3) Fake Data, (4) Sensitivity, (5) Summary\n\n")
 
-library(rstan)
+library(cmdstanr)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
 library(httr)
 
-options(mc.cores = parallel::detectCores())
-rstan_options(auto_write = TRUE)
-
 # ── Paths ─────────────────────────────────────────────────────────────────────
 FIT_RDS       <- "data/output/fit_phi_free.rds"
-FIT_P50_RDS   <- "data/output/fit_phi50.rds"
 VOCAB_RDS     <- "data/output/vocab.rds"
 STAN_DATA_RDS <- "data/output/stan_data.rds"
-STAN_FILE     <- "stan/diversity_model.stan"
-OUT_DIR       <- "data/output/workflow"
+STAN_FILE     <- "stan/diversity_model_phi_free.stan"
+OUT_DIR       <- "data/output/figures/workflow"
 
 token   <- "TELEGRAM_BOT_TOKEN_REDACTED"
 chat_id <- Sys.getenv("TELEGRAM_CHAT_ID")
@@ -84,18 +80,29 @@ for (g in seq_len(N_groups)) {
 }
 
 # ── Load fit.rds and extract posterior arrays ─────────────────────────────────
-cat("Loading fit_phi_free.rds (642 MB — may take ~60 s)...\n")
+cat("Loading fit_phi_free.rds...\n")
 fit <- readRDS(FIT_RDS)
 
 cat("Extracting posterior arrays...\n")
-mu_raw_arr       <- rstan::extract(fit, pars = "mu_raw")$mu_raw          # [S, G, K_max]
-beta_method_arr  <- rstan::extract(fit, pars = "beta_method")$beta_method  # [S, G, K_max]
-gamma_method_arr <- rstan::extract(fit, pars = "gamma_method")$gamma_method # [S, G, K_max]
-sigma_beta_post  <- rstan::extract(fit, pars = "sigma_beta")$sigma_beta    # [S]
-sigma_gamma_post <- rstan::extract(fit, pars = "sigma_gamma")$sigma_gamma  # [S]
+draws <- fit$draws(format = "draws_matrix")
+S     <- nrow(draws)
+K_max <- stan_data$K_max
 
-S     <- dim(mu_raw_arr)[1]
-K_max <- dim(mu_raw_arr)[3]
+draws_to_array <- function(draws, prefix, d1, d2) {
+  arr <- array(NA_real_, dim = c(nrow(draws), d1, d2))
+  for (i in seq_len(d1))
+    for (j in seq_len(d2))
+      arr[, i, j] <- draws[, sprintf("%s[%d,%d]", prefix, i, j)]
+  arr
+}
+
+mu_raw_arr       <- draws_to_array(draws, "mu_raw", N_groups, K_max)        # [S, G, K_max]
+beta_method_arr  <- draws_to_array(draws, "beta_method", N_groups, K_max)   # [S, G, K_max]
+gamma_method_arr <- draws_to_array(draws, "gamma_method", N_groups, K_max)  # [S, G, K_max]
+sigma_beta_post  <- as.numeric(draws[, "sigma_beta"])                       # [S]
+sigma_gamma_post <- as.numeric(draws[, "sigma_gamma"])                      # [S]
+
+stopifnot(K_max == dim(mu_raw_arr)[3])  # sanity check
 cat(sprintf("S=%d draws, N_groups=%d, N_years=%d, K_max=%d\n",
             S, N_groups, N_years, K_max))
 
@@ -385,28 +392,29 @@ stan_data_fake <- list(
   K_max    = K_fake,
   K_g      = array(K_fake, dim = 1L),
   counts   = fake_counts,
-  phi    = phi_fake,
   year_std = year_std,
   post_llm = post_llm
 )
+# NOTE: No phi field — the phi-free model estimates it
 
 cat("Compiling Stan model (or loading cached)...\n")
-mod <- rstan::stan_model(STAN_FILE)
+mod <- cmdstan_model(STAN_FILE)
 
 cat("Fitting single-group model to fake data (2 chains × 500 samples)...\n")
-fit_fake <- rstan::sampling(
-  mod,
-  data    = stan_data_fake,
-  chains  = 2L,
-  iter    = 1000L,
-  warmup  = 500L,
-  cores   = 2L,
-  control = list(adapt_delta = 0.90, max_treedepth = 12),
-  seed    = 99L,
-  refresh = 200L
+fit_fake <- mod$sample(
+  data            = stan_data_fake,
+  chains          = 2,
+  iter_sampling   = 500,
+  iter_warmup     = 500,
+  parallel_chains = 2,
+  adapt_delta     = 0.90,
+  max_treedepth   = 12,
+  seed            = 99,
+  refresh         = 200
 )
 
-sg_fake_draws <- rstan::extract(fit_fake, pars = "sigma_gamma")$sigma_gamma
+draws_fake    <- fit_fake$draws(format = "draws_matrix")
+sg_fake_draws <- as.numeric(draws_fake[, "sigma_gamma"])
 sg_fake_mean  <- mean(sg_fake_draws)
 sg_fake_ci90  <- quantile(sg_fake_draws, c(0.05, 0.95))
 inside_ci     <- sigma_gamma_true >= sg_fake_ci90[1] & sigma_gamma_true <= sg_fake_ci90[2]
@@ -463,162 +471,15 @@ tg_photo(PLOT_FAKE, "Workflow check: Section 3 — Fake data recovery (sigma_gam
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SECTION 4 — Prior Sensitivity Analysis (Gelman et al. §6.3)
+# SKIPPED: phi is now estimated from data (phi-free model), so the fixed-phi
+# sensitivity comparison (phi=10 vs phi=50) is no longer applicable.
 # ══════════════════════════════════════════════════════════════════════════════
 cat("\n===== SECTION 4: Prior Sensitivity Analysis (phi) =====\n")
+cat("SKIPPED — phi is estimated from data in the phi-free model.\n")
+cat("The fixed-phi sensitivity comparison is no longer applicable.\n")
 
 sensitivity_done <- FALSE
 spearman_rho     <- NA_real_
-PLOT_SENS        <- file.path(OUT_DIR, "plot_prior_sensitivity.png")
-fit_p50          <- NULL
-
-if (!file.exists(FIT_P50_RDS)) {
-  cat("Waiting for phi=50 run — rerun this script after fit_phi50.rds is available\n")
-} else {
-  cat("fit_phi50.rds found. Loading...\n")
-  fit_p50 <- readRDS(FIT_P50_RDS)
-
-  # Guard: fit_phi50 may be stale (old taxonomy dimensions) after data re-prep
-  gm_k10_dims <- dim(rstan::extract(fit,     pars = "gamma_method")$gamma_method)
-  gm_k50_dims <- dim(rstan::extract(fit_p50, pars = "gamma_method")$gamma_method)
-  if (!identical(gm_k10_dims[-1], gm_k50_dims[-1])) {
-    cat(sprintf(
-      "SKIP sensitivity: fit_phi50.rds dimensions [G=%d, K=%d] don't match current fit [G=%d, K=%d].\n",
-      gm_k50_dims[2], gm_k50_dims[3], gm_k10_dims[2], gm_k10_dims[3]
-    ))
-    cat("Rerun 01b_fit_phi_free.R variant with phi=50 to regenerate.\n")
-    fit_p50 <- NULL
-  }
-}
-
-if (!is.null(fit_p50)) {
-  sg_k10 <- sigma_gamma_post
-  sg_k50 <- rstan::extract(fit_p50, pars = "sigma_gamma")$sigma_gamma
-  sb_k10 <- sigma_beta_post
-  sb_k50 <- rstan::extract(fit_p50, pars = "sigma_beta")$sigma_beta
-
-  gm_k10 <- rstan::extract(fit,     pars = "gamma_method")$gamma_method  # [S, G, K_max]
-  gm_k50 <- rstan::extract(fit_p50, pars = "gamma_method")$gamma_method
-
-  # Posterior means and CI widths per (g, k) — padded slots included but near-zero
-  gm10_means <- as.vector(apply(gm_k10, c(2, 3), mean))
-  gm50_means <- as.vector(apply(gm_k50, c(2, 3), mean))
-  gm10_ciw   <- as.vector(apply(gm_k10, c(2, 3),
-                                function(x) diff(quantile(x, c(0.05, 0.95)))))
-  gm50_ciw   <- as.vector(apply(gm_k50, c(2, 3),
-                                function(x) diff(quantile(x, c(0.05, 0.95)))))
-
-  spearman_rho <- cor(gm10_means, gm50_means, method = "spearman")
-  sensitivity_label <- dplyr::case_when(
-    spearman_rho > 0.95 ~ "ROBUST — phi choice does not affect method rankings",
-    spearman_rho > 0.70 ~ "MODERATE — some sensitivity, worth reporting",
-    TRUE                ~ "SENSITIVE — individual method conclusions depend on phi"
-  )
-
-  # Top 10 gamma_method by |mean| at phi=10
-  top10_idx <- order(abs(gm10_means), decreasing = TRUE)[seq_len(min(10L, length(gm10_means)))]
-  cat("\nTop 10 gamma_method (phi=10 vs phi=50):\n")
-  top10_df <- data.frame(
-    phi10_mean = gm10_means[top10_idx],
-    phi50_mean = gm50_means[top10_idx]
-  )
-  print(round(top10_df, 4))
-
-  cat("\nsigma_gamma comparison:\n")
-  cat(sprintf("  phi=10: mean=%.4f  SD=%.4f  90%%CI=[%.4f, %.4f]\n",
-              mean(sg_k10), sd(sg_k10),
-              quantile(sg_k10, 0.05), quantile(sg_k10, 0.95)))
-  cat(sprintf("  phi=50: mean=%.4f  SD=%.4f  90%%CI=[%.4f, %.4f]\n",
-              mean(sg_k50), sd(sg_k50),
-              quantile(sg_k50, 0.05), quantile(sg_k50, 0.95)))
-  cat("Gamma rank correlation phi=10 vs phi=50: rho =", round(spearman_rho, 3), "\n")
-  cat("Sensitivity assessment:", sensitivity_label, "\n")
-  cat("Note: in a Bayesian analysis we do not test significance of this correlation.\n")
-  cat("We ask whether the ordinal story is consistent across model variants.\n")
-
-  # ── Four-panel sensitivity plot ───────────────────────────────────────────
-  df_sg <- data.frame(
-    value = c(sg_k10, sg_k50),
-    phi = rep(c("phi=10", "phi=50"), c(length(sg_k10), length(sg_k50)))
-  )
-  df_sb <- data.frame(
-    value = c(sb_k10, sb_k50),
-    phi = rep(c("phi=10", "phi=50"), c(length(sb_k10), length(sb_k50)))
-  )
-
-  phi_pal <- c("phi=10" = "steelblue", "phi=50" = "darkorange2")
-
-  p1s <- ggplot(df_sg, aes(x = value, fill = phi)) +
-    geom_density(alpha = 0.50, colour = NA) +
-    scale_fill_manual(values = phi_pal, name = NULL) +
-    labs(x = "sigma_gamma", y = "Density",
-         title = "(1) sigma_gamma posteriors") +
-    theme_minimal(base_size = 9) + theme(legend.position = "bottom")
-
-  p2s <- ggplot(df_sb, aes(x = value, fill = phi)) +
-    geom_density(alpha = 0.50, colour = NA) +
-    scale_fill_manual(values = phi_pal, name = NULL) +
-    labs(x = "sigma_beta", y = "Density",
-         title = "(2) sigma_beta posteriors") +
-    theme_minimal(base_size = 9) + theme(legend.position = "bottom")
-
-  p3s <- ggplot(data.frame(x = gm10_means, y = gm50_means),
-                aes(x = x, y = y)) +
-    geom_point(alpha = 0.20, size = 0.7, colour = "grey30") +
-    geom_abline(slope = 1, intercept = 0,
-                colour = "firebrick", linewidth = 0.6, linetype = "dashed") +
-    labs(x = "gamma mean (phi=10)", y = "gamma mean (phi=50)",
-         title = sprintf("(3) gamma means  rho=%.3f", spearman_rho)) +
-    theme_minimal(base_size = 9)
-
-  p4s <- ggplot(data.frame(x = gm10_ciw, y = gm50_ciw),
-                aes(x = x, y = y)) +
-    geom_point(alpha = 0.20, size = 0.7, colour = "grey30") +
-    geom_abline(slope = 1, intercept = 0,
-                colour = "firebrick", linewidth = 0.6, linetype = "dashed") +
-    labs(x = "CI width (phi=10)", y = "CI width (phi=50)",
-         title = "(4) gamma 90% CI widths") +
-    theme_minimal(base_size = 9)
-
-  # Combine four panels — try patchwork, fall back to gridExtra, then png+grid
-  combined_ok <- FALSE
-  if (!combined_ok && requireNamespace("patchwork", quietly = TRUE)) {
-    library(patchwork)
-    p_sens <- (p1s | p2s) / (p3s | p4s) +
-      plot_annotation(
-        title    = "Section 4 — Prior Sensitivity: phi=10 vs phi=50",
-        subtitle = sprintf("Spearman rho = %.4f — %s",
-                           spearman_rho, sensitivity_label)
-      )
-    ggsave(PLOT_SENS, p_sens, width = 12, height = 9, dpi = 150)
-    combined_ok <- TRUE
-  }
-  if (!combined_ok && requireNamespace("gridExtra", quietly = TRUE)) {
-    grob_title <- sprintf(
-      "Section 4 — Prior Sensitivity: phi=10 vs phi=50\nSpearman rho = %.4f — %s",
-      spearman_rho, sensitivity_label
-    )
-    png(PLOT_SENS, width = 12, height = 9, units = "in", res = 150)
-    gridExtra::grid.arrange(p1s, p2s, p3s, p4s, ncol = 2,
-                            top = grob_title)
-    dev.off()
-    combined_ok <- TRUE
-  }
-  if (!combined_ok) {
-    # Last resort: save panels separately
-    for (i in seq_along(list(p1s, p2s, p3s, p4s))) {
-      pp <- list(p1s, p2s, p3s, p4s)[[i]]
-      out_i <- sub("\\.png$", sprintf("_%d.png", i), PLOT_SENS)
-      ggsave(out_i, pp, width = 6, height = 4, dpi = 150)
-    }
-    PLOT_SENS <- sub("\\.png$", "_1.png", PLOT_SENS)
-    cat("Note: patchwork/gridExtra not available — saved 4 individual panels\n")
-    combined_ok <- TRUE
-  }
-
-  cat("Saved:", PLOT_SENS, "\n")
-  tg_photo(PLOT_SENS, "Workflow check: Section 4 — Prior sensitivity phi=10 vs phi=50")
-  sensitivity_done <- TRUE
-}
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -636,7 +497,7 @@ cat(sprintf("Fake data recovery:   sigma_gamma recovered [%s] — true value %s 
 if (sensitivity_done) {
   cat(sprintf("Prior sensitivity (phi): [DONE] — Spearman rho = %.4f\n", spearman_rho))
 } else {
-  cat("Prior sensitivity (phi): [PENDING] — rerun after fit_phi50.rds is available\n")
+  cat("Prior sensitivity (phi): Not applicable — phi estimated from data\n")
 }
 cat("=== RECOMMENDATION ===\n")
 
@@ -653,7 +514,7 @@ if (core_pass) {
     cat("Prior sensitivity: phi affects gamma rankings (rho=",
         round(spearman_rho, 3), ") — discuss phi choice in paper.\n", sep = "")
   } else {
-    cat("Sensitivity pending: rerun after fit_phi50.rds is available.\n")
+    cat("Prior sensitivity: Not applicable — phi estimated from data.\n")
   }
 } else {
   issues <- character(0)
@@ -677,26 +538,16 @@ cat("\nFilling docs/workflow_results.md and pushing to GitHub...\n")
 sensitivity_body <- if (sensitivity_done) {
   rho_line <- sprintf("Spearman ρ = %.4f (threshold 0.95) — gamma rankings are %s.",
                       spearman_rho, if (spearman_rho > 0.95) "ROBUST" else "SENSITIVE")
-  sg10_line <- sprintf("  phi=10: mean=%.4f  SD=%.4f  90%%CI=[%.4f, %.4f]",
-                       mean(sg_k10), sd(sg_k10),
-                       quantile(sg_k10, 0.05), quantile(sg_k10, 0.95))
-  sg50_line <- sprintf("  phi=50: mean=%.4f  SD=%.4f  90%%CI=[%.4f, %.4f]",
-                       mean(sg_k50), sd(sg_k50),
-                       quantile(sg_k50, 0.05), quantile(sg_k50, 0.95))
-  paste0(
-    rho_line, "\n\n",
-    "**sigma_gamma comparison:**\n\n```\n",
-    sg10_line, "\n", sg50_line, "\n```\n\n",
-    "![Prior sensitivity](../data/output/workflow/plot_prior_sensitivity.png)"
-  )
+  paste0(rho_line, "\n\n",
+         "![Prior sensitivity](../data/output/figures/workflow/plot_prior_sensitivity.png)")
 } else {
-  "_fit_phi50.rds not yet available. Rerun `R/04_workflow_checks.R` after the phi=50 fit completes._"
+  "_Not applicable — phi is estimated from data in the phi-free model._"
 }
 
 spearman_line <- if (sensitivity_done) {
   sprintf("Spearman ρ = %.4f", spearman_rho)
 } else {
-  "pending phi=50 fit"
+  "Not applicable — phi estimated from data"
 }
 
 doc <- readLines("docs/workflow_results.md")
@@ -731,7 +582,7 @@ cat("docs/workflow_results.md written.\n")
 
 system(paste(
   "git -C ~/R_projects/Vibe_Coding_Paper add",
-  "data/output/workflow/*.png",
+  "data/output/figures/workflow/*.png",
   "docs/workflow_results.md &&",
   "git -C ~/R_projects/Vibe_Coding_Paper commit -m 'auto: workflow checks results update' &&",
   "git -C ~/R_projects/Vibe_Coding_Paper push"

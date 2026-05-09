@@ -4,19 +4,27 @@ library(readxl)
 library(dplyr)
 library(tidyr)
 
-INPUT_FILE <- "data/input/qwen_dataset.xlsx"
-OUTPUT_RDS <- "data/output/stan_data.rds"
-VOCAB_RDS  <- "data/output/vocab.rds"
+SCOPUS_FILE   <- "data/input/taxonomy_v2/df_cleaned.xlsx"
+TAXONOMY_FILE <- "data/input/taxonomy_v2/taxonomy_abstract_join.csv"
+OUTPUT_RDS    <- "data/output/stan_data.rds"
+VOCAB_RDS     <- "data/output/vocab.rds"
 
 dir.create("data/output", recursive = TRUE, showWarnings = FALSE)
 
 cat("Loading data...\n")
-scopus_processed <- read_excel(INPUT_FILE) |>
+scopus_raw <- read_excel(SCOPUS_FILE) |>
+  select(eid, Year = year)
+
+taxonomy <- read.csv(TAXONOMY_FILE) |>
+  select(eid, level_2_mid, level_3_fine)
+
+scopus_processed <- scopus_raw |>
+  inner_join(taxonomy, by = "eid") |>
   filter(Year >= 2010, Year <= 2026)
 cat("Rows loaded:", nrow(scopus_processed), "\n")
 
 df_clean <- scopus_processed |>
-  distinct(abstract_id, Year, level_2_mid, level_3_fine)
+  distinct(eid, Year, level_2_mid, level_3_fine)
 
 cat("Rows after dedup:", nrow(df_clean), "\n")
 

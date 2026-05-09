@@ -11,16 +11,17 @@ FIT_RDS        <- "data/output/fit_phi_free.rds"
 VOCAB_RDS      <- "data/output/vocab.rds"
 STAN_DATA_RDS  <- "data/output/stan_data.rds"
 SUMMARY_CSV    <- "data/output/inv_simpson_summary.csv"
-PLOT_DIVERSITY <- "data/output/l3/plot_diversity_by_group.png"
-PLOT_SIGMA     <- "data/output/l3/plot_sigma_posteriors.png"
-PLOT_GAMMA_DOT <- "data/output/l3/plot_gamma_dotplot.png"
-PLOT_RAW       <- "data/output/l3/plot_raw_counts.png"
+PLOT_DIVERSITY <- "data/output/figures/l2_l3/plot_diversity_by_group.png"
+PLOT_SIGMA     <- "data/output/figures/l2_l3/plot_sigma_posteriors.png"
+PLOT_GAMMA_DOT <- "data/output/figures/l2_l3/plot_gamma_dotplot.png"
+PLOT_RAW       <- "data/output/figures/l2_l3/plot_raw_counts.png"
 DRAWS_RDS      <- "data/output/inv_simpson_draws.rds"
 
 token   <- "TELEGRAM_BOT_TOKEN_REDACTED"
 chat_id <- Sys.getenv("TELEGRAM_CHAT_ID")
 
 dir.create("data/output/l3", recursive = TRUE, showWarnings = FALSE)
+dir.create("data/output/figures/l2_l3", recursive = TRUE, showWarnings = FALSE)
 
 cat("Loading fit, vocab, stan_data...\n")
 fit       <- readRDS(FIT_RDS)
@@ -447,6 +448,6 @@ if (file.exists(DOC_PATH)) {
 
 # ── Auto-push results to GitHub ──────────────────────────────────────────────
 message("Pushing L3 results to GitHub...")
-system("git -C ~/R_projects/Vibe_Coding_Paper add data/output/l3/*.png data/output/inv_simpson_summary.csv data/output/inv_simpson_draws.rds docs/l2_l3_results.md && git -C ~/R_projects/Vibe_Coding_Paper commit -m 'auto: L3 model results update' && git -C ~/R_projects/Vibe_Coding_Paper push")
+system("git -C ~/R_projects/Vibe_Coding_Paper add data/output/figures/l2_l3/*.png data/output/inv_simpson_summary.csv data/output/inv_simpson_draws.rds docs/l2_l3_results.md && git -C ~/R_projects/Vibe_Coding_Paper commit -m 'auto: L3 model results update' && git -C ~/R_projects/Vibe_Coding_Paper push")
 
 cat("=== 02_extract_plot.R DONE ===\n")

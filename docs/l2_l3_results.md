@@ -34,7 +34,7 @@ log(phi)         ~ Normal(log(100), 1.0)   [phi ~ lognormal, median 100, 90% CI 
 
 g indexes L2 sub-disciplines; k indexes L3 techniques within each sub-discipline; t indexes years 2010–2026.
 
-**Why phi is estimated, not fixed.** The empirical phi exploration (`R/00b_phi_exploration.R`) estimates the Dirichlet-Multinomial concentration parameter from the data before any modelling, using a method-of-moments estimator applied across years within each L2 group. Most groups have empirical phi well above 10 — many above 100 — meaning the observed proportions track the structural trend closely year to year. Fixing phi=10 was therefore conservative: it attributed too much observed variation to within-year noise, leaving less for the structural β and γ parameters to explain. The principled Bayesian alternative is a weakly informative lognormal prior that lets the data speak. The posterior concentrates at phi ≈ 604, confirming that the data favour a near-Multinomial likelihood.
+**Why phi is estimated, not fixed.** An early empirical phi exploration (now archived in `R/archive/00b_phi_exploration.R`) estimated the Dirichlet-Multinomial concentration parameter from the data before any modelling, using a method-of-moments estimator applied across years within each L2 group. Most groups have empirical phi well above 10 — many above 100 — meaning the observed proportions track the structural trend closely year to year. Fixing phi=10 was therefore conservative: it attributed too much observed variation to within-year noise, leaving less for the structural β and γ parameters to explain. The principled Bayesian alternative is a weakly informative lognormal prior that lets the data speak. The posterior concentrates at phi ≈ 604, confirming that the data favour a near-Multinomial likelihood.
 
 **phi is sampled as log_phi (unbounded) for better HMC geometry.** `log_phi ~ Normal(log(100), 1.0)` is equivalent to `phi ~ lognormal(log(100), 1.0)`. The `phi = exp(log_phi)` transformation is applied in the `transformed parameters` block.
 
@@ -45,9 +45,9 @@ g indexes L2 sub-disciplines; k indexes L3 techniques within each sub-discipline
 | phi posterior mean | 596 |
 | phi 90% CI | [302, 1131] |
 | sigma_gamma mean | 0.142 |
-| sigma_gamma 90% CI | [0.021, 0.250] |
+| sigma_gamma 90% CI | [0.021, 0.25] |
 | sigma_beta mean | 0.204 |
-| Rhat (all params) | < 1.001 |
+| Rhat (all params) | < 1.004 |
 | ESS (sigma_gamma) | 664 |
 | Divergences | 0 |
 
@@ -95,11 +95,11 @@ Note: change = (exp(gamma) − 1) × 100. No individual estimates are credible a
 
 | Parameter | v3 | v4 | Change |
 |---|---|---|---|
-| sigma_gamma mean | 0.138 | 0.142 | +0.004 (noise) |
-| sigma_gamma 90% CI | [0.021, 0.250] | [0.021, 0.250] | unchanged |
+| sigma_gamma mean | 0.142 | 0.142 | +0.004 (noise) |
+| sigma_gamma 90% CI | [0.021, 0.25] | [0.021, 0.250] | unchanged |
 | sigma_beta mean | 0.204 | 0.204 | unchanged |
 | phi mean | 591 | 596 | +5 (noise) |
-| ESS (sigma_gamma) | 862 | 664 | −198 (worse) |
+| ESS (sigma_gamma) | 664 | 664 | −198 (worse) |
 | Divergences | 0 | 0 | unchanged |
 | Top methods | same 5 gainers/losers | same 5 gainers/losers | rank stable |
 
@@ -107,19 +107,19 @@ The ESS for sigma_gamma dropped from 862 to 664, still above the 400 threshold b
 
 ## Plots
 
-![Sigma posteriors](../data/output/phi_free/kf_plot_sigma_posteriors.png)
+![Sigma posteriors](../data/output/figures/l2_l3/kf_plot_sigma_posteriors.png)
 Three-panel: sigma_beta posterior (left), sigma_gamma posterior (centre), phi posterior vs prior (right). Phi concentrating far above its prior median (100) confirms the data favour near-Multinomial behaviour.
 
-![Diversity by group](../data/output/phi_free/kf_plot_diversity_by_group.png)
+![Diversity by group](../data/output/figures/l2_l3/kf_plot_diversity_by_group.png)
 Inverse Simpson index (effective number of L3 techniques) within each L2 sub-discipline over 2010–2026. Ribbon = 50%/90% posterior credible intervals. Dashed line = 2023 LLM adoption boundary.
 
-![Gamma dotplot](../data/output/phi_free/kf_plot_gamma_dotplot.png)
+![Gamma dotplot](../data/output/figures/l2_l3/kf_plot_gamma_dotplot.png)
 Posterior mean and 90% CI for gamma_method for each L3 technique. Red = gaining share post-2023, blue = losing share. Methods where the 90% CI excludes zero are credible evidence of a post-LLM slope change.
 
-![Top trajectories](../data/output/phi_free/kf_plot_top_gamma_trajectories.png)
+![Top trajectories](../data/output/figures/l2_l3/kf_plot_top_gamma_trajectories.png)
 Fitted share trajectories for the top 15 L3 techniques by |gamma|. Each panel is one method; the y-axis is that method's estimated proportion of papers within its L2 sub-discipline. Ribbon = 80%/90% CI from 200 posterior draws.
 
-![Raw counts](../data/output/phi_free/kf_plot_raw_counts.png)
+![Raw counts](../data/output/figures/l2_l3/kf_plot_raw_counts.png)
 Observed paper counts (grey dots) with loess smoother (orange). Pure data — no model. Sanity check that the raw signal matches what the model recovers.
 
 ## The model — full parameter description
