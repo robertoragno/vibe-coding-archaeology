@@ -1,9 +1,9 @@
 #!/usr/bin/env Rscript
 # inspect_gamma.R  —  extract gamma_method posteriors from fit_phi_free.rds
+# Works with both rstan and cmdstanr fit objects.
 # Usage: Rscript R/inspect_gamma.R
 # Output: data/output/phi_free/gamma_results.csv
 
-library(rstan,     quietly = TRUE)
 library(dplyr,     quietly = TRUE)
 library(posterior, quietly = TRUE)
 
@@ -27,26 +27,56 @@ year_levels <- vocab$year_levels
 N_groups    <- length(l2_levels)
 K_g_vec     <- vocab$K_g
 
-# ── Key global parameters ──────────────────────────────────────────────────────
-cat("\n--- sigma_gamma (KEY ESTIMAND) ---\n")
-print(summary(fit, pars = "sigma_gamma")$summary)
+# Detect fit type and extract draws uniformly
+is_cmdstanr <- inherits(fit, "CmdStanMCMC")
+if (is_cmdstanr) {
+  cat("Detected cmdstanr fit object.\n")
+  draws <- fit$draws(format = "draws_matrix")
 
-cat("\n--- sigma_beta ---\n")
-print(summary(fit, pars = "sigma_beta")$summary)
+  cat("\n--- sigma_gamma (KEY ESTIMAND) ---\n")
+  print(fit$summary(variables = "sigma_gamma"))
+  cat("\n--- sigma_beta ---\n")
+  print(fit$summary(variables = "sigma_beta"))
+  cat("\n--- phi ---\n")
+  print(fit$summary(variables = "phi"))
 
-cat("\n--- phi ---\n")
-print(summary(fit, pars = "phi")$summary)
+  get_gamma_matrix <- function(grp, K) {
+    gm_g <- matrix(NA_real_, nrow = nrow(draws), ncol = K)
+    for (k in seq_len(K)) {
+      vname <- sprintf("gamma_method[%d,%d]", grp, k)
+      gm_g[, k] <- draws[, vname]
+    }
+    gm_g
+  }
+  S <- nrow(draws)
+} else {
+  library(rstan, quietly = TRUE)
+  cat("Detected rstan fit object.\n")
+
+  cat("\n--- sigma_gamma (KEY ESTIMAND) ---\n")
+  print(summary(fit, pars = "sigma_gamma")$summary)
+  cat("\n--- sigma_beta ---\n")
+  print(summary(fit, pars = "sigma_beta")$summary)
+  cat("\n--- phi ---\n")
+  print(summary(fit, pars = "phi")$summary)
+
+  gamma_arr <- rstan::extract(fit, pars = "gamma_method")$gamma_method
+  S <- dim(gamma_arr)[1]
+
+  get_gamma_matrix <- function(grp, K) {
+    matrix(gamma_arr[, grp, 1:K], nrow = S, ncol = K)
+  }
+}
+
+cat("Draws S =", S, ", N_groups =", N_groups, "\n")
 
 # ── Extract gamma_method draws ─────────────────────────────────────────────────
 cat("\nExtracting gamma_method draws...\n")
-gamma_arr <- rstan::extract(fit, pars = "gamma_method")$gamma_method  # [S, N_groups, K_max]
-S <- dim(gamma_arr)[1]
-cat("Draws S =", S, ", N_groups =", N_groups, "\n")
 
 gamma_list <- vector("list", N_groups)
 for (grp in seq_len(N_groups)) {
   K    <- K_g_vec[grp]
-  gm_g <- matrix(gamma_arr[, grp, 1:K], nrow = S, ncol = K)
+  gm_g <- get_gamma_matrix(grp, K)
 
   method_labels <- vocab$l3_vocab |>
     filter(g == grp) |>

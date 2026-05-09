@@ -1,6 +1,7 @@
 cat("=== 02_extract_plot.R ===\n")
 
-library(rstan)
+library(cmdstanr)
+library(posterior)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
@@ -33,12 +34,24 @@ N_years     <- length(year_levels)
 K_g_vec     <- vocab$K_g
 year_std    <- stan_data$year_std
 post_llm    <- stan_data$post_llm
+K_max       <- stan_data$K_max
+
+draws <- fit$draws(format = "draws_matrix")
+S     <- nrow(draws)
+
+draws_to_array <- function(draws, prefix, d1, d2) {
+  arr <- array(NA_real_, dim = c(nrow(draws), d1, d2))
+  for (i in seq_len(d1))
+    for (j in seq_len(d2))
+      arr[, i, j] <- draws[, sprintf("%s[%d,%d]", prefix, i, j)]
+  arr
+}
 
 # ── Diagnostic: print array shapes immediately ────────────────────────────────
 cat("\n--- Array shape diagnostics ---\n")
-mu_raw_arr      <- rstan::extract(fit, pars = "mu_raw")$mu_raw
-beta_method_arr <- rstan::extract(fit, pars = "beta_method")$beta_method
-gamma_method_arr <- rstan::extract(fit, pars = "gamma_method")$gamma_method
+mu_raw_arr       <- draws_to_array(draws, "mu_raw", N_groups, K_max)
+beta_method_arr  <- draws_to_array(draws, "beta_method", N_groups, K_max)
+gamma_method_arr <- draws_to_array(draws, "gamma_method", N_groups, K_max)
 cat("mu_raw dims:       ", paste(dim(mu_raw_arr),       collapse = " x "), "\n")
 cat("beta_method dims:  ", paste(dim(beta_method_arr),  collapse = " x "), "\n")
 cat("gamma_method dims: ", paste(dim(gamma_method_arr), collapse = " x "), "\n")
@@ -50,13 +63,11 @@ if (length(zero_K) > 0) {
        " — data prep must have failed for these groups.")
 }
 
-S     <- dim(mu_raw_arr)[1]
-K_max <- dim(mu_raw_arr)[3]
 cat("Posterior draws S =", S, ", K_max =", K_max, "\n")
 
 # ── Plot 1: Diversity by group (inv_simpson) ──────────────────────────────────
 cat("\nExtracting inv_simpson draws...\n")
-inv_simp_arr <- rstan::extract(fit, pars = "inv_simpson")$inv_simpson  # [S, N_groups, N_years]
+inv_simp_arr <- draws_to_array(draws, "inv_simpson", N_groups, N_years)
 cat("inv_simpson dims:", paste(dim(inv_simp_arr), collapse = " x "), "\n")
 
 cat("Reshaping to tidy format...\n")
@@ -111,9 +122,6 @@ emp_diversity <- do.call(rbind, lapply(seq_len(N_groups), function(g) {
   mutate(label = sub("^L2-\\d+: ", "", level_2_mid))
 
 # ── Conjugate-posterior ribbon: use stored inv_simpson draws from fit ─────────
-# inv_simp_arr was computed in the Stan generated quantities block with the
-# conjugate Dirichlet posterior update (softmax(eta)*phi + y). Summarise
-# directly — no recomputation needed.
 conj_summary <- inv_simp_summary |>
   mutate(label = sub("^L2-\\d+: ", "", level_2_mid))
 
@@ -150,8 +158,8 @@ cat("Plot saved to:", PLOT_DIVERSITY, "\n")
 
 # ── Plot 2: sigma_beta and sigma_gamma side-by-side ───────────────────────────
 cat("Plotting sigma posteriors (sigma_beta and sigma_gamma)...\n")
-sigma_beta_draws  <- rstan::extract(fit, pars = "sigma_beta")$sigma_beta
-sigma_gamma_draws <- rstan::extract(fit, pars = "sigma_gamma")$sigma_gamma
+sigma_beta_draws  <- as.numeric(draws[, "sigma_beta"])
+sigma_gamma_draws <- as.numeric(draws[, "sigma_gamma"])
 
 sigma_df <- data.frame(
   value     = c(sigma_beta_draws, sigma_gamma_draws),
@@ -180,54 +188,33 @@ ggsave(PLOT_SIGMA, p2, width = 10, height = 5, units = "in", dpi = 150)
 cat("Plot saved to:", PLOT_SIGMA, "\n")
 
 cat("\n--- sigma_beta summary ---\n")
-print(summary(fit, pars = "sigma_beta")$summary)
+print(fit$summary("sigma_beta"))
 cat("\n--- sigma_gamma summary (KEY SCIENTIFIC QUANTITY) ---\n")
-print(summary(fit, pars = "sigma_gamma")$summary)
+print(fit$summary("sigma_gamma"))
 
 # ── Extract diagnostic values for doc auto-fill ───────────────────────────────
-n_divergences    <- sum(rstan::get_divergent_iterations(fit))
-sm_diag          <- rstan::summary(fit, pars = c("sigma_beta", "sigma_gamma"))$summary
-rhat_sigma_beta  <- sm_diag["sigma_beta",  "Rhat"]
-rhat_sigma_gamma <- sm_diag["sigma_gamma", "Rhat"]
-ess_sigma_beta   <- sm_diag["sigma_beta",  "n_eff"]
-ess_sigma_gamma  <- sm_diag["sigma_gamma", "n_eff"]
-sigma_beta_mean  <- sm_diag["sigma_beta",  "mean"]
-sigma_gamma_mean <- sm_diag["sigma_gamma", "mean"]
-sigma_beta_ci_str  <- paste0("[", round(sm_diag["sigma_beta",  "2.5%"],  4),
-                              ", ", round(sm_diag["sigma_beta",  "97.5%"], 4), "]")
-sigma_gamma_ci_str <- paste0("[", round(sm_diag["sigma_gamma", "2.5%"],  4),
-                              ", ", round(sm_diag["sigma_gamma", "97.5%"], 4), "]")
+n_divergences <- sum(fit$diagnostic_summary()$num_divergent)
+sm_diag <- fit$summary(c("sigma_beta", "sigma_gamma", "phi"))
 
-# ── Telegram: send diagnostics text ──────────────────────────────────────────
-tryCatch({
-  div_flag    <- if (n_divergences == 0) "Divergences: 0 [OK]" else paste0("Divergences: ", n_divergences, " [!!!]")
-  rhat_sb_flag <- if (rhat_sigma_beta  > 1.01) paste0("sigma_beta Rhat = ",  round(rhat_sigma_beta,  3), " [BAD]") else paste0("sigma_beta Rhat = ",  round(rhat_sigma_beta,  3), " [OK]")
-  rhat_sg_flag <- if (rhat_sigma_gamma > 1.01) paste0("sigma_gamma Rhat = ", round(rhat_sigma_gamma, 3), " [BAD]") else paste0("sigma_gamma Rhat = ", round(rhat_sigma_gamma, 3), " [OK]")
-  ess_sb_flag  <- if (ess_sigma_beta   < 400)  paste0("sigma_beta ESS = ",   round(ess_sigma_beta),        " [BAD]") else paste0("sigma_beta ESS = ",  round(ess_sigma_beta),        " [OK]")
-  ess_sg_flag  <- if (ess_sigma_gamma  < 400)  paste0("sigma_gamma ESS = ",  round(ess_sigma_gamma),       " [BAD]") else paste0("sigma_gamma ESS = ", round(ess_sigma_gamma),       " [OK]")
-  sg_line <- paste0("sigma_gamma (post-LLM shift): mean = ", round(sigma_gamma_mean, 4),
-                    ", 95% CI ", sigma_gamma_ci_str)
-  sb_line <- paste0("sigma_beta  (baseline trend): mean = ", round(sigma_beta_mean,  4),
-                    ", 95% CI ", sigma_beta_ci_str)
-  n_sig_methods <- sum(gamma_df$sig, na.rm = TRUE)
+sb_row  <- sm_diag[sm_diag$variable == "sigma_beta", ]
+sg_row  <- sm_diag[sm_diag$variable == "sigma_gamma", ]
+phi_row <- sm_diag[sm_diag$variable == "phi", ]
 
-  msg <- paste(
-    "L3 Stan diagnostics (diversity_model)",
-    div_flag, rhat_sb_flag, rhat_sg_flag, ess_sb_flag, ess_sg_flag,
-    sg_line, sb_line,
-    paste0("Methods with credible post-LLM shift: ", n_sig_methods),
-    sep = "\n"
-  )
+rhat_sigma_beta  <- sb_row$rhat
+rhat_sigma_gamma <- sg_row$rhat
+ess_sigma_beta   <- sb_row$ess_bulk
+ess_sigma_gamma  <- sg_row$ess_bulk
+sigma_beta_mean  <- sb_row$mean
+sigma_gamma_mean <- sg_row$mean
+phi_mean         <- phi_row$mean
 
-  httr::POST(
-    url    = paste0("https://api.telegram.org/bot", token, "/sendMessage"),
-    body   = list(chat_id = chat_id, text = msg),
-    encode = "form"
-  )
-  cat("Telegram diagnostics sent.\n")
-}, error = function(e) {
-  cat("WARNING: Telegram diagnostics failed:", conditionMessage(e), "\n")
-})
+sigma_beta_ci  <- quantile(sigma_beta_draws, c(0.025, 0.975))
+sigma_gamma_ci <- quantile(sigma_gamma_draws, c(0.025, 0.975))
+sigma_beta_ci_str  <- paste0("[", round(sigma_beta_ci[1], 4), ", ", round(sigma_beta_ci[2], 4), "]")
+sigma_gamma_ci_str <- paste0("[", round(sigma_gamma_ci[1], 4), ", ", round(sigma_gamma_ci[2], 4), "]")
+
+phi_draws <- as.numeric(draws[, "phi"])
+phi_90ci  <- quantile(phi_draws, c(0.05, 0.95))
 
 # ── Extract gamma_method posteriors ───────────────────────────────────────────
 # gamma_method_arr shape: [S, N_groups, K_max]
@@ -239,8 +226,7 @@ gamma_list <- vector("list", N_groups)
 for (grp in seq_len(N_groups)) {
   K <- K_g_vec[grp]
 
-  # matrix() prevents dim-drop when K == 1
-  gm_g <- matrix(gamma_method_arr[, grp, 1:K], nrow = S, ncol = K)  # [S, K]
+  gm_g <- matrix(gamma_method_arr[, grp, 1:K], nrow = S, ncol = K)
 
   method_labels <- vocab$l3_vocab |>
     filter(g == grp) |>
@@ -268,6 +254,37 @@ gamma_df <- bind_rows(gamma_list) |>
 
 cat("Methods with 90% CI excluding zero (credible post-LLM shift):",
     sum(gamma_df$sig, na.rm = TRUE), "\n")
+
+# ── Telegram: send diagnostics text ──────────────────────────────────────────
+tryCatch({
+  n_sig_methods <- sum(gamma_df$sig, na.rm = TRUE)
+  div_flag    <- if (n_divergences == 0) "Divergences: 0 [OK]" else paste0("Divergences: ", n_divergences, " [!!!]")
+  rhat_sb_flag <- if (rhat_sigma_beta  > 1.01) paste0("sigma_beta Rhat = ",  round(rhat_sigma_beta,  3), " [BAD]") else paste0("sigma_beta Rhat = ",  round(rhat_sigma_beta,  3), " [OK]")
+  rhat_sg_flag <- if (rhat_sigma_gamma > 1.01) paste0("sigma_gamma Rhat = ", round(rhat_sigma_gamma, 3), " [BAD]") else paste0("sigma_gamma Rhat = ", round(rhat_sigma_gamma, 3), " [OK]")
+  ess_sb_flag  <- if (ess_sigma_beta   < 400)  paste0("sigma_beta ESS = ",   round(ess_sigma_beta),        " [BAD]") else paste0("sigma_beta ESS = ",  round(ess_sigma_beta),        " [OK]")
+  ess_sg_flag  <- if (ess_sigma_gamma  < 400)  paste0("sigma_gamma ESS = ",  round(ess_sigma_gamma),       " [BAD]") else paste0("sigma_gamma ESS = ", round(ess_sigma_gamma),       " [OK]")
+  sg_line <- paste0("sigma_gamma (post-LLM shift): mean = ", round(sigma_gamma_mean, 4),
+                    ", 95% CI ", sigma_gamma_ci_str)
+  sb_line <- paste0("sigma_beta  (baseline trend): mean = ", round(sigma_beta_mean,  4),
+                    ", 95% CI ", sigma_beta_ci_str)
+
+  msg <- paste(
+    "L3 Stan diagnostics (diversity_model)",
+    div_flag, rhat_sb_flag, rhat_sg_flag, ess_sb_flag, ess_sg_flag,
+    sg_line, sb_line,
+    paste0("Methods with credible post-LLM shift: ", n_sig_methods),
+    sep = "\n"
+  )
+
+  httr::POST(
+    url    = paste0("https://api.telegram.org/bot", token, "/sendMessage"),
+    body   = list(chat_id = chat_id, text = msg),
+    encode = "form"
+  )
+  cat("Telegram diagnostics sent.\n")
+}, error = function(e) {
+  cat("WARNING: Telegram diagnostics failed:", conditionMessage(e), "\n")
+})
 
 # ── Plot 3: gamma dotplot ─────────────────────────────────────────────────────
 cat("Plotting gamma dotplot...\n")
@@ -396,20 +413,40 @@ for (plot_path in all_plots) {
   })
 }
 
-# ── Auto-push L3 results to GitHub ────────────────────────────────────────────
+# ── Auto-update l2_l3_results.md diagnostics ─────────────────────────────────
+DOC_PATH <- "docs/l2_l3_results.md"
+if (file.exists(DOC_PATH)) {
+  message("Updating ", DOC_PATH, " with current diagnostics...")
+  doc <- readLines(DOC_PATH)
+  txt <- paste(doc, collapse = "\n")
+
+  max_rhat <- max(sm_diag$rhat, na.rm = TRUE)
+  sg_90ci  <- quantile(sigma_gamma_draws, c(0.05, 0.95))
+
+  update_row <- function(txt, label, value) {
+    pattern <- paste0("(\\|\\s*", label, "\\s*\\|)\\s*[^|]+(\\|)")
+    gsub(pattern, paste0("\\1 ", value, " \\2"), txt)
+  }
+
+  txt <- update_row(txt, "phi posterior mean",     round(phi_mean))
+  txt <- update_row(txt, "phi 90% CI",
+                    paste0("[", round(phi_90ci[1]), ", ", round(phi_90ci[2]), "]"))
+  txt <- update_row(txt, "sigma_gamma mean",       round(sigma_gamma_mean, 3))
+  txt <- update_row(txt, "sigma_gamma 90% CI",
+                    paste0("[", round(sg_90ci[1], 3), ", ", round(sg_90ci[2], 3), "]"))
+  txt <- update_row(txt, "sigma_beta mean",        round(sigma_beta_mean, 3))
+  txt <- update_row(txt, "Rhat \\(all params\\)",  paste0("< ", round(max_rhat, 3)))
+  txt <- update_row(txt, "ESS \\(sigma_gamma\\)",  round(ess_sigma_gamma))
+  txt <- update_row(txt, "Divergences",            n_divergences)
+
+  writeLines(strsplit(txt, "\n")[[1]], DOC_PATH)
+  cat("Diagnostics table updated in", DOC_PATH, "\n")
+} else {
+  cat("WARNING:", DOC_PATH, "not found; skipping auto-population.\n")
+}
+
+# ── Auto-push results to GitHub ──────────────────────────────────────────────
 message("Pushing L3 results to GitHub...")
-results_text <- readLines("docs/l3_results.md")
-results_text <- gsub("{{DIVERGENCES}}",     n_divergences,                                 results_text, fixed = TRUE)
-results_text <- gsub("{{RHAT_SIGMA_BETA}}",  round(rhat_sigma_beta,  4),                   results_text, fixed = TRUE)
-results_text <- gsub("{{RHAT_SIGMA_GAMMA}}", round(rhat_sigma_gamma, 4),                   results_text, fixed = TRUE)
-results_text <- gsub("{{ESS_SIGMA_BETA}}",   round(ess_sigma_beta),                        results_text, fixed = TRUE)
-results_text <- gsub("{{ESS_SIGMA_GAMMA}}",  round(ess_sigma_gamma),                       results_text, fixed = TRUE)
-results_text <- gsub("{{SIGMA_BETA_MEAN}}",  round(sigma_beta_mean,  4),                   results_text, fixed = TRUE)
-results_text <- gsub("{{SIGMA_BETA_CI}}",    sigma_beta_ci_str,                            results_text, fixed = TRUE)
-results_text <- gsub("{{SIGMA_GAMMA_MEAN}}", round(sigma_gamma_mean, 4),                   results_text, fixed = TRUE)
-results_text <- gsub("{{SIGMA_GAMMA_CI}}",   sigma_gamma_ci_str,                           results_text, fixed = TRUE)
-results_text <- gsub("{{RATIO}}",            round(sigma_gamma_mean / sigma_beta_mean, 3), results_text, fixed = TRUE)
-writeLines(results_text, "docs/l3_results.md")
-system("git -C ~/R_projects/Vibe_Coding_Paper add data/output/l3/*.png docs/l3_results.md && git -C ~/R_projects/Vibe_Coding_Paper commit -m 'auto: L3 model results update' && git -C ~/R_projects/Vibe_Coding_Paper push")
+system("git -C ~/R_projects/Vibe_Coding_Paper add data/output/l3/*.png data/output/inv_simpson_summary.csv data/output/inv_simpson_draws.rds docs/l2_l3_results.md && git -C ~/R_projects/Vibe_Coding_Paper commit -m 'auto: L3 model results update' && git -C ~/R_projects/Vibe_Coding_Paper push")
 
 cat("=== 02_extract_plot.R DONE ===\n")

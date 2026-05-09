@@ -28,9 +28,25 @@ N_years     <- length(year_levels)
 cat("L2 groups:", N_groups, "\n")
 cat("Years:    ", N_years, "(", min(year_levels), "-", max(year_levels), ")\n")
 
-l3_vocab <- df_clean |>
+l3_vocab_all <- df_clean |>
   distinct(level_2_mid, level_3_fine) |>
   arrange(level_2_mid, level_3_fine) |>
+  group_by(level_2_mid) |>
+  mutate(k_local = row_number(), K_g = n()) |>
+  ungroup()
+
+# Drop L2 groups with only one L3 method (gamma unidentifiable: share always = 1)
+singleton_groups <- l3_vocab_all |> filter(K_g == 1) |> pull(level_2_mid)
+cat("Dropping", length(singleton_groups), "singleton L2 groups (K_g=1):\n")
+cat(paste(" ", singleton_groups), sep = "\n")
+
+df_clean <- df_clean |> filter(!level_2_mid %in% singleton_groups)
+l2_levels   <- sort(unique(df_clean$level_2_mid))
+N_groups    <- length(l2_levels)
+cat("L2 groups after filtering:", N_groups, "\n")
+
+l3_vocab <- l3_vocab_all |>
+  filter(!level_2_mid %in% singleton_groups) |>
   group_by(level_2_mid) |>
   mutate(k_local = row_number(), K_g = n()) |>
   ungroup() |>

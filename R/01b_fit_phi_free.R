@@ -1,132 +1,119 @@
 # 01b_fit_phi_free.R
-# Fits diversity_model_phi_free.stan — phi (precision parameter) estimated from data.
-# phi controls Dirichlet-Multinomial concentration: higher phi = tighter shares (less overdispersion).
-# Parameterised on log scale (log_phi) for better HMC geometry.
-# Prior: log_phi ~ N(log(100), 1.0)  <=>  phi ~ lognormal(log(100), 1.0)  [median=100, 90%CI ~14-716]
-# Runtime target: under 12 hours.
+# Fits diversity_model_phi_free.stan using cmdstanr.
+# Workflow: optimize → pathfinder → sample (full MCMC).
+# Optimize and pathfinder run in seconds for quick sanity checks.
+# phi (precision) estimated from data on log scale.
 
-library(rstan)
-library(httr)
+library(cmdstanr)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
 library(gridExtra)
-options(mc.cores = parallel::detectCores())
-rstan_options(auto_write = TRUE)
+library(posterior)
 
 STAN_FILE  <- "stan/diversity_model_phi_free.stan"
-FIT_RDS    <- "data/output/fit_phi_free.rds"
-DONE_FLAG  <- "data/output/fit_phi_free_v3.done"  # v3: log_phi reparameterisation + warmup=2000 + iter=4000
-token      <- "TELEGRAM_BOT_TOKEN_REDACTED"
-chat_id    <- "252243317"
+FIT_DIR    <- "data/output"
+FIT_RDS    <- file.path(FIT_DIR, "fit_phi_free.rds")
+DONE_FLAG  <- file.path(FIT_DIR, "fit_phi_free_v4.done")
 
-tg_msg <- function(text) {
-  tryCatch({
-    resp <- httr::POST(
-      url    = paste0("https://api.telegram.org/bot", token, "/sendMessage"),
-      body   = list(chat_id = chat_id, text = text),
-      encode = "form"
-    )
-    cat("Telegram sent (HTTP", httr::status_code(resp), ")\n")
-  }, error = function(e) cat("WARNING Telegram:", conditionMessage(e), "\n"))
-}
-
-# ── Load data (phi removed — it is now a parameter) ─────────────────────────
+# ── Load data ─────────────────────────────────────────────────────────────────
 cat("Loading stan_data...\n")
-stan_data        <- readRDS("data/output/stan_data.rds")
-stan_data$phi  <- NULL  # phi is now a parameter, not data
+stan_data <- readRDS("data/output/stan_data.rds")
+stan_data$phi       <- NULL
+stan_data$years_vec <- NULL
+stan_data$post_llm  <- as.integer(stan_data$post_llm)
 
 cat("N_groups:", stan_data$N_groups, "\n")
 cat("N_years: ", stan_data$N_years,  "\n")
 cat("K_max:   ", stan_data$K_max,    "\n")
 
-# ── Fit (guarded) ─────────────────────────────────────────────────────────────
+# ── Compile model ─────────────────────────────────────────────────────────────
+cat("Compiling model...\n")
+model <- cmdstan_model(STAN_FILE)
+
+# ── Step 1: Optimize (MAP) — seconds ─────────────────────────────────────────
+cat("\n=== OPTIMIZE (MAP point estimate) ===\n")
+fit_opt <- model$optimize(data = stan_data, seed = 42, algorithm = "lbfgs")
+
+cat("\nMAP estimates for key parameters:\n")
+opt_draws <- fit_opt$draws()
+for (par in c("sigma_beta", "sigma_gamma", "log_phi")) {
+  val <- as.numeric(subset(opt_draws, variable = par))
+  if (par == "log_phi") {
+    cat(sprintf("  phi = %.1f (log_phi = %.3f)\n", exp(val), val))
+  } else {
+    cat(sprintf("  %s = %.4f\n", par, val))
+  }
+}
+
+# ── Step 2: Pathfinder — fast approximate posterior ──────────────────────────
+cat("\n=== PATHFINDER (approximate posterior) ===\n")
+fit_pf <- model$pathfinder(data = stan_data, seed = 42, num_paths = 4, draws = 4000,
+                           psis_resample = FALSE)
+
+cat("\nPathfinder summary for key parameters:\n")
+pf_summary <- fit_pf$summary(variables = c("sigma_beta", "sigma_gamma", "phi"))
+print(pf_summary)
+
+cat("\nPathfinder gamma diagnostics:\n")
+pf_draws <- fit_pf$draws(format = "draws_matrix")
+vocab <- readRDS("data/output/vocab.rds")
+N_groups <- length(vocab$l2_levels)
+K_g_vec  <- vocab$K_g
+
+gamma_vars <- grep("^gamma_method\\[", colnames(pf_draws), value = TRUE)
+gamma_mat  <- pf_draws[, gamma_vars]
+gamma_means <- colMeans(gamma_mat)
+cat("  Pathfinder max |gamma|:", round(max(abs(gamma_means)), 4), "\n")
+cat("  Pathfinder mean |gamma|:", round(mean(abs(gamma_means)), 4), "\n")
+n_sig_pf <- sum(apply(gamma_mat, 2, function(x) {
+  q <- quantile(x, c(0.05, 0.95))
+  q[1] > 0 | q[2] < 0
+}))
+cat("  Pathfinder methods with 90% CI excl. zero:", n_sig_pf, "\n")
+
+# ── Step 3: Full MCMC ────────────────────────────────────────────────────────
 if (!file.exists(DONE_FLAG)) {
-  cat("Compiling and sampling phi-free model (log_phi parameterisation)...\n")
-  cat("Prior: log_phi ~ N(log(100), 1.0)  [phi median=100, 90% CI ~14-716]\n")
+  cat("\n=== FULL MCMC SAMPLING ===\n")
   cat("Settings: warmup=2000, iter=4000, max_treedepth=14\n")
+
   t_start <- proc.time()
 
-  fit <- suppressWarnings(stan(
-    file    = STAN_FILE,
-    data    = stan_data,
-    chains  = 4,
-    iter    = 4000,
-    warmup  = 2000,
-    cores   = 4,
-    seed    = 42,
-    control = list(
-      adapt_delta   = 0.95,
-      max_treedepth = 14
-    ),
-    refresh = 200
-  ))
+  fit <- model$sample(
+    data            = stan_data,
+    seed            = 42,
+    chains          = 4,
+    parallel_chains = 4,
+    iter_warmup     = 2000,
+    iter_sampling   = 2000,
+    adapt_delta     = 0.95,
+    max_treedepth   = 14,
+    refresh         = 200,
+    init            = fit_pf
+  )
 
   t_elapsed   <- proc.time() - t_start
   elapsed_min <- round(t_elapsed["elapsed"] / 60, 1)
   cat("Sampling done. Elapsed:", elapsed_min, "minutes\n")
 
-  saveRDS(fit, FIT_RDS)
+  fit$save_object(FIT_RDS)
   writeLines(as.character(Sys.time()), DONE_FLAG)
   cat("Fit saved to:", FIT_RDS, "\n")
 } else {
   elapsed_min <- NA_real_
-  cat("Fit already complete; loading from", FIT_RDS, "\n")
+  cat("\nFit already complete; loading from", FIT_RDS, "\n")
 }
 
-{  # ── Post-processing (always runs) ───────────────────────────────────────────
+# ── Post-processing ──────────────────────────────────────────────────────────
+{
   fit <- readRDS(FIT_RDS)
 
-  # ── HMC diagnostics ────────────────────────────────────────────────────────
-  cat("\n--- HMC diagnostics ---\n")
-  check_hmc_diagnostics(fit)
+  cat("\n--- MCMC diagnostics ---\n")
+  fit$cmdstan_diagnose()
 
-  cat("\n--- sigma_beta summary ---\n")
-  print(summary(fit, pars = "sigma_beta")$summary)
-
-  cat("\n--- sigma_gamma summary ---\n")
-  print(summary(fit, pars = "sigma_gamma")$summary)
-
-  cat("\n--- phi summary ---\n")
-  print(summary(fit, pars = "phi")$summary)
-
-  # ── Telegram diagnostics ──────────────────────────────────────────────────
-  n_div    <- sum(rstan::get_divergent_iterations(fit))
-  div_flag <- if (n_div == 0) "Divergences: 0" else paste0("Divergences: ", n_div, " !!!")
-
-  sm <- rstan::summary(fit, pars = c("sigma_beta", "sigma_gamma", "phi"),
-                       probs = c(0.05, 0.95))$summary
-
-  fmt_par <- function(par) {
-    rhat <- round(sm[par, "Rhat"],  3)
-    ess  <- round(sm[par, "n_eff"])
-    mean <- round(sm[par, "mean"],  4)
-    lo   <- round(sm[par, "5%"],    4)
-    hi   <- round(sm[par, "95%"],   4)
-    rhat_flag <- if (rhat > 1.01) "[BAD > 1.01]" else "[OK]"
-    ess_flag  <- if (ess  < 400)  "[BAD < 400]"  else "[OK]"
-    sprintf("%s: mean=%.4f 90%%CI=[%.4f,%.4f]  Rhat=%.3f%s  ESS=%d%s",
-            par, mean, lo, hi, rhat, rhat_flag, ess, ess_flag)
-  }
-
-  runtime_flag <- if (is.na(elapsed_min))
-    "Runtime: N/A (loaded from saved fit)"
-  else if (elapsed_min > 720)
-    "RUNTIME EXCEEDED TARGET (>12h)"
-  else
-    sprintf("Runtime: %.1f min (target: <720 min)", elapsed_min)
-
-  msg <- paste(
-    "phi-free v3 model diagnostics",
-    div_flag,
-    fmt_par("sigma_beta"),
-    fmt_par("sigma_gamma"),
-    fmt_par("phi"),
-    runtime_flag,
-    sep = "\n"
-  )
-
-  tg_msg(msg)
+  cat("\n--- Key parameter summaries ---\n")
+  key_summary <- fit$summary(variables = c("sigma_beta", "sigma_gamma", "phi"))
+  print(key_summary)
 
   # ── Plots ──────────────────────────────────────────────────────────────────
   message("Producing phi-free plots...")
@@ -144,19 +131,27 @@ if (!file.exists(DONE_FLAG)) {
   N_groups    <- length(l2_levels)
   N_years     <- length(year_levels)
   K_g_vec     <- vocab$K_g
-  year_std    <- stan_data$year_std
-  post_llm    <- stan_data$post_llm
+  stan_data_pp <- readRDS("data/output/stan_data.rds")
+  year_std    <- stan_data_pp$year_std
+  post_llm    <- stan_data_pp$post_llm
 
-  mu_raw_arr       <- rstan::extract(fit, pars = "mu_raw")$mu_raw
-  beta_method_arr  <- rstan::extract(fit, pars = "beta_method")$beta_method
-  gamma_method_arr <- rstan::extract(fit, pars = "gamma_method")$gamma_method
-  S     <- dim(mu_raw_arr)[1]
-  K_max <- dim(mu_raw_arr)[3]
+  draws <- fit$draws(format = "draws_matrix")
 
-  # ── Plot 1: sigma posteriors — 3 panels ─────────────────────────────────────
-  sigma_beta_draws  <- rstan::extract(fit, pars = "sigma_beta")$sigma_beta
-  sigma_gamma_draws <- rstan::extract(fit, pars = "sigma_gamma")$sigma_gamma
-  phi_draws_kf      <- rstan::extract(fit, pars = "phi")$phi
+  mu_raw_vars       <- grep("^mu_raw\\[", colnames(draws), value = TRUE)
+  beta_method_vars  <- grep("^beta_method\\[", colnames(draws), value = TRUE)
+  gamma_method_vars <- grep("^gamma_method\\[", colnames(draws), value = TRUE)
+  S <- nrow(draws)
+
+  # Helper to extract [g,k] from draws matrix
+  get_par <- function(draws, prefix, g, k) {
+    vname <- sprintf("%s[%d,%d]", prefix, g, k)
+    draws[, vname]
+  }
+
+  # ── Plot 1: sigma posteriors — 3 panels ───────────────────────────────────
+  sigma_beta_draws  <- as.numeric(draws[, "sigma_beta"])
+  sigma_gamma_draws <- as.numeric(draws[, "sigma_gamma"])
+  phi_draws_kf      <- as.numeric(draws[, "phi"])
 
   x_phi_max    <- quantile(phi_draws_kf, 0.999)
   x_phi_seq    <- seq(0.1, x_phi_max * 1.5, length.out = 500)
@@ -189,41 +184,35 @@ if (!file.exists(DONE_FLAG)) {
 
   p2 <- gridExtra::arrangeGrob(
     p_sb, p_sg, p_phi, nrow = 1,
-    top = "Sigma posteriors — phi-free model"
+    top = "Sigma posteriors — phi-free model v4 (no singletons)"
   )
   ggsave(KF_PLOT_SIGMA, p2, width = 16, height = 5, units = "in", dpi = 150)
   cat("Plot saved:", KF_PLOT_SIGMA, "\n")
 
   # ── Plot 2: diversity by group ────────────────────────────────────────────
   cat("Extracting inv_simpson draws...\n")
-  inv_simp_arr <- rstan::extract(fit, pars = "inv_simpson")$inv_simpson
+  inv_simp_vars <- grep("^inv_simpson\\[", colnames(draws), value = TRUE)
 
-  inv_simp_tidy <- expand.grid(
-    draw = seq_len(S),
-    g    = seq_len(N_groups),
-    t    = seq_len(N_years)
-  ) |>
-    mutate(
-      inv_simpson = mapply(function(d, g, t) inv_simp_arr[d, g, t], draw, g, t),
-      level_2_mid = l2_levels[g],
-      year        = year_levels[t]
-    )
-
-  inv_simp_summary_kf <- inv_simp_tidy |>
-    group_by(level_2_mid, year) |>
-    summarise(
-      median = median(inv_simpson),
-      lo90   = quantile(inv_simpson, 0.05),
-      hi90   = quantile(inv_simpson, 0.95),
-      lo50   = quantile(inv_simpson, 0.25),
-      hi50   = quantile(inv_simpson, 0.75),
-      .groups = "drop"
-    )
+  inv_simp_summary_kf <- do.call(rbind, lapply(seq_len(N_groups), function(g) {
+    do.call(rbind, lapply(seq_len(N_years), function(t) {
+      vname <- sprintf("inv_simpson[%d,%d]", g, t)
+      vals <- as.numeric(draws[, vname])
+      data.frame(
+        level_2_mid = l2_levels[g],
+        year        = year_levels[t],
+        median      = median(vals),
+        lo90        = quantile(vals, 0.05),
+        hi90        = quantile(vals, 0.95),
+        lo50        = quantile(vals, 0.25),
+        hi50        = quantile(vals, 0.75)
+      )
+    }))
+  }))
 
   emp_diversity <- do.call(rbind, lapply(seq_len(N_groups), function(g) {
     K <- K_g_vec[g]
     do.call(rbind, lapply(seq_len(N_years), function(t) {
-      cts   <- stan_data$counts[g, t, 1:K]
+      cts   <- stan_data_pp$counts[g, t, 1:K]
       total <- sum(cts)
       if (total == 0) return(NULL)
       p <- cts / total
@@ -259,7 +248,7 @@ if (!file.exists(DONE_FLAG)) {
     labs(
       x        = "Year",
       y        = "Inverse Simpson (effective N of L3 methods)",
-      title    = "Methodological diversity within L2 groups over time (phi-free v3)",
+      title    = "Methodological diversity within L2 groups over time (v4, no singletons)",
       subtitle = "Grey dots = observed annual diversity; ribbon = 50%/90% posterior credible intervals"
     ) +
     theme_minimal(base_size = 8) +
@@ -276,8 +265,11 @@ if (!file.exists(DONE_FLAG)) {
   cat("Extracting gamma_method posteriors...\n")
   gamma_list <- vector("list", N_groups)
   for (grp in seq_len(N_groups)) {
-    K    <- K_g_vec[grp]
-    gm_g <- matrix(gamma_method_arr[, grp, 1:K], nrow = S, ncol = K)
+    K <- K_g_vec[grp]
+    gm_g <- matrix(NA_real_, nrow = S, ncol = K)
+    for (k in seq_len(K)) {
+      gm_g[, k] <- get_par(draws, "gamma_method", grp, k)
+    }
 
     method_labels <- vocab$l3_vocab |>
       filter(g == grp) |>
@@ -319,23 +311,19 @@ if (!file.exists(DONE_FLAG)) {
       direction = ifelse(mean_gamma > 0, "positive", "negative")
     )
 
-  # Shared x-axis limits so both panels are visually comparable
   all_xlim <- bind_rows(sig_gamma, top20_gamma)
   x_lo <- min(all_xlim$lo90, na.rm = TRUE) * 1.05
   x_hi <- max(all_xlim$hi90, na.rm = TRUE) * 1.05
 
   plot_title_grob <- grid::textGrob(
     paste0(
-      "Differential post-2023 method slopes \u2014 phi-free v3\n",
-      "Note: wide CIs are expected when phi is estimated from data (~604). ",
-      "Only the strongest signals survive the 90% threshold. ",
+      "Differential post-2023 method slopes — v4 (no singletons)\n",
       "Panel B shows directional evidence without the strict CI filter."
     ),
     gp   = grid::gpar(fontsize = 9),
     just = "left", x = 0.01
   )
 
-  # Panel B (always shown)
   pB <- ggplot(top20_gamma, aes(x = mean_gamma, y = method_id, colour = direction)) +
     geom_point(size = 1.5) +
     geom_errorbarh(aes(xmin = lo90, xmax = hi90), height = 0.3, linewidth = 0.35) +
@@ -346,13 +334,12 @@ if (!file.exists(DONE_FLAG)) {
     labs(
       x     = "Posterior mean gamma (post-LLM differential slope)",
       y     = NULL,
-      title = "Panel B: Top 20 methods by |posterior mean gamma| (wider CI expected with phi estimated)"
+      title = "Panel B: Top 20 methods by |posterior mean gamma|"
     ) +
     theme_minimal(base_size = 8) +
     theme(axis.text.y = element_text(size = 6), panel.grid.major.y = element_blank())
 
   if (n_sig < 3) {
-    # Panel A: small section with note
     if (n_sig > 0) {
       sig_plot <- sig_gamma |>
         arrange(mean_gamma) |>
@@ -371,15 +358,14 @@ if (!file.exists(DONE_FLAG)) {
           x        = NULL,
           y        = NULL,
           title    = "Panel A: Methods with 90% CI excluding zero",
-          subtitle = paste0("(", n_sig, " method", ifelse(n_sig == 1, "", "s"),
-                            " \u2014 very strict threshold when phi is estimated)")
+          subtitle = paste0("(", n_sig, " method", ifelse(n_sig == 1, "", "s"), ")")
         ) +
         theme_minimal(base_size = 9) +
         theme(axis.text.y = element_text(size = 7), panel.grid.major.y = element_blank())
     } else {
       pA <- ggplot() +
         annotate("text", x = 0.5, y = 0.5,
-                 label = "No methods survive the 90% CI filter with phi estimated",
+                 label = "No methods survive the 90% CI filter",
                  size = 4, colour = "grey50") +
         theme_void() +
         labs(title = "Panel A: Methods with 90% CI excluding zero")
@@ -408,7 +394,7 @@ if (!file.exists(DONE_FLAG)) {
   ggsave(KF_PLOT_GAMMA_DOT, p3, width = 14, height = 12, units = "in", dpi = 150)
   cat("Plot saved:", KF_PLOT_GAMMA_DOT, "\n")
 
-  # ── Top 15 methods by |gamma| ─────────────────────────────────────────────
+  # ── Top 15 methods by |gamma| ───────────────────────────────────────────
   top15 <- gamma_df |>
     mutate(abs_gamma = abs(mean_gamma)) |>
     arrange(desc(abs_gamma)) |>
@@ -417,7 +403,7 @@ if (!file.exists(DONE_FLAG)) {
   cat("\nTop 15 methods by |mean_gamma|:\n")
   print(top15 |> select(level_2_mid, level_3_fine, mean_gamma, lo90, hi90))
 
-  # ── Plot 4: fitted share trajectories for top 15 ─────────────────────────
+  # ── Plot 4: fitted share trajectories for top 15 ───────────────────────
   cat("Computing fitted share trajectories for top 15 methods...\n")
   n_draws_traj <- min(200, S)
   draw_idx     <- sample(S, n_draws_traj)
@@ -432,9 +418,12 @@ if (!file.exists(DONE_FLAG)) {
     for (di in seq_len(n_draws_traj)) {
       s <- draw_idx[di]
       for (t in seq_len(N_years)) {
-        eta_vec          <- mu_raw_arr[s, g_i, 1:K] +
-                            beta_method_arr[s, g_i, 1:K] * year_std[t] +
-                            gamma_method_arr[s, g_i, 1:K] * post_llm[t]
+        eta_vec <- numeric(K)
+        for (kk in seq_len(K)) {
+          eta_vec[kk] <- get_par(draws, "mu_raw", g_i, kk)[s] +
+                         get_par(draws, "beta_method", g_i, kk)[s] * year_std[t] +
+                         get_par(draws, "gamma_method", g_i, kk)[s] * post_llm[t]
+        }
         p_vec            <- exp(eta_vec - max(eta_vec))
         p_vec            <- p_vec / sum(p_vec)
         share_mat[di, t] <- p_vec[k_i]
@@ -467,7 +456,7 @@ if (!file.exists(DONE_FLAG)) {
     labs(
       x        = "Year",
       y        = "Fitted method share",
-      title    = "Top 15 methods by |gamma|: fitted share trajectories (phi-free v3)",
+      title    = "Top 15 methods by |gamma|: fitted share trajectories (v4, no singletons)",
       subtitle = "Ribbon = 80%/90% CI from 200 posterior draws; dashed = 2023"
     ) +
     theme_minimal(base_size = 7) +
@@ -476,14 +465,14 @@ if (!file.exists(DONE_FLAG)) {
   ggsave(KF_PLOT_TOP_GAMMA, p4, width = 18, height = 12, units = "in", dpi = 150)
   cat("Plot saved:", KF_PLOT_TOP_GAMMA, "\n")
 
-  # ── Plot 5: raw counts for top 15 ────────────────────────────────────────
+  # ── Plot 5: raw counts for top 15 ──────────────────────────────────────
   raw_counts_list <- vector("list", nrow(top15))
   for (i in seq_len(nrow(top15))) {
     g_i <- top15$g[i]
     k_i <- top15$k[i]
     raw_df <- data.frame(
       year     = year_levels,
-      n_papers = as.integer(stan_data$counts[g_i, , k_i])
+      n_papers = as.integer(stan_data_pp$counts[g_i, , k_i])
     )
     method_label <- paste0(sub("^L2-\\d+: ", "", l2_levels[g_i]), ": ", top15$level_3_fine[i])
     raw_df$method_id <- method_label
@@ -497,10 +486,7 @@ if (!file.exists(DONE_FLAG)) {
     ))
 
   p5 <- ggplot(raw_all, aes(x = year, y = n_papers)) +
-    geom_point(size = 1, colour = "grey40") +
-    geom_smooth(method = "loess", formula = y ~ x, se = TRUE,
-                colour = "darkorange3", fill = "darkorange", alpha = 0.2,
-                linewidth = 1.2, span = 0.75) +
+    geom_col(fill = "grey70", width = 0.7) +
     geom_vline(xintercept = 2023, linetype = "dashed", colour = "firebrick", linewidth = 0.4) +
     annotate("text", x = 2023, y = Inf, label = "LLM adoption",
              hjust = -0.05, vjust = 1.5, size = 2, colour = "firebrick") +
@@ -508,8 +494,8 @@ if (!file.exists(DONE_FLAG)) {
     labs(
       x        = "Year",
       y        = "Observed paper count",
-      title    = "Top 15 methods: raw observed counts (phi-free v3)",
-      subtitle = "Orange = loess smoother; dashed = 2023"
+      title    = "Top 15 methods: raw observed counts (v4, no singletons)",
+      subtitle = "Dashed = 2023"
     ) +
     theme_minimal(base_size = 7) +
     theme(strip.text = element_text(size = 5), panel.grid.minor = element_blank())
@@ -517,68 +503,6 @@ if (!file.exists(DONE_FLAG)) {
   ggsave(KF_PLOT_RAW, p5, width = 18, height = 12, units = "in", dpi = 150)
   cat("Plot saved:", KF_PLOT_RAW, "\n")
 
-  # ── Send plots via Telegram ───────────────────────────────────────────────
-  kf_plots <- c(KF_PLOT_SIGMA, KF_PLOT_DIVERSITY, KF_PLOT_GAMMA_DOT,
-                KF_PLOT_TOP_GAMMA, KF_PLOT_RAW)
-  cat("\nSending plots via Telegram...\n")
-  for (plot_path in kf_plots) {
-    tryCatch({
-      resp <- httr::POST(
-        url  = paste0("https://api.telegram.org/bot", token, "/sendPhoto"),
-        body = list(
-          chat_id = chat_id,
-          photo   = httr::upload_file(plot_path),
-          caption = paste0("phi-free v3: ", basename(plot_path))
-        ),
-        encode = "multipart"
-      )
-      cat("Telegram photo HTTP", httr::status_code(resp), ":", basename(plot_path), "\n")
-    }, error = function(e) {
-      cat("WARNING: Telegram photo failed:", basename(plot_path), ":", conditionMessage(e), "\n")
-    })
-  }
-
-  # ── Auto-fill phi_results.md and push to GitHub ─────────────────────────
-  message("Filling phi_results.md placeholders...")
-
-  sm <- rstan::summary(fit, pars = c("phi", "sigma_beta", "sigma_gamma"))$summary
-
-  phi_mean    <- round(sm["phi",       "mean"],  1)
-  phi_ci      <- paste0("[", round(sm["phi",       "2.5%"], 1),
-                           ", ", round(sm["phi",       "97.5%"], 1), "]")
-  sg_mean       <- round(sm["sigma_gamma", "mean"],  4)
-  sg_ci         <- paste0("[", round(sm["sigma_gamma", "2.5%"], 4),
-                           ", ", round(sm["sigma_gamma", "97.5%"], 4), "]")
-  sb_mean       <- round(sm["sigma_beta",  "mean"],  4)
-  sg_rhat       <- round(sm["sigma_gamma", "Rhat"],  4)
-  sg_ess        <- round(sm["sigma_gamma", "n_eff"])
-  converged_str <- ifelse(sg_rhat < 1.01 & sg_ess > 400,
-                          "YES (Rhat OK, ESS OK)",
-                          paste0("PARTIAL (Rhat=", sg_rhat,
-                                 ", ESS=", sg_ess, ")"))
-
-  phi_results <- readLines("docs/phi_results.md")
-  phi_results <- gsub("{{PHI_FREE_PHI_MEAN}}",        phi_mean,    phi_results, fixed=TRUE)
-  phi_results <- gsub("{{PHI_FREE_PHI_CI}}",          phi_ci,      phi_results, fixed=TRUE)
-  phi_results <- gsub("{{PHI_FREE_SIGMA_GAMMA_MEAN}}", sg_mean,       phi_results, fixed=TRUE)
-  phi_results <- gsub("{{PHI_FREE_SIGMA_GAMMA_CI}}",   sg_ci,         phi_results, fixed=TRUE)
-  phi_results <- gsub("{{PHI_FREE_SIGMA_BETA_MEAN}}",  sb_mean,       phi_results, fixed=TRUE)
-  phi_results <- gsub("{{PHI_FREE_RHAT}}",             sg_rhat,       phi_results, fixed=TRUE)
-  phi_results <- gsub("{{PHI_FREE_ESS}}",              sg_ess,        phi_results, fixed=TRUE)
-  phi_results <- gsub("{{PHI_FREE_RUNTIME}}",          elapsed_min,   phi_results, fixed=TRUE)
-  phi_results <- gsub("{{PHI_FREE_CONVERGED}}",        converged_str, phi_results, fixed=TRUE)
-  phi_results <- gsub("{{PHI_FREE_SUMMARY_PHI}}",
-                      paste0(phi_mean, " (estimated)"), phi_results, fixed=TRUE)
-  writeLines(phi_results, "docs/phi_results.md")
-
-  system(paste0(
-    "cd ~/R_projects/Vibe_Coding_Paper && ",
-    "git add docs/phi_results.md data/output/phi_free/*.png && ",
-    "git commit -m 'auto: phi-free v3 results and plots' && ",
-    "git push"
-  ))
-  message("GitHub push complete.")
-
-}  # end post-processing block
+}
 
 cat("\n01b_fit_phi_free.R complete.\n")
