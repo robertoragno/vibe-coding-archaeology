@@ -18,11 +18,11 @@ We run this analysis twice. The primary analysis operates at the L2-to-L3 level:
 
 The bibliometric analysis is paired with a prompting experiment. We systematically query Qwen3 (fixed local checkpoint) at three simulated expertise levels and with three types of methodological question, and classify each response into the same L3 taxonomy using Qwen. This gives us a direct estimate of what methods Qwen3 currently recommends. We then correlate recommendation frequency with the posterior mean gamma for each method. Critically, this comparison is made against **gamma specifically** — the excess share post-2023 above the pre-existing trend — rather than against raw method prevalence. This is what allows us to distinguish between two alternative explanations: the model recommending methods that were already trending before 2023 (reflecting its training data) versus recommending methods that accelerated specifically after LLM adoption (consistent with causal influence on research practice). If LLMs are driving convergence, the methods Qwen3 recommends most often should be the ones whose post-2023 share increased most in the published literature, after accounting for prior trajectories.
 
-The model is validated through a four-stage Bayesian workflow following Gelman et al. (2020): prior predictive checks confirm the priors generate plausible diversity values; posterior predictive checks show 44 of 48 method groups are well-calibrated; fake-data simulation confirms sigma_gamma is identifiable through hierarchical aggregation across groups; and phi is estimated from data — the posterior concentrates at phi ≈ 596, confirming the field is compositionally regular.
+The model is validated through a four-stage Bayesian workflow following Gelman et al. (2020): prior predictive checks confirm the priors generate plausible diversity values; posterior predictive checks show most method groups are well-calibrated (see [workflow checks](docs/workflow_results.md) for the precise count); fake-data simulation confirms sigma_gamma is identifiable through hierarchical aggregation across groups; and phi is estimated from data — the posterior concentrates at phi ≈ 596, confirming the field is compositionally regular.
 
 ## Preliminary Results
 
-> **Note:** These are preliminary results. The bibliometric analysis (Steps 1 and 2) is complete; the prompting experiment (Step 3) is in progress. The full causal argument requires all three steps.
+> **Note:** These are preliminary results. All three analysis steps are complete but the evidence in Step 3 remains uncertain.
 
 The analysis proceeds in three steps:
 
@@ -56,15 +56,17 @@ Methods losing share post-2023 (negative gamma mean, all CIs cross zero):
 
 Individual estimates should be read as directional indicators, not precise effect sizes. The conservative prior on sigma_gamma and the breadth of the new taxonomy mean that individual method gammas are appropriately uncertain. The global reshuffling scale (sigma_gamma) remains the primary inferential target.
 
-**Step 3 — Are the gaining methods the ones Qwen3 actually recommends? (in progress)**
+**Step 3 — Are the gaining methods the ones Qwen3 actually recommends?**
 
 The prompting experiment queries Qwen3 (fixed local checkpoint) at 3 expertise levels with 3 question types, classifies each response into the L3 taxonomy via Qwen, and correlates recommendation frequencies with posterior mean gamma per method. The comparison is specifically designed to test excess post-2023 share (gamma) rather than overall prevalence, thereby distinguishing LLM influence from mere reflection of pre-existing trends in training data.
 
-The statistical test is a fully Bayesian Poisson regression (`stan/poisson_gamma_regression.stan`): `n_recommended_i ~ Poisson(exp(alpha + beta * |gamma_true_i|))`, where `gamma_true` is a latent variable with a Normal prior centred on the posterior summary from the main model. This propagates predictor uncertainty (from Stage 1) into the posterior of beta via sequential Bayesian updating. A positive beta — meaning methods with larger post-2023 deviation are recommended more often — closes the causal argument. The model is run separately for overall counts and for each expertise profile (novice/intermediate/expert) to test whether expertise modulates trend-chasing. See `experiment/` for the planned design and `R/06_step3_llm_comparison.R` for the analysis.
+The statistical test is a Bayesian negative-binomial regression (`stan/poisson_gamma_regression.stan`): `n_rec[i] ~ NegBin2(exp(α + β × γ̄ᵢ), φ)`, where γ̄ᵢ is the *signed* posterior mean gamma for method *i*. A positive β — meaning methods that gained share post-2023 are recommended more often — supports the mean-collapse mechanism. The model is run separately for overall counts and for each expertise profile (novice/intermediate/expert) to test whether expertise modulates trend-chasing. See `experiment/Results.md` for detailed results and `R/06_step3_llm_comparison.R` for the analysis.
+
+The overall β posterior leans positive (mean = +0.638, P(β > 0) = 0.765) and the profile ordering matches the mean-collapse prediction: novice (+0.646) and intermediate (+0.553) are positive while expert (−0.330) is negative. All 90% CIs cross zero, so the direction is suggestive rather than confirmatory. The width of the posteriors reflects the noisiness of individual γ estimates (none of 225 methods reaches sig90) and the proxy nature of Qwen3 for the LLMs that actually influenced the 2023–2025 corpus.
 
 **What the results mean in plain terms**
 
-In the 3–4 years since LLMs entered academic use, there is tentative evidence of methodological reshuffling in computational archaeology, though the signal is weaker than earlier estimates suggested. sigma_gamma = 0.142 [0.021, 0.250] is above zero but the lower bound is close to it, and no individual method shows a post-2023 shift credible at the 90% level. The magnitude of reshuffling is smaller than the long-run baseline trend (sigma_gamma < sigma_beta). Whether this pattern reflects LLM-driven convergence or other dynamics in the field remains to be established by Step 3.
+In the 3–4 years since LLMs entered academic use, there is tentative evidence of methodological reshuffling in computational archaeology. sigma_gamma = 0.142 [0.021, 0.250] is above zero but the lower bound is close to it, and no individual method shows a post-2023 shift credible at the 90% level. The magnitude of reshuffling is smaller than the long-run baseline trend (sigma_gamma < sigma_beta). The prompting experiment (Step 3) finds that Qwen3's recommendations lean toward methods that gained share post-2023, especially under less-expert guidance — directionally consistent with LLM-driven convergence. But the quantitative link remains uncertain: all β posteriors have CIs crossing zero, reflecting the noisiness of individual γ estimates and the proxy nature of the experiment. The three steps are directionally aligned but individually inconclusive.
 
 ## Analysis outputs
 
@@ -73,6 +75,24 @@ In the 3–4 years since LLMs entered academic use, there is tentative evidence 
 | L2→L3 primary | Within each sub-discipline, specific technique shares over time | [View](docs/l2_l3_results.md) |
 | L1→L2 sensitivity | Within each broad family, sub-discipline shares over time | [View](docs/l1_l2_results.md) |
 | Bayesian workflow | Prior predictive, PPC, fake data recovery, phi sensitivity | [View](docs/workflow_results.md) |
+| Step 3 experiment | LLM recommendation vs. post-2023 gamma (NB regression) | [View](experiment/Results.md) |
+
+## Pipeline execution order
+
+The scripts must be run in this order (each depends on outputs from earlier steps):
+
+```
+00_data_prep.R          → stan_data.rds, vocab.rds
+01_fit_model.R          → MCMC fit (phi-free model)
+02_extract_plot.R       → L2→L3 posteriors, diversity plots
+inspect_gamma.R         → gamma_results.csv (used by 05 and 06)
+03_l1_l2_analysis.R     → L1→L2 sensitivity (independent of inspect_gamma)
+04_workflow_checks.R    → Bayesian workflow validation
+05_robustness_2022.R    → 2022-break robustness check
+06_step3_llm_comparison.R → LLM recommendation vs gamma (requires inspect_gamma output)
+```
+
+Scripts 03–04 and 05–06 can run in parallel within their pairs. `inspect_gamma.R` sits between 02 and the downstream scripts because it produces `data/output/phi_free/gamma_results.csv`, which scripts 05 and 06 read directly.
 
 ## Repository structure
 
