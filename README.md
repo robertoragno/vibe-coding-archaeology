@@ -66,7 +66,17 @@ The overall β posterior leans positive (mean = +0.638, P(β > 0) = 0.765) and t
 
 **What the results mean in plain terms**
 
-In the 3–4 years since LLMs entered academic use, there is tentative evidence of methodological reshuffling in computational archaeology. sigma_gamma = 0.142 [0.021, 0.250] is above zero but the lower bound is close to it, and no individual method shows a post-2023 shift credible at the 90% level. The magnitude of reshuffling is smaller than the long-run baseline trend (sigma_gamma < sigma_beta). The prompting experiment (Step 3) finds that Qwen3's recommendations lean toward methods that gained share post-2023, especially under less-expert guidance — directionally consistent with LLM-driven convergence. But the quantitative link remains uncertain: all β posteriors have CIs crossing zero, reflecting the noisiness of individual γ estimates and the proxy nature of the experiment. The three steps are directionally aligned but individually inconclusive.
+In the 3–4 years since LLMs entered academic use, there is tentative evidence of methodological reshuffling in computational archaeology. sigma_gamma = 0.142 [0.021, 0.250] is above zero but the lower bound is close to it, and no individual method shows a post-2023 shift credible at the 90% level. The magnitude of reshuffling is smaller than the long-run baseline trend (sigma_gamma < sigma_beta). The prompting experiment (Step 3) finds that Qwen3's recommendations lean toward methods that gained share post-2023, especially under less-expert guidance — directionally consistent with LLM-driven convergence. But the quantitative link remains uncertain: all β posteriors have CIs crossing zero, reflecting the noisiness of individual γ estimates and the proxy nature of the experiment. The three steps are directionally aligned but individually inconclusive. Two sensitivity analyses (restricting to well-represented methods and modelling diversity trajectories directly) both return null results, suggesting the honest framing is methodological reorientation rather than convergence.
+
+## Sensitivity Analyses
+
+**Sensitivity A — Minimum-count threshold (06b)**
+
+33/225 L3 methods survive a >=50 paper filter in 2023–2025. Under this restriction P(β > 0) drops to 0.38–0.45 across profiles (vs 0.765 overall in main analysis). The positive Step 3 signal appears driven by rare methods — the opposite of what mean-collapse predicts.
+
+**Sensitivity B — Direct diversity trajectory (07)**
+
+Models inv_simpson directly at L2 group level with the same two-slope structure. sigma_gamma = 0.022 [0.001, 0.065], effectively null. sigma_beta = 0.158 [0.120, 0.206] — pre-existing trend variation is 7× larger. All 51 group-level gamma CIs straddle zero. The field reorients internally but does not measurably homogenise at the sub-discipline level.
 
 ## Analysis outputs
 
@@ -76,6 +86,8 @@ In the 3–4 years since LLMs entered academic use, there is tentative evidence 
 | L1→L2 sensitivity | Within each broad family, sub-discipline shares over time | [View](docs/l1_l2_results.md) |
 | Bayesian workflow | Prior predictive, PPC, fake data recovery, phi sensitivity | [View](docs/workflow_results.md) |
 | Step 3 experiment | LLM recommendation vs. post-2023 gamma (NB regression) | [View](experiment/Results.md) |
+| Sensitivity A | Count-threshold variant of Step 3 (>=50 papers) | [View](R/sensitivity/README.md) |
+| Sensitivity B | Direct diversity trajectory model (inv_simpson) | [View](R/sensitivity/README.md) |
 
 ## Pipeline execution order
 
@@ -90,9 +102,13 @@ inspect_gamma.R         → gamma_results.csv (used by 05 and 06)
 04_workflow_checks.R    → Bayesian workflow validation
 05_robustness_2022.R    → 2022-break robustness check
 06_step3_llm_comparison.R → LLM recommendation vs gamma (requires inspect_gamma output)
+
+# Sensitivity (not part of main pipeline; run after 06)
+R/sensitivity/06b_step3_count_threshold.R → Count-threshold variant of Step 3
+R/sensitivity/07_diversity_trajectory.R   → Direct diversity trajectory model
 ```
 
-Scripts 03–04 and 05–06 can run in parallel within their pairs. `inspect_gamma.R` sits between 02 and the downstream scripts because it produces `data/output/phi_free/gamma_results.csv`, which scripts 05 and 06 read directly.
+Scripts 03–04 and 05–06 can run in parallel within their pairs. `inspect_gamma.R` sits between 02 and the downstream scripts because it produces `data/output/phi_free/gamma_results.csv`, which scripts 05 and 06 read directly. The sensitivity scripts in `R/sensitivity/` are standalone and can be run after the main pipeline completes.
 
 ## Repository structure
 
@@ -106,12 +122,17 @@ Scripts 03–04 and 05–06 can run in parallel within their pairs. `inspect_gam
 │   ├── 05_robustness_2022.R    # 2022-break robustness check
 │   ├── 06_step3_llm_comparison.R  # LLM recommendation vs gamma
 │   ├── inspect_gamma.R         # Quick gamma posterior inspection
+│   ├── sensitivity/
+│   │   ├── README.md              # Sensitivity analysis descriptions
+│   │   ├── 06b_step3_count_threshold.R  # Count-threshold Step 3 variant
+│   │   └── 07_diversity_trajectory.R    # Direct diversity trajectory model
 │   └── archive/                # Deprecated scripts
 ├── stan/
 │   ├── diversity_model_phi_free.stan       # Primary L2→L3 model
 │   ├── l1_l2_diversity_model.stan          # L1→L2 fixed-phi model
 │   ├── l1_l2_diversity_model_phi_free.stan # L1→L2 phi-free model
-│   └── poisson_gamma_regression.stan       # Step 3 NB regression
+│   ├── poisson_gamma_regression.stan       # Step 3 NB regression
+│   └── diversity_trajectory.stan          # Sensitivity B: diversity trajectory
 ├── data/
 │   ├── input/
 │   │   ├── taxonomy_v1/        # Original taxonomy data
@@ -122,7 +143,8 @@ Scripts 03–04 and 05–06 can run in parallel within their pairs. `inspect_gam
 │       │   ├── l1_l2/          # L1→L2 sensitivity plots
 │       │   ├── workflow/       # Bayesian workflow check plots
 │       │   ├── robustness/     # 2022-break robustness plots
-│       │   └── step3/          # LLM comparison plots
+│       │   ├── step3/          # LLM comparison plots
+│       │   └── sensitivity/   # Sensitivity analysis plots
 │       ├── phi_free/           # Gamma results CSV
 │       └── l2/                 # L1→L2 model fits
 ├── docs/
