@@ -3,8 +3,7 @@
 # (ChatGPT public release) instead of 2023 (widespread academic adoption).
 # Stable gamma estimates across both break-points strengthen temporal inference.
 #
-# NOTE: gamma_results.csv (2023 break) is read from data/output/phi_free/
-# if data/output/gamma_results.csv does not exist there.
+# NOTE: gamma_results.csv (2023 break) is read from data/output/phi_free/.
 # gamma_results_2022.csv is saved to data/output/gamma_results_2022.csv.
 
 suppressPackageStartupMessages({
@@ -25,17 +24,14 @@ VOCAB_PATH  <- here("data/output/vocab.rds")
 FIT_2022    <- here("data/output/fit_phi_free_2022.rds")
 DONE_FLAG   <- here("data/output/fit_phi_free_2022.done")
 OUT_CSV     <- here("data/output/gamma_results_2022.csv")
-OUT_PLOT    <- here("data/output/figures/robustness/plot_robustness_2022.pdf")
+OUT_PLOT    <- here("data/output/figures/robustness/plot_robustness_2022.png")
 
-gamma_csv_primary <- here("data/output/gamma_results.csv")
-gamma_csv_fallback <- here("data/output/phi_free/gamma_results.csv")
-GAMMA_2023_CSV <- if (file.exists(gamma_csv_primary)) gamma_csv_primary else gamma_csv_fallback
+GAMMA_2023_CSV <- here("data/output/phi_free/gamma_results.csv")
 
 dir.create(here("data/output/figures/robustness"), recursive = TRUE, showWarnings = FALSE)
 
 if (!file.exists(GAMMA_2023_CSV))
-  stop("gamma_results.csv (2023 break) not found at:\n  ", gamma_csv_primary,
-       "\n  ", gamma_csv_fallback)
+  stop("gamma_results.csv (2023 break) not found at:\n  ", GAMMA_2023_CSV)
 
 # ── 2. Load stan_data and modify post_llm ──────────────────────────────────────
 
