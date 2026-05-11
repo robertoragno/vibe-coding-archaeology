@@ -1,6 +1,6 @@
 # Bayesian Workflow Checks
 
-*Last updated: 2026-04-05 19:53*
+*Last updated: 2026-05-11 14:52*
 
 These checks implement the four-stage workflow from Gelman et al. (2020, arXiv:2011.01808). They are run from `R/04_workflow_checks.R` using the already-fitted `fit.rds` and `fit_l2.rds` — no refitting is done except for the fake-data simulation in Section 3 (single group, small, fast).
 
@@ -28,7 +28,7 @@ This is repeated for the 5 largest L2 groups, sampling a random year each draw t
 
 **Result: PASS**
 
-Prior predictive 5th–95th percentile = [1.25, 5.54]; observed range = [1, 6.97].
+Prior predictive 5th–95th percentile = [2.76, 11.57]; observed range = [1, 12.76].
 
 **Interpretation.** If the prior predictive covers 1 to K_g — the full range from one dominant method to perfectly uniform distribution — the priors are weakly informative and acceptable. A prior that places all mass outside the observed range would indicate miscalibration and require tightening or widening the hyperpriors.
 
@@ -50,7 +50,7 @@ We use S = 200 draws (randomly subsampled from the posterior) per group-year cel
 
 The **PPC tail probability** per group is the fraction of posterior predictive draws whose inv_simpson exceeds the observed value, averaged over all years with data. It is not a frequentist p-value — there is no null hypothesis; it simply reports where the observation sits within the model's own predictive distribution. Values near 0.5 indicate good calibration; values near 0 or 1 indicate systematic misfit (the model consistently over- or under-predicts diversity). The density panels (Section 2a) show the same check graphically. *Gelman et al. (2020) call this a "Bayesian p-value" but we avoid the term to prevent confusion with frequentist p-values.*
 
-**Result: 44 / 48 groups pass at the 0.05–0.95 threshold**
+**Result: 25 / 25 groups pass at the 0.05–0.95 threshold**
 
 ### Section 2a — Density panels (9 largest groups)
 
@@ -89,12 +89,12 @@ y_fake[t] ~ DM( N_gt_observed, softmax(mu_true + beta_true × year_std[t]
 
 We then fit the standard single-group Stan model to the fake data (2 chains × 500 samples, adapt_delta = 0.90) and compare the recovered posterior to the true value.
 
-**Result: true σ_gamma recovered = TRUE**
+**Result: true σ_gamma recovered = YES**
 
 ```
 True sigma_gamma  = 0.0600
-Recovered mean    = 0.2119
-90% CI            = [0.0117, 0.6131]
+Recovered mean    = 0.1683
+90% CI            = [0.0068, 0.4510]
 True value inside CI: TRUE
 ```
 
@@ -112,42 +112,11 @@ Note: with only 3 post-LLM years and moderate sample sizes, σ_gamma is weakly i
 
 phi controls the Dirichlet-Multinomial concentration: how closely observed proportions are expected to track the model's predicted shares in any given year. phi = 10 (conservative fixed baseline) allows moderate year-to-year deviation; phi = 50 (higher regularisation fixed) implies much tighter tracking and less overdispersion.
 
-**Posterior comparison of σ_gamma:**
+_Not applicable — phi is estimated from data in the phi-free model._
 
-| | mean | SD | 90% CI |
-|---|---|---|---|
-| phi = 10 (fixed) | 0.054 | 0.042 | [0.004, 0.132] |
-| phi = 50 (fixed) | 0.095 | 0.070 | [0.007, 0.229] |
-| φ free (v3) | 0.250 | 0.073 | [0.125, 0.365] |
+Not applicable — phi estimated from data
 
-σ_gamma increases monotonically as the model gains freedom to fit φ. With phi = 10, some between-method variation is absorbed by the DM noise floor. With phi = 50, that escape route is closed and the model attributes more variation to β and γ. When φ is estimated from data (v3), φ concentrates at ~605 — far above both fixed values — and σ_gamma rises to 0.25 (90% CI [0.125, 0.365]). Across all three settings, σ_gamma remains credibly above zero, supporting the robustness of the global post-LLM signal.
-
-σ_beta also shifts monotonically (0.097 → 0.185 → 0.215 across phi = 10, phi = 50, phi free), consistent with the same variance-reallocation mechanism.
-
-**Rank stability of individual γ estimates:**
-
-The Spearman rank correlation between per-method posterior mean γ under phi=10 vs phi=50 is ρ = 0.565. In a Bayesian analysis we do not test whether this is 'significant' — we ask whether the ordinal story is consistent. A threshold of ρ > 0.95 would indicate that the ranking of methods by their post-LLM slope is essentially unchanged by the phi assumption. ρ = 0.565 means it is not: the specific methods identified as gaining or losing share post-2023 change meaningfully depending on the concentration assumption.
-
-**Implication:** the global finding (σ_gamma credibly above zero at both phi values) appears robust. The identification of specific methods does not. This has three consequences for the paper:
-
-1. Individual γ estimates should be presented with explicit caveats about phi sensitivity
-2. The prompting experiment is no longer optional corroboration — it is essential to identify which specific methods are genuinely LLM-driven, independent of the phi assumption
-3. The next modelling iteration treats phi as a parameter with a weakly informative lognormal prior — see Section 5 below.
-
-![Prior sensitivity](../data/output/figures/workflow/plot_prior_sensitivity.png)
-
----
-
-## Summary
-
-| Check | Result |
-|---|---|
-| Prior predictive | [PASS] prior covers plausible inv_simpson range |
-| Posterior predictive | 44 / 48 groups pass at 0.05–0.95 |
-| Fake data recovery | [YES] true σ_gamma inside 90% CI |
-| Prior sensitivity (phi) | SENSITIVE — σ_gamma scales with phi; γ rankings shift (ρ=0.565 at fixed phi). phi-free v3: σ_gamma=0.25 (90% CI [0.125, 0.365]). Global signal robust across all three settings. |
-
-> Model passes core calibration checks. Global post-LLM signal (σ_gamma > 0) is robust across all three phi settings (phi=10 fixed, phi=50 fixed, phi estimated ~604). Individual method rankings are sensitive to phi — do not over-interpret specific γ estimates without prompting experiment corroboration. phi-free fit complete: see `docs/l2_l3_results.md`.
+> **Recommendation:** model passes all core checks — results are credible for inference.
 
 ---
 

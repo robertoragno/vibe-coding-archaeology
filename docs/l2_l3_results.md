@@ -42,13 +42,13 @@ g indexes L2 sub-disciplines; k indexes L3 techniques within each sub-discipline
 
 | Parameter | Value |
 |---|---|
-| phi posterior mean | 596 |
-| phi 90% CI | [302, 1131] |
-| sigma_gamma mean | 0.142 |
-| sigma_gamma 90% CI | [0.021, 0.25] |
-| sigma_beta mean | 0.204 |
-| Rhat (all params) | < 1.004 |
-| ESS (sigma_gamma) | 664 |
+| phi posterior mean | 1133 |
+| phi 90% CI | [605, 2088] |
+| sigma_gamma mean | 0.11 |
+| sigma_gamma 90% CI | [0.01, 0.222] |
+| sigma_beta mean | 0.288 |
+| Rhat (all params) | < 1.011 |
+| ESS (sigma_gamma) | 581 |
 | Divergences | 0 |
 
 Rhat < 1.01 and ESS > 400 are the thresholds for acceptable convergence. Zero divergences is required.
@@ -95,11 +95,11 @@ Note: change = (exp(gamma) − 1) × 100. No individual estimates are credible a
 
 | Parameter | v3 | v4 | Change |
 |---|---|---|---|
-| sigma_gamma mean | 0.142 | 0.142 | +0.004 (noise) |
-| sigma_gamma 90% CI | [0.021, 0.25] | [0.021, 0.250] | unchanged |
-| sigma_beta mean | 0.204 | 0.204 | unchanged |
+| sigma_gamma mean | 0.11 | 0.142 | +0.004 (noise) |
+| sigma_gamma 90% CI | [0.01, 0.222] | [0.021, 0.250] | unchanged |
+| sigma_beta mean | 0.288 | 0.204 | unchanged |
 | phi mean | 591 | 596 | +5 (noise) |
-| ESS (sigma_gamma) | 664 | 664 | −198 (worse) |
+| ESS (sigma_gamma) | 581 | 664 | −198 (worse) |
 | Divergences | 0 | 0 | unchanged |
 | Top methods | same 5 gainers/losers | same 5 gainers/losers | rank stable |
 
