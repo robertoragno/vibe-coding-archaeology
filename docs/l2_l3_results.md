@@ -34,7 +34,7 @@ log(phi)         ~ Normal(log(100), 1.0)   [phi ~ lognormal, median 100, 90% CI 
 
 g indexes L2 sub-disciplines; k indexes L3 techniques within each sub-discipline; t indexes years 2010–2026.
 
-**Why phi is estimated, not fixed.** An early empirical phi exploration (now archived in `R/archive/00b_phi_exploration.R`) estimated the Dirichlet-Multinomial concentration parameter from the data before any modelling, using a method-of-moments estimator applied across years within each L2 group. Most groups have empirical phi well above 10 — many above 100 — meaning the observed proportions track the structural trend closely year to year. Fixing phi=10 was therefore conservative: it attributed too much observed variation to within-year noise, leaving less for the structural β and γ parameters to explain. The principled Bayesian alternative is a weakly informative lognormal prior that lets the data speak. The posterior concentrates at phi ≈ 604, confirming that the data favour a near-Multinomial likelihood.
+**Why phi is estimated, not fixed.** An early empirical phi exploration (now archived in `R/archive/00b_phi_exploration.R`) estimated the Dirichlet-Multinomial concentration parameter from the data before any modelling, using a method-of-moments estimator applied across years within each L2 group. Most groups have empirical phi well above 10 — many above 100 — meaning the observed proportions track the structural trend closely year to year. Fixing phi=10 was therefore conservative: it attributed too much observed variation to within-year noise, leaving less for the structural β and γ parameters to explain. The principled Bayesian alternative is a weakly informative lognormal prior that lets the data speak. The posterior concentrates at phi ≈ 1133, confirming that the data favour a near-Multinomial likelihood.
 
 **phi is sampled as log_phi (unbounded) for better HMC geometry.** `log_phi ~ Normal(log(100), 1.0)` is equivalent to `phi ~ lognormal(log(100), 1.0)`. The `phi = exp(log_phi)` transformation is applied in the `transformed parameters` block.
 
@@ -55,13 +55,13 @@ Rhat < 1.01 and ESS > 400 are the thresholds for acceptable convergence. Zero di
 
 ## Key result
 
-sigma_gamma = 0.142 [0.021, 0.250] is above zero but with wider uncertainty than earlier estimates — the lower bound of the 90% CI is close to zero, indicating weaker evidence for post-LLM reshuffling than previously found. phi ≈ 596 — the field remains compositionally regular. The post-LLM reshuffling is now estimated to be smaller in magnitude than the long-run baseline trend: sigma_gamma < sigma_beta (0.142 vs 0.204). No individual methods clear the 90% CI threshold for a credible post-LLM slope change.
+sigma_gamma = 0.110 [0.010, 0.222] is above zero but with wide uncertainty — the lower bound of the 90% CI is near zero, indicating weak evidence for post-LLM reshuffling. phi ≈ 1133 — the field is compositionally regular, with the data strongly favouring near-Multinomial behaviour. The post-LLM reshuffling is smaller in magnitude than the long-run baseline trend: sigma_gamma < sigma_beta (0.110 vs 0.288). No individual methods clear the 90% CI threshold for a credible post-LLM slope change (0 of 242 methods at sig90).
 
 ## What sigma_gamma means in plain terms
 
-sigma_gamma is the standard deviation of the distribution from which individual method gammas are drawn. In the non-centred parameterisation, `gamma_method[g,k] = sigma_gamma × gamma_raw[g,k]` where `gamma_raw ~ Normal(0, 1)`, so sigma_gamma controls how spread out the post-2023 slopes are across methods. A sigma_gamma of 0.250 means roughly 68% of methods have |gamma| < 0.250, and about 16% have gamma > 0.250 or gamma < −0.250.
+sigma_gamma is the standard deviation of the distribution from which individual method gammas are drawn. In the non-centred parameterisation, `gamma_method[g,k] = sigma_gamma × gamma_raw[g,k]` where `gamma_raw ~ Normal(0, 1)`, so sigma_gamma controls how spread out the post-2023 slopes are across methods. A sigma_gamma of 0.110 means roughly 68% of methods have |gamma| < 0.110, and about 16% have gamma > 0.110 or gamma < −0.110.
 
-What does gamma = +0.250 look like in practice? The gamma operates on the log-share scale inside softmax. A rough translation: a method holding 20% share of its sub-discipline would shift to approximately 25% (a multiplicative increase of exp(0.250) − 1 ≈ 28%, applied before renormalisation). In a field where specialised methods typically hold 5–15% shares, a shift of 4–5 percentage points is substantial — it can move a method from marginal to dominant within its niche.
+What does gamma = +0.110 look like in practice? The gamma operates on the log-share scale inside softmax. A rough translation: a method holding 20% share of its sub-discipline would shift to approximately 22% (a multiplicative increase of exp(0.110) − 1 ≈ 12%, applied before renormalisation). In a field where specialised methods typically hold 5–15% shares, this is a modest shift — detectable in aggregate but not individually credible for any single method.
 
 ## Top methods gaining share post-2023
 
@@ -69,41 +69,29 @@ No methods have a 90% CI for gamma that fully excludes zero. The estimates below
 
 | Method | mean gamma | 90% CI |
 |---|---|---|
-| L3-024: Bayesian Panel Data Methods | +0.150 | [−0.063, +0.491] |
-| L3-101: Information-Theoretic Entropy Measures | +0.136 | [−0.071, +0.465] |
-| L3-009: Real-Time Object Detection | +0.135 | [−0.065, +0.444] |
-| L3-006: Partial Least Squares Variants | +0.131 | [−0.050, +0.398] |
-| L3-123: Generalized Linear Modeling | +0.130 | [−0.055, +0.409] |
+| L3-090: Multi-Criteria Decision Analysis | +0.098 | [−0.057, +0.373] |
+| L3-107: Chemometric and Spectroscopic Analysis | +0.091 | [−0.067, +0.356] |
+| L3-101: Information-Theoretic Entropy Measures | +0.091 | [−0.078, +0.372] |
+| L3-123: Generalized Linear Mixed Models | +0.089 | [−0.071, +0.357] |
+| L3-091: Bibliometric and Scientometric Mapping | +0.089 | [−0.060, +0.351] |
 
 ## Top methods losing share post-2023
 
 | Method | mean gamma | 90% CI |
 |---|---|---|
-| L3-134: Logistic Regression Variants | −0.138 | [−0.424, +0.050] |
-| L3-103: Ecological Diversity Metrics | −0.125 | [−0.411, +0.064] |
-| L3-017: Kernel Methods and Matrix Factorization | −0.113 | [−0.399, +0.081] |
-| L3-109: Categorical Data Analysis | −0.110 | [−0.383, +0.070] |
-| L3-118: Hypothesis Testing Procedures | −0.107 | [−0.363, +0.075] |
+| L3-103: Ecological Diversity Metrics | −0.125 | [−0.435, +0.040] |
+| L3-080: Network Analysis and Modeling | −0.083 | [−0.326, +0.061] |
+| L3-134: Logistic Regression Variants | −0.080 | [−0.338, +0.081] |
+| L3-026: Monte Carlo Simulation Methods | −0.077 | [−0.317, +0.069] |
+| L3-241: Archaeological Dating and Analysis Methods | −0.076 | [−0.335, +0.082] |
 
 Note: change = (exp(gamma) − 1) × 100. No individual estimates are credible at the 90% level — all CIs cross zero.
 
-## v3 → v4 comparison (singleton removal)
+## Taxonomy v3 notes
 
-**What changed:** v4 drops L2 groups with only one L3 method (K_g = 1). In singleton groups, the method always holds 100% share regardless of gamma, making gamma unidentifiable — these parameters consumed sampler effort without contributing signal. The model structure is unchanged.
+**Taxonomy v3** uses a two-level hierarchy (L2 → L3 only; no L1 grouping). The Qwen classifier was retrained to produce L2 and L3 labels directly from abstracts, yielding 25 L2 sub-disciplines and 242 L3 techniques across 7,763 papers (2010–2026). No singleton L2 groups (K_g = 1) exist in this taxonomy, so no groups are dropped.
 
-**Did the model improve?** No meaningful change in the scientific estimates. The headline numbers are essentially stable:
-
-| Parameter | v3 | v4 | Change |
-|---|---|---|---|
-| sigma_gamma mean | 0.11 | 0.142 | +0.004 (noise) |
-| sigma_gamma 90% CI | [0.01, 0.222] | [0.021, 0.250] | unchanged |
-| sigma_beta mean | 0.288 | 0.204 | unchanged |
-| phi mean | 591 | 596 | +5 (noise) |
-| ESS (sigma_gamma) | 581 | 664 | −198 (worse) |
-| Divergences | 0 | 0 | unchanged |
-| Top methods | same 5 gainers/losers | same 5 gainers/losers | rank stable |
-
-The ESS for sigma_gamma dropped from 862 to 664, still above the 400 threshold but lower. This likely reflects MCMC variability under a slightly different data geometry rather than a systematic degradation — removing singletons changed the posterior surface. The fix was conceptually correct (unidentifiable parameters should not be in the model) but did not move the science: the same conclusion holds, with the same uncertainty.
+Compared to the prior taxonomy (v2, which had 51 L2 groups and 225 L3 methods), the key changes are: fewer but larger L2 groups, a denser L3 vocabulary, and no L1 layer. The model structure is unchanged. Script `R/03_l1_l2_analysis.R` (L1→L2 sensitivity) is not applicable under v3.
 
 ## Plots
 
@@ -182,9 +170,9 @@ g indexes L2 sub-disciplines; k indexes L3 techniques within each sub-discipline
 
 | Parameter | What it measures | Sampled? | Posterior mean | 90% CI | Rhat | ESS |
 |---|---|---|---|---|---|---|
-| phi | Concentration — how tightly observed proportions track the structural trend. Higher = more regular field | Yes | 596 | [302, 1131] | 1.0003 | 8578 |
-| sigma_beta | Global scale of long-run method trends (2010–2026). How much methods vary in their historical trajectories | Yes | 0.204 | [0.156, 0.251] | 1.0005 | 1732 |
-| sigma_gamma | Global scale of post-2023 slope changes. The key estimand — if credibly above zero, anomalous reshuffling occurred | Yes | 0.142 | [0.021, 0.250] | 1.0008 | 664 |
+| phi | Concentration — how tightly observed proportions track the structural trend. Higher = more regular field | Yes | 1133 | [605, 2088] | 1.00 | — |
+| sigma_beta | Global scale of long-run method trends (2010–2026). How much methods vary in their historical trajectories | Yes | 0.288 | — | 1.00 | — |
+| sigma_gamma | Global scale of post-2023 slope changes. The key estimand — if credibly above zero, anomalous reshuffling occurred | Yes | 0.110 | [0.010, 0.222] | 1.01 | 581 |
 | mu[g,k] | Baseline log-weight of method k in group g — its average relative share across the full period | Yes | (varies by method) | — | — | — |
 | beta[g,k] | Long-run linear trend of method k — was it already rising or falling before LLMs? | No (derived) | (varies by method) | — | — | — |
 | gamma[g,k] | Post-2023 slope increment — the anomalous change after LLM adoption | No (derived) | (varies by method) | — | — | — |
