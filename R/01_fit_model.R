@@ -205,7 +205,7 @@ if (!file.exists(DONE_FLAG)) {
       vname <- sprintf("inv_simpson[%d,%d]", g, t)
       vals <- as.numeric(draws[, vname])
       data.frame(
-        level_2_mid = l2_levels[g],
+        l2 = l2_levels[g],
         year        = year_levels[t],
         median      = median(vals),
         lo90        = quantile(vals, 0.05),
@@ -225,17 +225,17 @@ if (!file.exists(DONE_FLAG)) {
       p <- cts / total
       p <- p[p > 0]
       data.frame(
-        level_2_mid  = l2_levels[g],
+        l2  = l2_levels[g],
         year         = year_levels[t],
         inv_simp_emp = 1 / sum(p^2),
         stringsAsFactors = FALSE
       )
     }))
   })) |>
-    mutate(label = sub("^L2-\\d+: ", "", level_2_mid))
+    mutate(label = sub("^L2-\\d+: ", "", l2))
 
   conj_summary_kf <- inv_simp_summary_kf |>
-    mutate(label = sub("^L2-\\d+: ", "", level_2_mid))
+    mutate(label = sub("^L2-\\d+: ", "", l2))
 
   p1 <- ggplot(conj_summary_kf, aes(x = year)) +
     geom_point(data = emp_diversity,
@@ -281,13 +281,13 @@ if (!file.exists(DONE_FLAG)) {
     method_labels <- vocab$l3_vocab |>
       filter(g == grp) |>
       arrange(k_local) |>
-      pull(level_3_fine)
+      pull(l3)
 
     gamma_list[[grp]] <- data.frame(
       g            = grp,
-      level_2_mid  = l2_levels[grp],
+      l2  = l2_levels[grp],
       k            = seq_len(K),
-      level_3_fine = method_labels,
+      l3 = method_labels,
       mean_gamma   = colMeans(gm_g),
       lo90         = apply(gm_g, 2, quantile, 0.05),
       hi90         = apply(gm_g, 2, quantile, 0.95),
@@ -298,8 +298,8 @@ if (!file.exists(DONE_FLAG)) {
   gamma_df <- bind_rows(gamma_list) |>
     mutate(
       sig         = (lo90 > 0 | hi90 < 0),
-      group_label = sub("^L2-\\d+: ", "", level_2_mid),
-      method_id   = paste0(group_label, ": ", level_3_fine)
+      group_label = sub("^L2-\\d+: ", "", l2),
+      method_id   = paste0(group_label, ": ", l3)
     )
 
   cat("Methods with 90% CI excluding zero:", sum(gamma_df$sig, na.rm = TRUE), "\n")
@@ -408,7 +408,7 @@ if (!file.exists(DONE_FLAG)) {
     slice_head(n = 15)
 
   cat("\nTop 15 methods by |mean_gamma|:\n")
-  print(top15 |> select(level_2_mid, level_3_fine, mean_gamma, lo90, hi90))
+  print(top15 |> select(l2, l3, mean_gamma, lo90, hi90))
 
   # ── Plot 4: fitted share trajectories for top 15 ───────────────────────
   cat("Computing fitted share trajectories for top 15 methods...\n")
@@ -437,7 +437,7 @@ if (!file.exists(DONE_FLAG)) {
       }
     }
 
-    method_label <- paste0(sub("^L2-\\d+: ", "", l2_levels[g_i]), ": ", top15$level_3_fine[i])
+    method_label <- paste0(sub("^L2-\\d+: ", "", l2_levels[g_i]), ": ", top15$l3[i])
     traj_list[[i]] <- data.frame(
       year      = year_levels,
       mean      = colMeans(share_mat),
@@ -481,7 +481,7 @@ if (!file.exists(DONE_FLAG)) {
       year     = year_levels,
       n_papers = as.integer(stan_data_pp$counts[g_i, , k_i])
     )
-    method_label <- paste0(sub("^L2-\\d+: ", "", l2_levels[g_i]), ": ", top15$level_3_fine[i])
+    method_label <- paste0(sub("^L2-\\d+: ", "", l2_levels[g_i]), ": ", top15$l3[i])
     raw_df$method_id <- method_label
     raw_counts_list[[i]] <- raw_df
   }
@@ -489,7 +489,7 @@ if (!file.exists(DONE_FLAG)) {
   raw_all <- bind_rows(raw_counts_list) |>
     mutate(method_id = factor(
       method_id,
-      levels = paste0(sub("^L2-\\d+: ", "", l2_levels[top15$g]), ": ", top15$level_3_fine)
+      levels = paste0(sub("^L2-\\d+: ", "", l2_levels[top15$g]), ": ", top15$l3)
     ))
 
   p5 <- ggplot(raw_all, aes(x = year, y = n_papers)) +

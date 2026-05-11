@@ -9,8 +9,8 @@ library(cmdstanr)
 library(httr)
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
-SCOPUS_FILE   <- "data/input/taxonomy_v2/df_cleaned.xlsx"
-TAXONOMY_FILE <- "data/input/taxonomy_v2/taxonomy_abstract_join.csv"
+SCOPUS_FILE   <- "data/input/taxonomy_v3/df_cleaned.xlsx"
+TAXONOMY_FILE <- "data/input/taxonomy_v3/taxonomy_abstract_join.csv"
 OUTPUT_DIR    <- "data/output/l2"
 FIT_L2_RDS    <- "data/output/l2/fit_l2.rds"
 STAN_FILE_L2     <- "stan/l1_l2_diversity_model.stan"
@@ -26,7 +26,7 @@ scopus_raw <- read_excel(SCOPUS_FILE) |>
   select(eid, Year = year)
 
 taxonomy <- read.csv(TAXONOMY_FILE) |>
-  select(eid, level_1_macro, level_2_mid)
+  select(eid, l1, l2)
 
 raw <- scopus_raw |>
   inner_join(taxonomy, by = "eid") |>
@@ -34,11 +34,11 @@ raw <- scopus_raw |>
 cat("Rows loaded:", nrow(raw), "\n")
 
 df_clean <- raw |>
-  distinct(eid, Year, level_1_macro, level_2_mid)
+  distinct(eid, Year, l1, l2)
 
 cat("Rows after dedup:", nrow(df_clean), "\n")
 
-l1_levels   <- sort(unique(df_clean$level_1_macro))
+l1_levels   <- sort(unique(df_clean$l1))
 year_levels <- sort(unique(df_clean$Year))
 N_groups    <- length(l1_levels)
 N_years     <- length(year_levels)
@@ -47,27 +47,27 @@ cat("L1 groups:", N_groups, "\n")
 cat("Years:    ", N_years, "(", min(year_levels), "-", max(year_levels), ")\n")
 
 l2_vocab <- df_clean |>
-  distinct(level_1_macro, level_2_mid) |>
-  arrange(level_1_macro, level_2_mid) |>
-  group_by(level_1_macro) |>
+  distinct(l1, l2) |>
+  arrange(l1, l2) |>
+  group_by(l1) |>
   mutate(k_local = row_number(), K_g = n()) |>
   ungroup() |>
-  mutate(g = match(level_1_macro, l1_levels))
+  mutate(g = match(l1, l1_levels))
 
 K_g   <- l2_vocab |> group_by(g) |> summarise(K = first(K_g)) |> pull(K)
 K_max <- max(K_g)
 
 cat("K_max (largest L1 group):", K_max, "\n")
-cat("Total L2 methods:        ", nrow(l2_vocab |> distinct(level_2_mid)), "\n")
+cat("Total L2 methods:        ", nrow(l2_vocab |> distinct(l2)), "\n")
 
 df_indexed <- df_clean |>
   mutate(
-    g = match(level_1_macro, l1_levels),
+    g = match(l1, l1_levels),
     t = match(Year, year_levels)
   ) |>
   left_join(
-    l2_vocab |> select(level_1_macro, level_2_mid, k_local),
-    by = c("level_1_macro", "level_2_mid")
+    l2_vocab |> select(l1, l2, k_local),
+    by = c("l1", "l2")
   )
 
 counts_long  <- df_indexed |> count(g, t, k_local, name = "n_papers")
@@ -344,13 +344,13 @@ for (grp in seq_len(N_groups)) {
   method_labels <- l2_vocab |>
     filter(g == grp) |>
     arrange(k_local) |>
-    pull(level_2_mid)
+    pull(l2)
 
   gamma_list[[grp]] <- data.frame(
     g           = grp,
     l1_group    = l1_levels[grp],
     k           = seq_len(K),
-    level_2_mid = method_labels,
+    l2 = method_labels,
     mean_gamma  = colMeans(gm_g),
     lo90        = apply(gm_g, 2, quantile, 0.05),
     hi90        = apply(gm_g, 2, quantile, 0.95),
@@ -361,7 +361,7 @@ for (grp in seq_len(N_groups)) {
 gamma_df <- bind_rows(gamma_list) |>
   mutate(
     sig       = (lo90 > 0 | hi90 < 0),
-    method_id = paste0(l1_group, ": ", level_2_mid)
+    method_id = paste0(l1_group, ": ", l2)
   )
 
 cat("L2 methods with 90% CI excluding zero:", sum(gamma_df$sig, na.rm = TRUE), "\n")
@@ -410,7 +410,7 @@ top10 <- gamma_df |>
   slice_head(n = 10)
 
 cat("\nTop 10 L2 methods by |mean_gamma|:\n")
-print(top10 |> select(l1_group, level_2_mid, mean_gamma, lo90, hi90))
+print(top10 |> select(l1_group, l2, mean_gamma, lo90, hi90))
 
 # ── Plot 4: raw counts for top 10 ────────────────────────────────────────────
 cat("Plotting raw counts for top 10 L2 methods...\n")
@@ -425,14 +425,14 @@ for (i in seq_len(nrow(top10))) {
     year     = year_levels,
     n_papers = as.integer(stan_data$counts[g_i, , k_i])
   )
-  raw_df$method_id <- paste0(top10$l1_group[i], ": ", top10$level_2_mid[i])
+  raw_df$method_id <- paste0(top10$l1_group[i], ": ", top10$l2[i])
   raw_counts_list[[i]] <- raw_df
 }
 
 raw_all <- bind_rows(raw_counts_list) |>
   mutate(method_id = factor(
     method_id,
-    levels = paste0(top10$l1_group, ": ", top10$level_2_mid)
+    levels = paste0(top10$l1_group, ": ", top10$l2)
   ))
 
 p4 <- ggplot(raw_all, aes(x = year, y = n_papers)) +
@@ -657,12 +657,12 @@ if (!file.exists(FIT_L2_KF_RDS)) {
   for (grp in seq_len(N_groups)) {
     K   <- K_g[grp]
     g_m <- matrix(gamma_kf[, grp, 1:K], nrow = S_kf, ncol = K)
-    method_labels <- l2_vocab |> filter(g == grp) |> arrange(k_local) |> pull(level_2_mid)
+    method_labels <- l2_vocab |> filter(g == grp) |> arrange(k_local) |> pull(l2)
     gamma_list_kf[[grp]] <- data.frame(
       g           = grp,
       l1_group    = l1_levels[grp],
       k           = seq_len(K),
-      level_2_mid = method_labels,
+      l2 = method_labels,
       mean_gamma  = colMeans(g_m),
       lo90        = apply(g_m, 2, quantile, 0.05),
       hi90        = apply(g_m, 2, quantile, 0.95),
@@ -672,7 +672,7 @@ if (!file.exists(FIT_L2_KF_RDS)) {
 
   gamma_df_kf <- bind_rows(gamma_list_kf) |>
     mutate(sig       = (lo90 > 0 | hi90 < 0),
-           method_id = paste0(l1_group, ": ", level_2_mid))
+           method_id = paste0(l1_group, ": ", l2))
   cat("L2 phi-free methods with 90% CI excluding zero:", sum(gamma_df_kf$sig, na.rm = TRUE), "\n")
 
   # ── Plot 3: gamma dotplot ─────────────────────────────────────────────────
@@ -707,7 +707,7 @@ if (!file.exists(FIT_L2_KF_RDS)) {
     slice_head(n = 15)
 
   cat("\nTop 15 L2 methods by |mean_gamma| (phi-free):\n")
-  print(top15_kf |> select(l1_group, level_2_mid, mean_gamma, lo90, hi90))
+  print(top15_kf |> select(l1_group, l2, mean_gamma, lo90, hi90))
 
   # ── Plot 4: share trajectories for top 15 ────────────────────────────────
   n_draws_traj_kf <- min(200, S_kf)
@@ -729,7 +729,7 @@ if (!file.exists(FIT_L2_KF_RDS)) {
         share_mat[di, t] <- p_vec[k_i]
       }
     }
-    method_label <- paste0(top15_kf$l1_group[i], ": ", top15_kf$level_2_mid[i])
+    method_label <- paste0(top15_kf$l1_group[i], ": ", top15_kf$l2[i])
     traj_list_kf[[i]] <- data.frame(
       year      = year_levels,
       mean      = colMeans(share_mat),
@@ -767,13 +767,13 @@ if (!file.exists(FIT_L2_KF_RDS)) {
     g_i <- top15_kf$g[i]; k_i <- top15_kf$k[i]
     raw_df <- data.frame(year = year_levels,
                          n_papers = as.integer(stan_data$counts[g_i, , k_i]))
-    raw_df$method_id <- paste0(top15_kf$l1_group[i], ": ", top15_kf$level_2_mid[i])
+    raw_df$method_id <- paste0(top15_kf$l1_group[i], ": ", top15_kf$l2[i])
     raw_list_kf[[i]] <- raw_df
   }
   raw_all_kf <- bind_rows(raw_list_kf) |>
     mutate(method_id = factor(
       method_id,
-      levels = paste0(top15_kf$l1_group, ": ", top15_kf$level_2_mid)
+      levels = paste0(top15_kf$l1_group, ": ", top15_kf$l2)
     ))
 
   p5_kf <- ggplot(raw_all_kf, aes(x = year, y = n_papers)) +

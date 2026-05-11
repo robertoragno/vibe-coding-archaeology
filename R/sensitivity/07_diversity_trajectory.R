@@ -113,7 +113,7 @@ gamma_summary <- fit_traj$summary(
   variables = gamma_vars,
   mean, ~ quantile(.x, probs = c(0.025, 0.975))
 )
-gamma_summary$level_2_mid <- l2_levels
+gamma_summary$l2 <- l2_levels
 gamma_summary$label <- sub("^L2-\\d+: ", "", l2_levels)
 
 cat("\n=== gamma[g] posteriors (post-LLM diversity shift by L2 group) ===\n")

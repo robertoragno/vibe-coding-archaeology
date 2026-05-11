@@ -4,8 +4,8 @@ library(readxl)
 library(dplyr)
 library(tidyr)
 
-SCOPUS_FILE   <- "data/input/taxonomy_v2/df_cleaned.xlsx"
-TAXONOMY_FILE <- "data/input/taxonomy_v2/taxonomy_abstract_join.csv"
+SCOPUS_FILE   <- "data/input/taxonomy_v3/df_cleaned.xlsx"
+TAXONOMY_FILE <- "data/input/taxonomy_v3/taxonomy_abstract_join.csv"
 OUTPUT_RDS    <- "data/output/stan_data.rds"
 VOCAB_RDS     <- "data/output/vocab.rds"
 
@@ -16,7 +16,7 @@ scopus_raw <- read_excel(SCOPUS_FILE) |>
   select(eid, Year = year)
 
 taxonomy <- read.csv(TAXONOMY_FILE) |>
-  select(eid, level_2_mid, level_3_fine)
+  select(eid, l2, l3)
 
 scopus_processed <- scopus_raw |>
   inner_join(taxonomy, by = "eid") |>
@@ -24,11 +24,11 @@ scopus_processed <- scopus_raw |>
 cat("Rows loaded:", nrow(scopus_processed), "\n")
 
 df_clean <- scopus_processed |>
-  distinct(eid, Year, level_2_mid, level_3_fine)
+  distinct(eid, Year, l2, l3)
 
 cat("Rows after dedup:", nrow(df_clean), "\n")
 
-l2_levels   <- sort(unique(df_clean$level_2_mid))
+l2_levels   <- sort(unique(df_clean$l2))
 year_levels <- sort(unique(df_clean$Year))
 N_groups    <- length(l2_levels)
 N_years     <- length(year_levels)
@@ -37,43 +37,43 @@ cat("L2 groups:", N_groups, "\n")
 cat("Years:    ", N_years, "(", min(year_levels), "-", max(year_levels), ")\n")
 
 l3_vocab_all <- df_clean |>
-  distinct(level_2_mid, level_3_fine) |>
-  arrange(level_2_mid, level_3_fine) |>
-  group_by(level_2_mid) |>
+  distinct(l2, l3) |>
+  arrange(l2, l3) |>
+  group_by(l2) |>
   mutate(k_local = row_number(), K_g = n()) |>
   ungroup()
 
 # Drop L2 groups with only one L3 method (gamma unidentifiable: share always = 1)
-singleton_groups <- l3_vocab_all |> filter(K_g == 1) |> pull(level_2_mid)
+singleton_groups <- l3_vocab_all |> filter(K_g == 1) |> pull(l2)
 cat("Dropping", length(singleton_groups), "singleton L2 groups (K_g=1):\n")
 cat(paste(" ", singleton_groups), sep = "\n")
 
-df_clean <- df_clean |> filter(!level_2_mid %in% singleton_groups)
-l2_levels   <- sort(unique(df_clean$level_2_mid))
+df_clean <- df_clean |> filter(!l2 %in% singleton_groups)
+l2_levels   <- sort(unique(df_clean$l2))
 N_groups    <- length(l2_levels)
 cat("L2 groups after filtering:", N_groups, "\n")
 
 l3_vocab <- l3_vocab_all |>
-  filter(!level_2_mid %in% singleton_groups) |>
-  group_by(level_2_mid) |>
+  filter(!l2 %in% singleton_groups) |>
+  group_by(l2) |>
   mutate(k_local = row_number(), K_g = n()) |>
   ungroup() |>
-  mutate(g = match(level_2_mid, l2_levels))
+  mutate(g = match(l2, l2_levels))
 
 K_g   <- l3_vocab |> group_by(g) |> summarise(K = first(K_g)) |> pull(K)
 K_max <- max(K_g)
 
 cat("K_max (largest L2 group):", K_max, "\n")
-cat("Total L3 methods:        ", nrow(l3_vocab |> distinct(level_3_fine)), "\n")
+cat("Total L3 methods:        ", nrow(l3_vocab |> distinct(l3)), "\n")
 
 df_indexed <- df_clean |>
   mutate(
-    g = match(level_2_mid, l2_levels),
+    g = match(l2, l2_levels),
     t = match(Year, year_levels)
   ) |>
   left_join(
-    l3_vocab |> select(level_2_mid, level_3_fine, k_local),
-    by = c("level_2_mid", "level_3_fine")
+    l3_vocab |> select(l2, l3, k_local),
+    by = c("l2", "l3")
   )
 
 counts_long  <- df_indexed |> count(g, t, k_local, name = "n_papers")

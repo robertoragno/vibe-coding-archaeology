@@ -93,11 +93,11 @@ cat("Consistent mappings:", nrow(exp_consistent), "\n")
 
 # Count L3 occurrences overall
 n_overall <- exp_consistent |>
-  count(level_3_fine = l3_mapping, name = "n_recommended_total")
+  count(l3 = l3_mapping, name = "n_recommended_total")
 
 # Count by profile
 n_by_profile <- exp_consistent |>
-  count(profile, level_3_fine = l3_mapping) |>
+  count(profile, l3 = l3_mapping) |>
   pivot_wider(
     names_from  = profile,
     values_from = n,
@@ -112,7 +112,7 @@ for (prof in c("novice", "intermediate", "expert")) {
 
 # Count by question (for reference; not used in GLM)
 n_by_question <- exp_consistent |>
-  count(question, level_3_fine = l3_mapping, name = "n") |>
+  count(question, l3 = l3_mapping, name = "n") |>
   pivot_wider(
     names_from  = question,
     values_from = n,
@@ -125,18 +125,18 @@ cat("Unique L3 methods recommended (consistent):",
 
 # ── 5. Join recommendation counts to gamma estimates ───────────────────────────
 
-all_l3 <- l3_vocab |> select(level_3_fine) |> distinct()
+all_l3 <- l3_vocab |> select(l3) |> distinct()
 
-stopifnot(!anyDuplicated(all_l3$level_3_fine))
-stopifnot(!anyDuplicated(gamma_df$level_3_fine))
+stopifnot(!anyDuplicated(all_l3$l3))
+stopifnot(!anyDuplicated(gamma_df$l3))
 
 joined <- all_l3 |>
-  left_join(n_overall,    by = "level_3_fine") |>
-  left_join(n_by_profile, by = "level_3_fine") |>
+  left_join(n_overall,    by = "l3") |>
+  left_join(n_by_profile, by = "l3") |>
   mutate(across(starts_with("n_recommended"), ~ replace_na(.x, 0L))) |>
   left_join(
-    gamma_df |> select(level_3_fine, mean_gamma, sd_gamma, sig90, lo90, hi90),
-    by = "level_3_fine"
+    gamma_df |> select(l3, mean_gamma, sd_gamma, sig90, lo90, hi90),
+    by = "l3"
   )
 
 cat("Joined table rows:", nrow(joined), "\n")
@@ -284,7 +284,7 @@ pC <- ggplot(joined, aes(x = mean_gamma, y = n_recommended_total)) +
   geom_point(aes(colour = sig90), alpha = 0.6, size = 1.8) +
   geom_text_repel(
     data        = top_rec_labels,
-    aes(label   = level_3_fine),
+    aes(label   = l3),
     size        = 2.0,
     max.overlaps = 20,
     show.legend = FALSE
@@ -317,8 +317,8 @@ top20_rec <- joined |>
       TRUE     ~ "Uncertain"
     ),
     direction = factor(direction, levels = c("Growing", "Declining", "Uncertain")),
-    l3_label  = factor(level_3_fine,
-                       levels = rev(level_3_fine[order(n_recommended_total)]))
+    l3_label  = factor(l3,
+                       levels = rev(l3[order(n_recommended_total)]))
   )
 
 pD <- ggplot(top20_rec, aes(x = n_recommended_total, y = l3_label, fill = direction)) +
@@ -367,7 +367,7 @@ cat("Saved:", OUT_CONVERGENCE, "\n")
 
 out_table <- joined |>
   select(
-    level_3_fine,
+    l3,
     mean_gamma,
     sd_gamma,
     sig90,
@@ -405,6 +405,6 @@ cat(sprintf("Expert    beta: mean = %.3f, P(beta>0) = %.3f\n",
 
 cat("\nTop 5 most-recommended L3 methods:\n")
 print(out_table |> arrange(desc(n_recommended_total)) |> slice_head(n = 5) |>
-        select(level_3_fine, mean_gamma, sig90, n_recommended_total))
+        select(l3, mean_gamma, sig90, n_recommended_total))
 
 cat("\n06_step3_llm_comparison.R complete.\n")

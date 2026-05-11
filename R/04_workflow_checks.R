@@ -230,7 +230,7 @@ for (g in seq_len(N_groups)) {
     ppc_summary_list[[length(ppc_summary_list) + 1L]] <- data.frame(
       g           = g,
       t           = t,
-      level_2_mid = l2_levels[g],
+      l2 = l2_levels[g],
       obs         = obs_is,
       mean_rep    = mean(is_rep),
       bpval       = mean(is_rep > obs_is),
@@ -239,7 +239,7 @@ for (g in seq_len(N_groups)) {
 
     if (in_top9) {
       ppc_draws_list[[length(ppc_draws_list) + 1L]] <- data.frame(
-        level_2_mid  = l2_levels[g],
+        l2  = l2_levels[g],
         inv_simp_rep = is_rep,
         stringsAsFactors = FALSE
       )
@@ -249,20 +249,20 @@ for (g in seq_len(N_groups)) {
 
 ppc_sum_df  <- bind_rows(ppc_summary_list)
 ppc_dens_df <- bind_rows(ppc_draws_list) |>
-  mutate(label = sub("^L2-\\d+: ", "", level_2_mid))
+  mutate(label = sub("^L2-\\d+: ", "", l2))
 
 # Group-level PPC tail probabilities (averaged over years with data)
 # Tail probability = fraction of posterior predictive draws exceeding observed.
 # Near 0.5 = well-calibrated; near 0 or 1 = systematic misfit (over- or under-prediction).
 bpval_grp <- ppc_sum_df |>
-  group_by(level_2_mid) |>
+  group_by(l2) |>
   summarise(
     bpval_group = mean(bpval),
     n_years_obs = n(),
     .groups = "drop"
   ) |>
   mutate(
-    label  = sub("^L2-\\d+: ", "", level_2_mid),
+    label  = sub("^L2-\\d+: ", "", l2),
     status = case_when(
       bpval_group < 0.05 | bpval_group > 0.95 ~ "FAIL",
       bpval_group < 0.10 | bpval_group > 0.90 ~ "WARN",
@@ -286,10 +286,10 @@ cat(sprintf("\nGroups passing (0.05-0.95): %d / %d\n", n_pass_ppc, n_total_ppc))
 # A red line deep in the TAILS (not just off-centre) signals misfit — confirm
 # with the tail probability plot. Off-centre but within the body = no concern.
 obs_grp_mean <- ppc_sum_df |>
-  group_by(level_2_mid) |>
+  group_by(l2) |>
   summarise(obs_mean = mean(obs), .groups = "drop") |>
-  filter(level_2_mid %in% unique(ppc_dens_df$level_2_mid)) |>
-  mutate(label = sub("^L2-\\d+: ", "", level_2_mid))
+  filter(l2 %in% unique(ppc_dens_df$l2)) |>
+  mutate(label = sub("^L2-\\d+: ", "", l2))
 
 p_dens <- ggplot(ppc_dens_df, aes(x = inv_simp_rep)) +
   geom_density(fill = "grey72", colour = "grey50", alpha = 0.75) +

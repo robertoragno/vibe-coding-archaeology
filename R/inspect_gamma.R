@@ -55,13 +55,13 @@ for (grp in seq_len(N_groups)) {
   method_labels <- vocab$l3_vocab |>
     filter(g == grp) |>
     arrange(k_local) |>
-    pull(level_3_fine)
+    pull(l3)
 
   gamma_list[[grp]] <- data.frame(
     g            = grp,
-    level_2_mid  = l2_levels[grp],
+    l2  = l2_levels[grp],
     k            = seq_len(K),
-    level_3_fine = method_labels,
+    l3 = method_labels,
     mean_gamma   = colMeans(gm_g),
     sd_gamma     = apply(gm_g, 2, sd),
     lo90         = apply(gm_g, 2, quantile, 0.05),
@@ -76,8 +76,8 @@ gamma_df <- bind_rows(gamma_list) |>
   mutate(
     sig90       = (lo90 > 0 | hi90 < 0),
     sig95       = (lo95 > 0 | hi95 < 0),
-    group_label = sub("^L2-\\d+: ", "", level_2_mid),
-    method_id   = paste0(group_label, ": ", level_3_fine)
+    group_label = sub("^L2-\\d+: ", "", l2),
+    method_id   = paste0(group_label, ": ", l3)
   )
 
 cat("\nMethods with 90% CI excluding zero:", sum(gamma_df$sig90, na.rm = TRUE), "\n")
@@ -90,7 +90,7 @@ top20 <- gamma_df |>
   slice_head(n = 20)
 
 cat("\nTop 20 methods by |mean_gamma|:\n")
-print(top20 |> select(level_2_mid, level_3_fine, mean_gamma, sd_gamma, lo90, hi90, sig90))
+print(top20 |> select(l2, l3, mean_gamma, sd_gamma, lo90, hi90, sig90))
 
 # ── Save full results ─────────────────────────────────────────────────────────
 dir.create(dirname(OUT_CSV), recursive = TRUE, showWarnings = FALSE)

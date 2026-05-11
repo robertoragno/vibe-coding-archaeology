@@ -118,13 +118,13 @@ for (grp in seq_len(N_groups)) {
   method_labels <- vocab$l3_vocab |>
     filter(g == grp) |>
     arrange(k_local) |>
-    pull(level_3_fine)
+    pull(l3)
 
   gamma_list[[grp]] <- data.frame(
     g            = grp,
-    level_2_mid  = l2_levels[grp],
+    l2  = l2_levels[grp],
     k            = seq_len(K),
-    level_3_fine = method_labels,
+    l3 = method_labels,
     mean_gamma   = colMeans(gm_g),
     sd_gamma     = apply(gm_g, 2, sd),
     lo90         = apply(gm_g, 2, quantile, 0.05),
@@ -139,8 +139,8 @@ gamma_2022 <- bind_rows(gamma_list) |>
   mutate(
     sig90       = (lo90 > 0 | hi90 < 0),
     sig95       = (lo95 > 0 | hi95 < 0),
-    group_label = sub("^L2-\\d+: ", "", level_2_mid),
-    method_id   = paste0(group_label, ": ", level_3_fine)
+    group_label = sub("^L2-\\d+: ", "", l2),
+    method_id   = paste0(group_label, ": ", l3)
   )
 
 cat("Methods with 90% CI excluding zero (2022 break):",
@@ -156,14 +156,14 @@ cat("Saved:", OUT_CSV, "\n")
 cat("\nBuilding comparison plot...\n")
 gamma_2023 <- read.csv(GAMMA_2023_CSV, stringsAsFactors = FALSE)
 
-# Join on level_3_fine; check uniqueness first
-stopifnot(!anyDuplicated(gamma_2022$level_3_fine))
-stopifnot(!anyDuplicated(gamma_2023$level_3_fine))
+# Join on l3; check uniqueness first
+stopifnot(!anyDuplicated(gamma_2022$l3))
+stopifnot(!anyDuplicated(gamma_2023$l3))
 
 comp <- inner_join(
-  gamma_2023 |> select(level_3_fine, mean_gamma, sig90),
-  gamma_2022 |> select(level_3_fine, mean_gamma, sig90),
-  by     = "level_3_fine",
+  gamma_2023 |> select(l3, mean_gamma, sig90),
+  gamma_2022 |> select(l3, mean_gamma, sig90),
+  by     = "l3",
   suffix = c("_2023", "_2022")
 )
 
@@ -194,7 +194,7 @@ p <- ggplot(comp, aes(x = mean_gamma_2023, y = mean_gamma_2022, colour = sig_sta
   geom_point(alpha = 0.7, size = 1.5) +
   geom_text_repel(
     data         = top_labels,
-    aes(label    = level_3_fine),
+    aes(label    = l3),
     size         = 2.2,
     max.overlaps = 20,
     show.legend  = FALSE
