@@ -66,7 +66,9 @@ The overall β posterior is negative (mean = −0.309, P(β > 0) = 0.384), oppos
 
 **What the results mean in plain terms**
 
-In the 3–4 years since LLMs entered academic use, there is weak evidence of methodological reshuffling in computational archaeology but no evidence that LLMs are driving it. sigma_gamma = 0.110 [0.010, 0.222] is above zero but the lower bound is near it, and no individual method shows a post-2023 shift credible at the 90% level (0 of 242 methods). The magnitude of reshuffling is smaller than the long-run baseline trend (sigma_gamma < sigma_beta, 0.110 vs 0.288). The prompting experiment (Step 3) finds that Qwen3's recommendations lean *away* from methods that gained share post-2023 — the opposite direction from what the mean-collapse hypothesis predicts. All β posteriors are negative with CIs crossing zero. Two sensitivity analyses (restricting to well-represented methods and modelling diversity trajectories directly) both return null results. The evidence does not support the claim that LLMs are producing methodological convergence in computational archaeology.
+In the 3–4 years since LLMs entered academic use, there is weak evidence of methodological reshuffling in computational archaeology and suggestive evidence that LLM recommendations align with the post-2023 method mix. sigma_gamma = 0.110 [0.010, 0.222] is above zero but the lower bound is near it, and no individual method shows a post-2023 shift credible at the 90% level (0 of 242 methods). The magnitude of reshuffling is smaller than the long-run baseline trend (sigma_gamma < sigma_beta, 0.110 vs 0.288).
+
+The Step 3 negative-binomial regression (individual gammas as predictors) returns null results — all β posteriors cross zero — because individual gamma estimates are too noisy to serve as reliable predictors. However, a distributional test comparing the *whole* LLM recommendation distribution to pre- vs. post-2023 method frequencies finds that LLM recommendations are significantly closer to the post-2023 literature (permutation p = 0.0013), with the profile gradient matching the mean-collapse prediction (novice > intermediate > expert). This is necessary but not sufficient evidence for the hypothesis — the LLM could be reflecting post-2023 trends in its training data rather than causing them. Distinguishing correlation from causation would require paper-level data on LLM usage.
 
 ## Sensitivity Analyses
 
@@ -78,7 +80,11 @@ In the 3–4 years since LLMs entered academic use, there is weak evidence of me
 
 The experiment was classified under the v2 taxonomy; only 53/242 v3 methods matched directly. Remapping via L3 prefix (same number, renamed label) raises coverage to 205/242 (85%). The results are unchanged: overall β = −0.339, P(β > 0) = 0.368. All profiles remain negative. The negative Step 3 result is not an artifact of taxonomy mismatch.
 
-**Sensitivity C — Direct diversity trajectory (07)**
+**Sensitivity C — Distributional test (09)**
+
+Instead of regressing on noisy individual gammas, we compare the *whole* LLM recommendation distribution to the pre- vs. post-2023 method frequency vectors. The LLM is significantly closer to the post-2023 literature (cosine delta = +0.070, permutation p = 0.0013). The profile gradient matches the mean-collapse prediction: novice delta (+0.080) > intermediate (+0.069) > expert (+0.013). This recovers the positive signal that the regression could not detect — the LLM's recommendations align with the post-2023 method mix, especially under novice guidance. See [full results](docs/distributional_test_results.md).
+
+**Sensitivity D — Direct diversity trajectory (07)**
 
 Models inv_simpson directly at L2 group level with the same two-slope structure. sigma_gamma = 0.064 [0.003, 0.174], effectively null. sigma_beta = 0.677 [0.510, 0.910] — pre-existing trend variation is 10× larger. All 25 group-level gamma CIs straddle zero. The field reorients internally but does not measurably homogenise at the sub-discipline level.
 
@@ -92,7 +98,18 @@ Models inv_simpson directly at L2 group level with the same two-slope structure.
 | Step 3 experiment | LLM recommendation vs. post-2023 gamma (NB regression) | [View](experiment/Results.md) |
 | Sensitivity A | Count-threshold variant of Step 3 (>=50 papers) | [View](R/sensitivity/README.md) |
 | Sensitivity B | Step 3 with v2→v3 taxonomy remapping (85% match) | [View](docs/step3_remapped_results.md) |
-| Sensitivity C | Direct diversity trajectory model (inv_simpson) | [View](R/sensitivity/README.md) |
+| Sensitivity C | Distributional test: LLM vs pre/post-2023 (cosine, permutation) | [View](docs/distributional_test_results.md) |
+| Sensitivity D | Direct diversity trajectory model (inv_simpson) | [View](R/sensitivity/README.md) |
+
+## Future directions
+
+The Step 3 regression (LLM recommendations vs. post-2023 gamma) returns null results across all specifications. Three design improvements could strengthen or definitively rule out the mean-collapse hypothesis:
+
+1. **Distributional test.** Rather than regressing recommendation counts on noisy individual gammas, compare the *distribution* of LLM recommendations to the pre- vs. post-2023 method frequency vectors (e.g., KL divergence or cosine similarity). This sidesteps the errors-in-variables problem entirely by comparing whole distributions rather than individual point estimates. A preliminary version is implemented in `R/sensitivity/09_distributional_test.R`.
+
+2. **Coarser aggregation.** Run the regression at L2 level (25 groups) instead of L3 (242 methods). With fewer parameters and more data per estimate, L2-level gammas would be better-identified predictors. The diversity trajectory model (script 07) already provides L2-level estimates.
+
+3. **More post-LLM years.** With only 3–4 post-LLM years, gamma is weakly identified by construction (0/242 methods reach sig90). Rerunning in 2028 with 5–6 post-LLM years would substantially sharpen the estimates and make Step 3 a more powerful test.
 
 ## Pipeline execution order
 
