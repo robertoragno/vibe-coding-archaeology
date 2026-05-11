@@ -1,0 +1,206 @@
+"v2_label","final_v3","match_type","best_v3_dist"
+"L3-000: Wavelet-Based Spectral Analysis","L3-000: Wavelet-Based Signal Decomposition","prefix",0.212751423149905
+"L3-003: Gradient Boosting Interpretability","L3-003: Gradient Boosting Decision Trees","prefix",0.20781862745098
+"L3-004: Advanced Spline Interpolation","L3-004: Spline-Based Smoothing and Interpolation","prefix",0.258860153256705
+"L3-005: Procrustes Analysis","L3-005: Procrustes Analysis Methods","prefix",0.0987654320987654
+"L3-007: Phylogenetic Reconstruction Techniques","L3-007: Phylogenetic Reconstruction Methods","prefix",0.0916196741854638
+"L3-008: Single Decision Tree Algorithms","L3-008: Decision Tree Algorithms","prefix",0.241935483870968
+"L3-009: Real-Time Object Detection","L3-009: YOLO Object Detection Variants","prefix",0.302294197031039
+"L3-010: Hierarchical Clustering Methods","L3-010: Hierarchical Clustering Algorithms","prefix",0.0820192370607866
+"L3-011: Hierarchical Agglomerative Clustering","L3-011: Hierarchical Clustering Linkages","prefix",0.153194554848967
+"L3-012: Bayesian Change Point Modeling","L3-012: Bayesian Change Point Analysis","prefix",0.131111111111111
+"L3-014: Inverse Problem Solving","L3-014: Inverse Problem Solving","exact",0
+"L3-015: Discriminant Analysis Methods","L3-015: Discriminant Analysis Variants","prefix",0.124137931034483
+"L3-016: Nonlinear Manifold Learning","L3-016: Nonlinear Dimensionality Reduction","prefix",0.244182375043415
+"L3-017: Kernel Methods and Matrix Factorization","L3-017: Support Vector Machine Variants","prefix",0.261056721056721
+"L3-019: Principal Component Analysis Variants","L3-019: Principal Component Analysis Variants","exact",0
+"L3-020: Factor and Correspondence Analysis","L3-020: Factor and Correspondence Analysis","exact",0
+"L3-021: Multivariate Ordination and Seriation","L3-021: Multivariate Ordination and Seriation","exact",0
+"L3-022: Random Forest Variants","L3-022: Random Forest Ensemble Methods","prefix",0.239809863339275
+"L3-023: Statistical Data Transformations","L3-023: Statistical Data Normalization","prefix",0.128626543209877
+"L3-025: Density-Based Clustering","L3-025: Density-Based Clustering","exact",0
+"L3-026: Monte Carlo Simulation","L3-026: Monte Carlo Simulation Methods","prefix",0.0888888888888889
+"L3-027: Bayesian Point Process Modeling","L3-027: Poisson Point Process Modeling","prefix",0.217966660977414
+"L3-028: Fuzzy-Delphi Uncertain Fusion","L3-028: Fuzzy Delphi and Rough Set Methods","prefix",0.288704686118479
+"L3-029: Fuzzy Clustering Algorithms","L3-029: Fuzzy Logic and Clustering","prefix",0.255929174788824
+"L3-031: Fractal and Recurrence Analysis","L3-031: Fractal and Multifractal Analysis","prefix",0.235622352557836
+"L3-032: Quadratic Trend Surface Fitting","L3-032: Polynomial Trend Surface Analysis","prefix",0.255141662399727
+"L3-033: Advanced Kernel Density Estimation","L3-033: Kernel Density Estimation","prefix",0.248235294117647
+"L3-034: Bagging Ensemble Methods","L3-034: Bootstrap Aggregating Ensembles","prefix",0.287749287749288
+"L3-035: Inductively Coupled Plasma Spectrometry","L3-035: Inductively Coupled Plasma Spectrometry","exact",0
+"L3-036: Nuclear Magnetic Resonance","L3-036: Nuclear Magnetic Resonance Spectroscopy","prefix",0.111111111111111
+"L3-037: Network Centrality Metrics","L3-037: Network Centrality Metrics","exact",0
+"L3-038: Ancient and Forensic DNA Analysis","L3-038: Ancient DNA and Population Genomics","prefix",0.216363636363637
+"L3-039: Frequent Pattern Mining","L3-039: Association Rule Mining Algorithms","prefix",0.313916759568933
+"L3-041: DNA Sequencing and Profiling","L3-041: DNA Sequencing and Metabarcoding","prefix",0.130952380952381
+"L3-042: Liquid Chromatography Mass Spectrometry","L3-042: Liquid Chromatography Variants","prefix",0.168376068376068
+"L3-044: Chromatographic Mass Spectrometry","L3-044: Mass Spectrometry-Based Proteomics","prefix",0.211659606820897
+"L3-045: Survival Analysis Methods","L3-045: Survival Analysis Methods","exact",0
+"L3-046: Resampling and Bootstrap Techniques","L3-046: Bootstrap and Jackknife Resampling","prefix",0.267682854779629
+"L3-047: Resampling Cross-Validation","L3-047: Cross-Validation Techniques","prefix",0.264506172839506
+"L3-049: Stochastic Randomization Techniques","L3-049: Randomization-Based Statistical Inference","prefix",0.259854497354497
+"L3-050: Stratified and Adaptive Sampling","L3-050: Stratified and Adaptive Sampling","exact",0
+"L3-051: Maximum Likelihood Estimation","L3-051: Maximum Entropy and Maximum Likelihood Methods","prefix",0.271780776278527
+"L3-052: Partitioning Clustering Algorithms","L3-052: K-Means Clustering","prefix",0.241717376605815
+"L3-053: Relief Family Algorithms","L3-053: Local Relief Modeling","prefix",0.302287581699346
+"L3-054: Point Cloud Registration & Analysis","L3-054: Point Cloud Registration and Alignment","prefix",0.115627779125232
+"L3-055: Path-Based Network Analysis","L3-055: Path Analysis and Network Modeling","prefix",0.241526374859708
+"L3-056: Nearest Neighbor Analysis","L3-056: Nearest Neighbor Analysis","exact",0
+"L3-057: Mahalanobis Distance Variants","L3-057: Mahalanobis Distance Variants","exact",0
+"L3-058: Histogram-Based Band Processing","L3-058: Circular Histogram Statistics","prefix",0.196297377511799
+"L3-059: Feature Normalization Techniques","L3-059: Data Normalization and Standardization","prefix",0.228472222222222
+"L3-060: Neutron Activation Analysis","L3-060: Neutron Activation Analysis","exact",0
+"L3-061: Microstructural and Geochemical Analysis","L3-061: Microscopic Mineralogical Characterization","prefix",0.205461711711712
+"L3-062: Gaussian Process Methods","L3-062: Gaussian Process Regression","prefix",0.158641975308642
+"L3-063: Gaussian Mixture Modeling","L3-063: Gaussian Mixture Modeling","exact",0
+"L3-064: Bayesian and Mixed-Effect Modeling","L3-064: Bayesian Multi-Source Mixing Models","prefix",0.218409586056645
+"L3-065: End Member and Source Separation","L3-065: End Member Mixing Models","prefix",0.275462962962963
+"L3-066: Least Cost Path Modeling","L3-066: Least Cost Path Modeling","exact",0
+"L3-067: Weighted Multi-Criteria Cost Surface","L3-067: Weighted Multi-Criteria Cost Surface Modeling","prefix",0.0666666666666668
+"L3-068: X-ray and Neutron Tomography","L3-068: X-ray Computed Tomography","prefix",0.182191371846544
+"L3-069: Pairwise Similarity Measures","L3-069: Pairwise Similarity Metrics","prefix",0.0985449735449735
+"L3-070: Biological and Geometric Distance Metrics","L3-070: Genetic and Biological Distance Metrics","prefix",0.177674094554711
+"L3-071: Optical Interferometry and Profilometry","L3-071: Optical Interferometry and Profilometry","exact",0
+"L3-072: Spectral Unmixing and Analysis","L3-072: Spectral Unmixing and Analysis","exact",0
+"L3-073: Fourier-Based Spectral Analysis","L3-073: Fourier and Spectral Analysis Methods","prefix",0.145301586347193
+"L3-074: Diffraction Analysis and Rietveld Refinement","L3-074: X-ray and Neutron Diffraction","prefix",0.276579135954136
+"L3-075: Signal Filtering and Denoising","L3-075: Time Series Signal Filtering","prefix",0.278158928158928
+"L3-076: Edge Detection and Filtering","L3-076: Edge Detection and Filtering","exact",0
+"L3-077: Raman Spectroscopy Techniques","L3-077: Raman Spectroscopy Variants","prefix",0.13284098691395
+"L3-078: Advanced MCMC Sampling","L3-078: Markov Chain Monte Carlo","prefix",0.308964646464646
+"L3-079: Graph Structural Analysis","L3-079: Graph Structural Analysis","exact",0
+"L3-080: Complex Network Analysis","L3-080: Network Analysis and Modeling","prefix",0.250308641975309
+"L3-082: Fourier Transform Infrared Spectroscopy","L3-082: Fourier Transform Infrared Spectroscopy","exact",0
+"L3-083: Reflectance and Emission Spectroscopy","L3-083: Reflectance and Emission Spectroscopy","exact",0
+"L3-084: Electron Microprobe and Spectrometry","L3-084: Scanning Electron Microscopy with Energy Dispersive Spectroscopy","prefix",0.259833654994945
+"L3-085: Microscopic and Microanalytical Methods","L3-085: Microscopic and Microanalytical Methods","exact",0
+"L3-086: Optical and Electron Microscopy","L3-086: Optical and Electron Microscopy","exact",0
+"L3-087: Thermal and Terahertz Imaging","L3-087: Advanced Infrared Thermography","prefix",0.273345432546884
+"L3-088: X-ray Fluorescence and Absorption Spectroscopy","L3-088: X-ray Fluorescence and Absorption Spectroscopy","exact",0
+"L3-090: Multi-Criteria Decision Methods","L3-090: Multi-Criteria Decision Analysis","prefix",0.137432795698925
+"L3-091: Bibliometric and Scientometric Analysis","L3-091: Bibliometric and Scientometric Mapping","prefix",0.0876266836019157
+"L3-092: Weighted Averaging Variants","L3-092: Weighted Averaging Methods","prefix",0.138176638176638
+"L3-093: Weighted Overlay and Entropy Methods","L3-093: Weighted Overlay and Entropy Methods","exact",0
+"L3-095: Bayesian Error Modeling","L3-095: Statistical Error Quantification and Modeling","prefix",0.226661972657396
+"L3-096: Root Mean Square Error Variants","L3-096: Root Mean Square Error Metrics","prefix",0.094862604540024
+"L3-097: Metaheuristic and Exact Optimization","L3-097: Metaheuristic Optimization Algorithms","prefix",0.223093783438611
+"L3-098: Nonparametric Statistical Methods","L3-098: Nonparametric Statistical Methods","exact",0
+"L3-099: Image Quality Assessment","L3-099: Image Similarity Metrics","prefix",0.292483660130719
+"L3-100: Experimental Modal Analysis","L3-100: Experimental Modal Analysis","exact",0
+"L3-101: Information-Theoretic Entropy Measures","L3-101: Information-Theoretic Entropy Measures","exact",0
+"L3-102: Acoustic Signal Analysis","L3-102: Audio Signal Processing & Analysis","prefix",0.228858784893268
+"L3-103: Ecological Diversity Metrics","L3-103: Ecological Diversity Metrics","exact",0
+"L3-105: Multi-Element Isotope Profiling","L3-105: Stable Isotope Ratio Analysis","prefix",0.266867541061089
+"L3-106: Performance Metrics and Evaluation Curves","L3-106: Performance Evaluation Metrics","prefix",0.183875338753388
+"L3-107: Chemometric and Spectroscopic Analysis","L3-107: Chemometric and Spectroscopic Analysis","exact",0
+"L3-108: Paleodietary Surface Texture Analysis","L3-108: Dental Microwear Texture Analysis","prefix",0.203014703014703
+"L3-109: Categorical Data Analysis","L3-109: Categorical Association Testing","prefix",0.181070234113712
+"L3-110: Reliability and Agreement Metrics","L3-110: Reliability and Agreement Statistics","prefix",0.108080808080808
+"L3-111: Temporal and Spatial Correlation","L3-111: Lag-Based Correlation Analysis","prefix",0.184939284390063
+"L3-112: Pearson and Partial Correlation","L3-112: Pearson and Partial Correlation","exact",0
+"L3-113: Rank-Based Correlation Analysis","L3-113: Non-Parametric Rank Correlation","prefix",0.119956477214542
+"L3-115: Multivariate Statistical Analysis","L3-115: Multivariate Statistical Analysis","exact",0
+"L3-116: Nonparametric Rank-Based Tests","L3-116: Non-Parametric Rank-Based Tests","prefix",0.010752688172043
+"L3-117: Morphometric Visualization","L3-117: Bivariate Data Visualization","prefix",0.311455211455211
+"L3-118: Hypothesis Testing Procedures","L3-118: Statistical Hypothesis Testing","prefix",0.287881773399015
+"L3-122: Mixed Effects Modeling","L3-122: Linear Mixed-Effect Models","prefix",0.279076479076479
+"L3-123: Generalized Linear Modeling","L3-123: Generalized Linear Mixed Models","prefix",0.122540820390283
+"L3-125: Bayesian Multilevel Modeling","L3-125: Bayesian Multilevel Modeling","exact",0
+"L3-126: Stepwise Variable Selection","L3-126: Stepwise Variable Selection","exact",0
+"L3-127: Bayesian Outlier Modeling","L3-127: Bayesian Outlier Detection","prefix",0.121585081585082
+"L3-128: Modern Analogue Techniques","L3-128: Modern Analogue Techniques","exact",0
+"L3-129: Multivariate Regression Analysis","L3-129: Multiple Regression Models","prefix",0.207058080808081
+"L3-130: Least Squares Variants","L3-130: Least Squares Regression","prefix",0.171717171717172
+"L3-131: Bayesian and Regression Calibration","L3-131: Bayesian Radiocarbon Calibration","prefix",0.16984126984127
+"L3-132: Stratigraphic and Chronological Modeling","L3-132: Chronostratigraphic Dating Methods","prefix",0.266993464052288
+"L3-133: Bayesian Radiocarbon Sequence Dating","L3-133: Bayesian Radiocarbon Wiggle Matching","prefix",0.158365261813538
+"L3-134: Logistic Regression Variants","L3-134: Logistic Regression Variants","exact",0
+"L3-135: Non-Normal GLM Extensions","L3-135: Bayesian and Advanced Count Models","prefix",0.333801169590643
+"L3-136: Autoregressive and Cointegration Methods","L3-136: Time Series Stationarity and Causality","prefix",0.259923245614035
+"L3-137: Linear Algebraic Decomposition","L3-137: Linear Dimensionality Reduction Methods","prefix",0.244670688788336
+"L3-138: Finite Element Analysis","L3-138: Finite Element and Related Numerical Methods","prefix",0.219100947361817
+"L3-140: Luminescence and ESR Dating","L3-140: Luminescence and ESR Dating","exact",0
+"L3-142: Bayesian Age-Depth Modeling","L3-142: Bayesian Age-Depth Modeling","exact",0
+"L3-143: Multi-Scale Feature Fusion","L3-143: Multi-Scale Feature Fusion","exact",0
+"L3-144: Bayesian Chronological Inference","L3-144: Bayesian Chronological Modeling","prefix",0.135494210090984
+"L3-145: Temporal Dynamics & Interval Modeling","L3-145: Temporal Event and Sequence Analysis","prefix",0.266571834992888
+"L3-146: Specialized Regression Techniques","L3-146: Regression Analysis","prefix",0.284399551066218
+"L3-147: Linear Regression Techniques","L3-147: Linear Regression Variants","prefix",0.137862137862138
+"L3-148: Virtual Osteological Reconstruction","L3-148: Virtual Osteological Reconstruction","exact",0
+"L3-149: Paleomagnetic and Rock Magnetic Analysis","L3-149: Paleomagnetic and Rock Magnetic Methods","prefix",0.109615384615385
+"L3-150: Electromagnetic and Resistivity Prospecting","L3-150: Electrical Resistivity and GPR Prospecting","prefix",0.193312739212372
+"L3-152: Active 3D Laser and Optical Scanning","L3-152: Laser and Structured Light 3D Scanning","prefix",0.283297720797721
+"L3-153: Chronometric Dating Methods","L3-153: Radiocarbon and Chronometric Dating","prefix",0.206259985475672
+"L3-154: Bayesian Radiocarbon Modeling","L3-154: Bayesian Radiocarbon Calibration","prefix",0.137186036611324
+"L3-155: Voronoi and Delaunay Methods","L3-155: Voronoi and Delaunay Geometric Methods","prefix",0.117481203007519
+"L3-156: Histogram-Based Thresholding","L3-156: Histogram-Based Image Thresholding","prefix",0.130252100840336
+"L3-157: Pixel-Level Image Segmentation","L3-157: Image Segmentation Algorithms","prefix",0.310793650793651
+"L3-158: Bayesian Statistical Modeling","L3-158: Bayesian Statistical Inference","prefix",0.144971264367816
+"L3-159: Probabilistic Modeling","L3-159: Probabilistic Uncertainty Quantification","prefix",0.296531100478469
+"L3-161: Vector Representation Methods","L3-161: Vector Geometry and Representation","prefix",0.208899907344803
+"L3-162: Micromorphological Residue Analysis","L3-162: Micromorphological Residue Analysis","exact",0
+"L3-163: Pollen-Based Paleoclimate Reconstruction","L3-163: Pollen and Spore Quantification","prefix",0.279404466501241
+"L3-164: Paleo-Proxy Transfer Functions","L3-164: Transfer Function Calibration","prefix",0.294234065762818
+"L3-165: Statistical Ratio and Distribution Analysis","L3-165: Statistical Frequency and Ratio Analysis","prefix",0.21780665754674
+"L3-167: Multivariate Curve Resolution","L3-167: Multivariate Statistical & Machine Learning Methods","prefix",0.259231190265673
+"L3-168: Spectroscopic and Isotopic Quantification","L3-168: Spectroscopic and Mass Spectrometric Analysis","prefix",0.249520645744092
+"L3-169: Parametric CAD Modeling","L3-169: Parametric and Procedural Design","prefix",0.164113965744401
+"L3-170: Neural Radiance Field Rendering","L3-170: Neural Radiance Field Rendering","exact",0
+"L3-171: 3D Digital Reconstruction","L3-171: 3D Geometry and Reconstruction","prefix",0.272828282828283
+"L3-172: Spectral Imaging and Analysis","L3-172: Multispectral and Hyperspectral Imaging","prefix",0.0933588761174968
+"L3-173: Handcrafted Texture and Shape Descriptors","L3-173: Handcrafted Texture and Shape Descriptors","exact",0
+"L3-174: Affine Invariant Keypoint Detection","L3-174: Hand-Crafted Local Geometric Descriptors","prefix",0.291290726817043
+"L3-175: Geometric and Radiometric Correction","L3-175: Geospatial Image Orthorectification","prefix",0.259480302583751
+"L3-176: Multispectral Photographic Analysis","L3-176: Imaging and Photogrammetric Analysis","prefix",0.192492811847651
+"L3-177: Image Inpainting and Synthesis","L3-177: Image Inpainting and Enhancement","prefix",0.148472222222222
+"L3-178: Histogram and Retinex Enhancement","L3-178: Histogram-Based Radiometric Enhancement","prefix",0.229322401736195
+"L3-179: Mathematical Morphology","L3-179: Mathematical Morphology","exact",0
+"L3-181: Specialized Loss Functions","L3-181: Deep Learning Loss Functions","prefix",0.230009496676163
+"L3-182: Landmark-Based Geometric Morphometrics","L3-182: Landmark-Based Craniometric Analysis","prefix",0.24772579597141
+"L3-183: 3D Landmark and Semilandmark Analysis","L3-183: Geometric Morphometrics","prefix",0.293114543114543
+"L3-184: Diffusion-Based Generation","L3-184: Denoising Diffusion Probabilistic Models","prefix",0.246907332433648
+"L3-185: Pretrained Language Models","L3-185: Pretrained Transformer Architectures","prefix",0.258547008547009
+"L3-186: Parameter-Efficient and Few-Shot Adaptation","L3-186: Few-Shot and Self-Supervised Adaptation","prefix",0.299072535991141
+"L3-187: Image Content Understanding","L3-187: Image Recognition and OCR","prefix",0.267195767195767
+"L3-188: Digital Image Processing","L3-188: Digital Image Analysis and Processing","prefix",0.179617117117117
+"L3-189: Satellite-Based Geodetic Surveying","L3-189: Satellite-Based Geodetic Surveying","exact",0
+"L3-190: Color Space Transformations","L3-190: Colorimetric and False Color Analysis","prefix",0.219444444444444
+"L3-191: Colorimetric and Color Space Analysis","L3-191: Colorimetric Color Space Transformations","prefix",0.102702702702703
+"L3-192: Generative Adversarial Networks","L3-192: Generative Adversarial Networks","exact",0
+"L3-193: Natural Language Processing","L3-193: Natural Language Processing","exact",0
+"L3-194: Word Vector Models","L3-194: Word Embedding Models","prefix",0.283679283679284
+"L3-195: Photogrammetric Reconstruction","L3-195: Photogrammetric Reconstruction","exact",0
+"L3-197: Feedforward and Recurrent Neural Networks","L3-197: Feedforward and Recurrent Neural Networks","exact",0
+"L3-198: Hybrid Encoder-Decoder Architectures","L3-198: Encoder-Decoder Architectures","prefix",0.19125159642401
+"L3-199: Viewshed and Intervisibility Modeling","L3-199: Viewshed and Intervisibility Analysis","prefix",0.10571509009009
+"L3-201: Advanced Attention Architectures","L3-201: Attention Mechanism Variants","prefix",0.199513090676884
+"L3-202: Semantic and Instance Segmentation","L3-202: Deep Learning Semantic Segmentation","prefix",0.255587752342316
+"L3-203: Residual Network Architectures","L3-203: Residual Learning Architectures","prefix",0.162310449407224
+"L3-204: Deep Convolutional Backbone Architectures","L3-204: Convolutional Neural Network Architectures","prefix",0.228145567169957
+"L3-206: Convolutional Neural Network Architectures","L3-206: Convolutional Neural Network Architectures","prefix",0
+"L3-207: Visual Data Mining","L3-207: Visual Pattern Recognition","prefix",0.263247863247863
+"L3-208: Terrain Surface Modeling","L3-208: Digital Terrain Modeling and Analysis","prefix",0.239145658263305
+"L3-210: Deterministic Spatial Interpolation","L3-210: Spatial Interpolation Methods","prefix",0.254890604890605
+"L3-211: Variogram Analysis","L3-211: Variogram Modeling","prefix",0.223646723646724
+"L3-212: Kriging Variants","L3-212: Kriging Interpolation Methods","prefix",0.273604269293924
+"L3-213: Ecological Niche Modeling","L3-213: Species Distribution Modeling","prefix",0.239774436090226
+"L3-214: Landscape Characterization","L3-214: GIS-Based Landscape Characterization","prefix",0.207977207977208
+"L3-216: Process-Based Simulation Modeling","L3-216: Process-Based Simulation Models","prefix",0.0410557184750733
+"L3-218: Hydrological Terrain Modeling","L3-218: Hydrological Sediment Yield Modeling","prefix",0.184299608437539
+"L3-220: Discrete and Continuous Simulation","L3-220: Discrete and Agent-Based Simulation","prefix",0.231237680257288
+"L3-221: Experimental Design and Sensitivity Analysis","L3-221: Experimental Design and Sensitivity Analysis","exact",0
+"L3-222: Spatial Statistical Modeling","L3-222: Spatial Autocorrelation and Geostatistics","prefix",0.205026455026455
+"L3-223: Spatial Syntax and Modeling","L3-223: Spatial Syntax and Modeling","exact",0
+"L3-224: Environmental Process Modeling","L3-224: Climate and Building Energy Modeling","prefix",0.255969634230504
+"L3-225: GIS-Based Spatial Analysis","L3-225: GIS-Based Spatial Suitability Analysis","prefix",0.130904183535762
+"L3-226: GIS-Based Spatial Modeling","L3-226: Geographic Information System Modeling","prefix",0.229098386993124
+"L3-227: Fluid Dynamics Simulation","L3-227: Lagrangian Particle Tracking","prefix",0.30017316017316
+"L3-228: Hydrological and Hydraulic Modeling","L3-228: Hydrological and Hydraulic Modeling","exact",0
+"L3-231: Qualitative Computational Methods","L3-231: Qualitative Data Analysis Methods","prefix",0.211926961926962
+"L3-232: Multivariate Statistical Analysis","L3-232: Specialized Domain Analyses","prefix",0
+"L3-233: Thermogravimetric and Thermal Analysis","L3-233: Thermal Analysis and Spectroscopy","prefix",0
+"L3-236: Automated Content Classification","L3-236: Automated Content Classification","exact",0
+"L3-237: Spectral Unmixing and Source Separation","L3-237: SAR Interferometry and Inversion","prefix",0.14004884004884
+"L3-238: Comparative and Historical Analysis","L3-238: Comparative and Historical Analysis Methods","prefix",0.062015503875969
+"L3-240: Remote Sensing and Photogrammetry","L3-240: Multispectral and Hyperspectral Imaging","prefix",0.207844574780059
+"L3-241: Human-in-the-Loop Data Curation","L3-241: Archaeological Dating and Analysis Methods","prefix",0.307184750733138

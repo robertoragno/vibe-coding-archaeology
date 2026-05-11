@@ -74,7 +74,11 @@ In the 3–4 years since LLMs entered academic use, there is weak evidence of me
 
 33/242 L3 methods survive a >=50 paper filter in 2023–2025. Under this restriction, overall β = −0.138, P(β > 0) = 0.438 — still negative and consistent with the main analysis. The null Step 3 result is robust to restricting to well-represented methods.
 
-**Sensitivity B — Direct diversity trajectory (07)**
+**Sensitivity B — Step 3 with v2→v3 remapping (08)**
+
+The experiment was classified under the v2 taxonomy; only 53/242 v3 methods matched directly. Remapping via L3 prefix (same number, renamed label) raises coverage to 205/242 (85%). The results are unchanged: overall β = −0.339, P(β > 0) = 0.368. All profiles remain negative. The negative Step 3 result is not an artifact of taxonomy mismatch.
+
+**Sensitivity C — Direct diversity trajectory (07)**
 
 Models inv_simpson directly at L2 group level with the same two-slope structure. sigma_gamma = 0.064 [0.003, 0.174], effectively null. sigma_beta = 0.677 [0.510, 0.910] — pre-existing trend variation is 10× larger. All 25 group-level gamma CIs straddle zero. The field reorients internally but does not measurably homogenise at the sub-discipline level.
 
@@ -87,7 +91,8 @@ Models inv_simpson directly at L2 group level with the same two-slope structure.
 | Bayesian workflow | Prior predictive, PPC, fake data recovery, phi sensitivity | [View](docs/workflow_results.md) |
 | Step 3 experiment | LLM recommendation vs. post-2023 gamma (NB regression) | [View](experiment/Results.md) |
 | Sensitivity A | Count-threshold variant of Step 3 (>=50 papers) | [View](R/sensitivity/README.md) |
-| Sensitivity B | Direct diversity trajectory model (inv_simpson) | [View](R/sensitivity/README.md) |
+| Sensitivity B | Step 3 with v2→v3 taxonomy remapping (85% match) | [View](docs/step3_remapped_results.md) |
+| Sensitivity C | Direct diversity trajectory model (inv_simpson) | [View](R/sensitivity/README.md) |
 
 ## Pipeline execution order
 
