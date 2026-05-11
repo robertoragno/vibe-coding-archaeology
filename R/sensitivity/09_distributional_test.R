@@ -7,8 +7,12 @@
 # convergence, their recommendations should look more like the post-2023
 # literature than the pre-2023 literature.
 #
-# We also run a permutation test to assess whether the observed similarity
-# difference is larger than expected by chance.
+# Primary inference: Bayesian posterior predictive (Section 5a). For each
+# posterior draw from the main model, we reconstruct predicted method
+# proportions for pre/post periods, compute delta cosine, and report the
+# posterior distribution. This propagates full parameter uncertainty.
+#
+# Backup: frequentist permutation test (Section 5b), retained for comparison.
 
 suppressPackageStartupMessages({
   library(here)
@@ -20,6 +24,7 @@ suppressPackageStartupMessages({
 
 STAN_DATA_RDS  <- here("data/output/stan_data.rds")
 VOCAB_RDS      <- here("data/output/vocab.rds")
+FIT_RDS        <- here("data/output/fit_phi_free.rds")
 REMAPPED_TABLE <- here("data/output/step3_remapped_joined.csv")
 
 OUT_DIR <- here("data/output/figures/distributional")
@@ -174,16 +179,107 @@ for (pname in c("overall", "novice", "intermediate", "expert")) {
 cat("\n=== By-profile results ===\n")
 print(profile_results |> select(profile, cos_pre, cos_post, delta_cos, hel_pre, hel_post, delta_hel))
 
-# ── 5. Permutation test ─────────────────────────────────────────────────────
+# ── 5a. Bayesian posterior predictive test (PRIMARY) ─────────────────────────
+#
+# For each posterior draw from the main model, reconstruct predicted method
+# proportions for each group-year cell, aggregate to pre/post frequency
+# vectors, and compute delta cosine against the LLM recommendation vector.
+# The resulting distribution of delta_cos IS the posterior — it propagates
+# full parameter uncertainty from the main model.
 
+cat("\n=== Bayesian posterior predictive test ===\n")
+cat("Loading fit_phi_free.rds...\n")
+fit <- readRDS(FIT_RDS)
+draws <- fit$draws(format = "draws_matrix")
+S_total <- nrow(draws)
+
+N_PP <- min(500, S_total)
 set.seed(42)
+draw_idx <- sort(sample(S_total, N_PP))
+cat(sprintf("Using %d posterior draws (subsampled from %d)\n", N_PP, S_total))
+
+year_std <- stan_data$year_std
+post_llm <- stan_data$post_llm
+N_gt     <- matrix(0L, N_groups, N_years)
+for (g in seq_len(N_groups))
+  for (t in seq_len(N_years))
+    N_gt[g, t] <- sum(stan_data$counts[g, t, 1:K_g[g]])
+
+pp_delta_cos <- numeric(N_PP)
+pp_delta_hel <- numeric(N_PP)
+
+softmax <- function(x) {
+  x <- x - max(x)
+  e <- exp(x)
+  e / sum(e)
+}
+
+cat("Computing posterior predictive delta cosine...\n")
+for (s_idx in seq_along(draw_idx)) {
+  s <- draw_idx[s_idx]
+
+  sigma_beta_s  <- draws[s, "sigma_beta"]
+  sigma_gamma_s <- draws[s, "sigma_gamma"]
+
+  pp_freq_pre  <- numeric(nrow(l3_methods))
+  pp_freq_post <- numeric(nrow(l3_methods))
+
+  row_idx <- 0
+  for (g in seq_len(N_groups)) {
+    K <- K_g[g]
+    mu_s    <- numeric(K)
+    beta_s  <- numeric(K)
+    gamma_s <- numeric(K)
+    for (k in seq_len(K)) {
+      mu_s[k]    <- draws[s, sprintf("mu_raw[%d,%d]", g, k)]
+      beta_s[k]  <- sigma_beta_s  * draws[s, sprintf("beta_method_raw[%d,%d]", g, k)]
+      gamma_s[k] <- sigma_gamma_s * draws[s, sprintf("gamma_method_raw[%d,%d]", g, k)]
+    }
+
+    for (t in seq_len(N_years)) {
+      eta <- mu_s + beta_s * year_std[t] + gamma_s * post_llm[t]
+      pi_t <- softmax(eta)
+      expected_counts <- pi_t * N_gt[g, t]
+
+      for (k in seq_len(K)) {
+        row_idx_k <- row_idx + k
+        if (t %in% pre_idx)  pp_freq_pre[row_idx_k]  <- pp_freq_pre[row_idx_k]  + expected_counts[k]
+        if (t %in% post_idx) pp_freq_post[row_idx_k] <- pp_freq_post[row_idx_k] + expected_counts[k]
+      }
+    }
+    row_idx <- row_idx + K
+  }
+
+  pp_delta_cos[s_idx] <- cosine_sim(freq_llm, pp_freq_post) - cosine_sim(freq_llm, pp_freq_pre)
+  pp_delta_hel[s_idx] <- hellinger(freq_llm, pp_freq_pre)   - hellinger(freq_llm, pp_freq_post)
+
+  if (s_idx %% 100 == 0) cat(sprintf("  draw %d/%d\n", s_idx, N_PP))
+}
+
+pp_mean_cos <- mean(pp_delta_cos)
+pp_ci_cos   <- quantile(pp_delta_cos, c(0.05, 0.95))
+pp_prob_pos <- mean(pp_delta_cos > 0)
+
+pp_mean_hel <- mean(pp_delta_hel)
+pp_ci_hel   <- quantile(pp_delta_hel, c(0.05, 0.95))
+
+cat(sprintf("\nPosterior predictive delta cosine:\n"))
+cat(sprintf("  Mean:    %+.4f\n", pp_mean_cos))
+cat(sprintf("  90%% CI:  [%+.4f, %+.4f]\n", pp_ci_cos[1], pp_ci_cos[2]))
+cat(sprintf("  P(delta > 0): %.3f\n", pp_prob_pos))
+cat(sprintf("Posterior predictive delta Hellinger:\n"))
+cat(sprintf("  Mean:    %+.4f\n", pp_mean_hel))
+cat(sprintf("  90%% CI:  [%+.4f, %+.4f]\n", pp_ci_hel[1], pp_ci_hel[2]))
+
+rm(fit, draws)
+gc(verbose = FALSE)
+
+# ── 5b. Frequentist permutation test (BACKUP) ───────────────────────────────
+
 N_PERM <- 10000
 
-cat(sprintf("\nRunning %d permutations...\n", N_PERM))
+cat(sprintf("\nRunning %d permutations (frequentist backup)...\n", N_PERM))
 
-# Under the null, the LLM recommendation vector is unrelated to pre/post
-# distinction. We permute the assignment of years to pre/post and recompute
-# the delta cosine.
 all_years <- seq_len(N_years)
 n_post <- length(post_idx)
 
@@ -191,7 +287,6 @@ perm_delta_cos <- numeric(N_PERM)
 perm_delta_hel <- numeric(N_PERM)
 
 for (p in seq_len(N_PERM)) {
-  # Randomly assign years to "post"
   perm_post <- sample(all_years, n_post)
   perm_pre  <- setdiff(all_years, perm_post)
 
@@ -213,8 +308,6 @@ for (p in seq_len(N_PERM)) {
                         hellinger(freq_llm, perm_freq_post)
 }
 
-# p-value: fraction of permutations with delta >= observed
-# (one-sided: we test whether LLM is closer to post than expected by chance)
 p_cos <- mean(perm_delta_cos >= delta_cos)
 p_hel <- mean(perm_delta_hel >= delta_hel)
 
@@ -224,10 +317,35 @@ cat(sprintf("  Observed delta Hellinger: %+.4f, p = %.4f\n", delta_hel, p_hel))
 
 # ── 6. Plots ─────────────────────────────────────────────────────────────────
 
-# Plot A: permutation distribution with observed value
+suppressPackageStartupMessages(library(ggdist))
+
+# Plot A (primary): posterior predictive distribution of delta cosine
+pp_df <- data.frame(delta = pp_delta_cos)
+
+pA <- ggplot(pp_df, aes(x = delta, y = 0)) +
+  stat_halfeye(
+    .width = c(0.90, 0.95),
+    point_interval = "mean_qi",
+    fill = "steelblue", colour = "steelblue4", alpha = 0.7
+  ) +
+  geom_vline(xintercept = 0, linetype = "dashed", colour = "firebrick", linewidth = 0.5) +
+  annotate("text", x = Inf, y = 0.4,
+           label = sprintf("P(Δ > 0) = %.3f\nmean = %+.4f", pp_prob_pos, pp_mean_cos),
+           hjust = 1.1, size = 3.8, colour = "steelblue4") +
+  labs(x = "Delta cosine similarity (post − pre)",
+       y = NULL,
+       title = "Posterior predictive: is the LLM closer to post-2023 literature?",
+       subtitle = sprintf("500 posterior draws from the main model; positive = LLM closer to post-2023")) +
+  theme_minimal(base_size = 11) +
+  theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
+
+ggsave(file.path(OUT_DIR, "plot_posterior_predictive_delta.png"), pA,
+       width = 7, height = 5, units = "in", dpi = 150)
+
+# Plot A2 (backup): permutation distribution with observed value
 perm_df <- data.frame(delta = perm_delta_cos)
 
-pA <- ggplot(perm_df, aes(x = delta)) +
+pA2 <- ggplot(perm_df, aes(x = delta)) +
   geom_histogram(bins = 80, fill = "grey70", colour = "grey50", linewidth = 0.2) +
   geom_vline(xintercept = delta_cos, colour = "firebrick", linewidth = 0.8) +
   annotate("text", x = delta_cos, y = Inf, vjust = 2, hjust = -0.1,
@@ -235,11 +353,11 @@ pA <- ggplot(perm_df, aes(x = delta)) +
            colour = "firebrick", size = 3.5) +
   labs(x = "Delta cosine similarity (post - pre)",
        y = "Permutation count",
-       title = "Is the LLM closer to post-2023 literature than pre-2023?",
-       subtitle = sprintf("Permutation test (N = %d): randomly shuffle year→pre/post assignment", N_PERM)) +
+       title = "Frequentist backup: permutation test",
+       subtitle = sprintf("N = %d permutations; randomly shuffle year→pre/post assignment", N_PERM)) +
   theme_minimal(base_size = 11)
 
-ggsave(file.path(OUT_DIR, "plot_permutation_cosine.png"), pA,
+ggsave(file.path(OUT_DIR, "plot_permutation_cosine.png"), pA2,
        width = 7, height = 5, units = "in", dpi = 150)
 
 # Plot B: bar chart comparing similarities
@@ -321,7 +439,7 @@ md <- c(
   "",
   "## Results",
   "",
-  "### Overall similarity",
+  "### Overall similarity (observed data)",
   "",
   "| Metric | LLM vs Pre-2023 | LLM vs Post-2023 | Delta | Direction |",
   "|---|---|---|---|---|",
@@ -349,7 +467,22 @@ md <- c(
   sprintf("| Expert | %.4f | %.4f | %+.4f |",
           profile_results$cos_pre[4], profile_results$cos_post[4], profile_results$delta_cos[4]),
   "",
-  sprintf("### Permutation test (N = %s)", format(N_PERM, big.mark = ",")),
+  "### Bayesian posterior predictive (primary inference)",
+  "",
+  "For each of 500 posterior draws from the main model, we reconstruct the predicted",
+  "method proportions for all group-year cells using the sampled parameters",
+  "(mu, beta, gamma, sigma_beta, sigma_gamma). We then aggregate to pre/post frequency",
+  "vectors and compute delta cosine against the LLM recommendation vector. The resulting",
+  "distribution propagates full parameter uncertainty from the main model.",
+  "",
+  sprintf("- **Posterior mean delta cosine:** %+.4f", pp_mean_cos),
+  sprintf("- **90%% credible interval:** [%+.4f, %+.4f]", pp_ci_cos[1], pp_ci_cos[2]),
+  sprintf("- **P(delta > 0):** %.3f", pp_prob_pos),
+  "",
+  sprintf("- **Posterior mean delta Hellinger:** %+.4f", pp_mean_hel),
+  sprintf("- **90%% CI:** [%+.4f, %+.4f]", pp_ci_hel[1], pp_ci_hel[2]),
+  "",
+  sprintf("### Frequentist permutation test (backup, N = %s)", format(N_PERM, big.mark = ",")),
   "",
   "Under the null hypothesis, the LLM recommendation vector is unrelated to the",
   "pre/post-2023 distinction. We randomly shuffle which years are assigned to",
@@ -365,7 +498,11 @@ md <- c(
   "",
   "## Plots",
   "",
-  "### Permutation distribution",
+  "### Posterior predictive distribution (primary)",
+  "",
+  "![Posterior predictive](../data/output/figures/distributional/plot_posterior_predictive_delta.png)",
+  "",
+  "### Permutation distribution (backup)",
   "",
   "![Permutation](../data/output/figures/distributional/plot_permutation_cosine.png)",
   "",
