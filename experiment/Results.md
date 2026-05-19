@@ -25,6 +25,56 @@ Run date: 2026-05-11
 
 ---
 
+## Exploratory descriptive analysis
+
+Script: `R/07_exploratory_graphs.R`
+
+Before fitting a regression, it is useful to ask what the experiment data look like at face value. The graphs below describe the LLM's recommendation behaviour at three levels of granularity — raw method names (L4), taxonomy-mapped techniques (L3), and sub-disciplines (L2) — without any inferential model. All counts use the v2→v3 remapped data (205/242 methods matched; see Sensitivity B).
+
+### What does Qwen3 actually recommend? (L4 level)
+
+The 20 most-recommended raw method names show extreme concentration. Agent-Based Modeling alone accounts for roughly 500 recommendations (after collapsing variant names like "Agent-Based Modeling (ABM)"). Network Analysis and GIS follow. The novice profile contributes disproportionately to the top methods, consistent with the hypothesis that less-constrained prompts produce more generic recommendations.
+
+<img src="../data/output/figures/exploratory/plot_top20_l4.png" width="600">
+
+### L3 recommendations and post-2023 trajectories (remapped data)
+
+Mapping L4 recommendations to the L3 taxonomy reveals that the most-recommended methods tend to have *negative* γ (blue = declining share post-2023). Process-Based Simulation Models (L3-216, γ = +0.039) and Network Analysis and Modeling (L3-080, γ = −0.083) dominate. Only Bibliometric and Scientometric Mapping (γ = +0.089) among the top 20 has a clearly positive γ. The LLM reaches for methods that are established and prevalent in its training data, not methods that gained share after 2023.
+
+<img src="../data/output/figures/exploratory/plot_top20_l3_remapped.png" width="600">
+
+### L2-level comparison: LLM vs. pre/post-2023 literature
+
+Aggregating to the 25 L2 sub-disciplines shows a striking pattern. The LLM massively over-recommends a few sub-disciplines — Network Analysis & Graph Theory, Agent-Based Modelling & Simulation, Machine Learning & Supervised Classification — relative to their share in either the pre- or post-2023 literature. Conversely, it under-recommends many empirical sub-disciplines (Archaeometry & Compositional Analysis, Isotope & Bioarchaeological Analysis, Chronological Modelling & Dating). The LLM's recommendation profile is more concentrated than the actual literature in either period.
+
+<img src="../data/output/figures/exploratory/plot_l2_triple_bar.png" width="700">
+
+The L2-level scatter plot tests whether the LLM preferentially recommends sub-disciplines that grew post-2023. The Spearman rank correlation between post-2023 share shift (post minus pre) and LLM recommendation share is ρ = 0.120 (p = 0.568) — no meaningful association. The LLM's strong preferences (Network Analysis, ABM) are not aligned with which sub-disciplines gained or lost share.
+
+<img src="../data/output/figures/exploratory/plot_l2_scatter.png" width="600">
+
+### Non-parametric rank correlation at L3
+
+At L3 level (242 methods), the Spearman rank correlation between recommendation count and mean γ is ρ = −0.007 (p = 0.917) — dead null. A permutation test (10,000 shuffles) confirms: the observed ρ falls squarely within the null distribution.
+
+Note: aggregating L3 gammas to L2 level is not meaningful for this test. The main model estimates γ compositionally *within* each L2 group, so the weighted mean of L3 gammas per L2 group is near-zero by construction (range: −2.8 × 10⁻⁶ to +1.9 × 10⁻⁶). The valid L2-level test of post-2023 alignment is the delta-share scatter above (G4: ρ = 0.120, n.s.).
+
+<img src="../data/output/figures/exploratory/plot_rank_correlation.png" width="520">
+
+### What these descriptive analyses suggest
+
+Three patterns emerge from the descriptive analysis:
+
+1. **Extreme concentration.** The LLM's recommendations are far more concentrated than the published literature. A handful of methods (ABM, network analysis, GIS, NLP) absorb most recommendations, regardless of expertise level.
+
+2. **The LLM recommends popular, established methods.** The most-recommended L3 methods tend to have negative γ (losing share post-2023, relative to trend). The LLM appears to recommend from its training corpus — methods that were prominent before 2023 — rather than tracking post-2023 shifts.
+
+3. **No alignment with post-2023 growth at any granularity.** Neither the L3 rank correlation (ρ ≈ 0) nor the L2 delta-share scatter (ρ = 0.12, n.s.) shows the positive association predicted by the mean-collapse hypothesis.
+
+These descriptive patterns are consistent with the Bayesian regression's null result (below) and suggest that the null finding is not an artifact of the regression framework. The distributional test (Sensitivity C) found a credible positive signal using cosine similarity between whole frequency vectors — but that test measures whether the LLM's *overall distribution shape* resembles the post-2023 literature more than the pre-2023 literature, which is a different and weaker claim than "the LLM recommends the methods that gained share." The descriptive analysis here shows the LLM does not preferentially target gaining methods; rather, its broad distributional profile happens to be marginally closer to the post-2023 mix.
+
+---
+
 ## Top 10 most-recommended L3 methods
 
 **Note on sig90:** A method has `sig90 = TRUE` if the 90% posterior credible interval for its γ (post-2023 excess slope above the pre-existing trend) excludes zero — meaning the post-2023 change in that method's share is credibly nonzero. None of the 242 methods reaches this threshold, indicating that individual post-2023 γ estimates remain uncertain.
