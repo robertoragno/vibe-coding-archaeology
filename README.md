@@ -56,19 +56,27 @@ Methods losing share post-2023 (negative gamma mean, all CIs cross zero):
 
 Individual estimates should be read as directional indicators, not precise effect sizes. The conservative prior on sigma_gamma and the breadth of the taxonomy (242 methods) mean that individual method gammas are appropriately uncertain. The global reshuffling scale (sigma_gamma) remains the primary inferential target.
 
-**Step 3 — Are the gaining methods the ones Qwen3 actually recommends?**
+**Step 3 — Does the LLM's recommendation profile match the post-2023 literature?**
 
-The prompting experiment queries Qwen3 (fixed local checkpoint) at 3 expertise levels with 3 question types, classifies each response into the L3 taxonomy via Qwen, and correlates recommendation frequencies with posterior mean gamma per method. The comparison is specifically designed to test excess post-2023 share (gamma) rather than overall prevalence, thereby distinguishing LLM influence from mere reflection of pre-existing trends in training data.
+The prompting experiment queries Qwen3 (fixed local checkpoint) at 3 expertise levels with 3 question types, classifies each response into the L3 taxonomy via Qwen, and tests whether the LLM's recommendations align with post-2023 methodological shifts. We approach this from three angles: a Bayesian regression on individual method gammas, a distributional comparison, and descriptive exploratory analysis. See `experiment/Results.md` for detailed results.
 
-The statistical test is a Bayesian negative-binomial regression (`stan/poisson_gamma_regression.stan`): `n_rec[i] ~ NegBin2(exp(α + β × γ̄ᵢ), φ)`, where γ̄ᵢ is the *signed* posterior mean gamma for method *i*. A positive β — meaning methods that gained share post-2023 are recommended more often — would support the mean-collapse mechanism. The model is run separately for overall counts and for each expertise profile (novice/intermediate/expert) to test whether expertise modulates trend-chasing. See `experiment/Results.md` for detailed results and `R/06_step3_llm_comparison.R` for the analysis.
+*Regression on individual gammas.* A Bayesian negative-binomial regression (`n_rec[i] ~ NegBin2(exp(α + β × γ̄ᵢ), φ)`) tests whether methods that gained share post-2023 (positive γ) are recommended more often. The overall β posterior is negative (mean = −0.309, 90% CI crossing zero). All expertise profiles show the same pattern. The LLM does not preferentially recommend the specific methods that gained share post-2023.
 
-The overall β posterior is negative (mean = −0.309, P(β > 0) = 0.384), opposite to the mean-collapse prediction. All three expertise profiles show negative β: novice (−0.360, P(β > 0) = 0.362), intermediate (−0.220, P(β > 0) = 0.412), expert (−0.216, P(β > 0) = 0.416). All 90% CIs cross zero. The LLM does not preferentially recommend the methods that gained share post-2023 — if anything, it leans slightly toward methods that lost share, consistent with recommending from its training corpus rather than tracking post-2023 shifts.
+*Distributional test.* Comparing the *whole* LLM recommendation distribution to pre- vs. post-2023 method frequency vectors finds that recommendations are credibly closer to the post-2023 literature (posterior predictive delta cosine = +0.071, 90% CI [+0.058, +0.085]), with the profile gradient matching the mean-collapse prediction (novice > intermediate > expert). This is a weaker claim than the regression: it says the LLM's *overall distributional shape* resembles the post-2023 mix, not that it targets specific gaining methods.
+
+*Exploratory descriptive analysis* (`R/07_exploratory_graphs.R`). The LLM's recommendations are dramatically more concentrated than the published literature. Measured by the Inverse Simpson index: the literature uses 86–111 effective methods (rising over time), while the LLM recommends with only 38 effective methods overall — and just 20 for the novice profile. The mechanism for mean collapse is clearly present. However, the LLM's concentrated recommendations are independent of both pre-existing trends (β) and post-2023 acceleration (γ). The LLM recommends the most *recognisable* methods (ABM, network analysis, GIS, NLP) regardless of their temporal trajectory.
 
 **What the results mean in plain terms**
 
-In the 3–4 years since LLMs entered academic use, there is weak evidence of methodological reshuffling in computational archaeology and suggestive evidence that LLM recommendations align with the post-2023 method mix. sigma_gamma = 0.110 [0.010, 0.222] is above zero but the lower bound is near it, and no individual method shows a post-2023 shift credible at the 90% level (0 of 242 methods). The magnitude of reshuffling is smaller than the long-run baseline trend (sigma_gamma < sigma_beta, 0.110 vs 0.288).
+The mean-collapse hypothesis has two parts: (1) the LLM recommends a narrow set of methods, and (2) the literature converges toward that set. The evidence supports (1) but not (2).
 
-The Step 3 negative-binomial regression (individual gammas as predictors) returns null results — all β posteriors cross zero — because individual gamma estimates are too noisy to serve as reliable predictors. However, a distributional test comparing the *whole* LLM recommendation distribution to pre- vs. post-2023 method frequencies finds that LLM recommendations are credibly closer to the post-2023 literature (posterior predictive 90% CI [+0.058, +0.085], entirely above zero), with the profile gradient matching the mean-collapse prediction (novice > intermediate > expert). This is necessary but not sufficient evidence for the hypothesis — the LLM could be reflecting post-2023 trends in its training data rather than causing them. Distinguishing correlation from causation would require paper-level data on LLM usage.
+The LLM's recommendation diversity (38 effective methods) is roughly a third of the literature's (~100 effective methods). The novice profile is even more concentrated (20 effective methods), consistent with the idea that unconstrained LLM advice is the most homogenising. The mechanism for convergence is demonstrably present.
+
+But the literature has not converged. The Inverse Simpson index has risen from ~63 (2010) to ~105 (2026), and this diversifying trend continued uninterrupted through the post-2023 period. sigma_gamma = 0.110 [0.010, 0.222] shows weak evidence of post-2023 reshuffling, but its magnitude is smaller than the pre-existing trend (sigma_gamma < sigma_beta, 0.110 vs 0.288), and no individual method shows a credible shift. The sensitivity analyses (2022-break, diversity trajectory) are consistently null.
+
+Moreover, the LLM's concentrated recommendations do not target the methods that are actually changing. Neither pre-existing growth (β) nor post-2023 excess (γ) predicts what the LLM recommends. It recommends from training-corpus prominence — methods that were well-represented before 2023 — regardless of whether those methods are currently rising or falling.
+
+The honest summary: LLMs have the potential to narrow methodological choice (the gun is loaded), but 3–4 years after widespread adoption, the field continues to diversify (it has not fired). Whether this reflects low adoption rates, researcher selectivity in which LLM advice they follow, or countervailing forces toward specialisation — we cannot distinguish with this data.
 
 ## Sensitivity Analyses
 
@@ -95,7 +103,7 @@ Models inv_simpson directly at L2 group level with the same two-slope structure.
 | L2→L3 primary | Within each sub-discipline, specific technique shares over time | [View](docs/l2_l3_results.md) |
 | L1→L2 sensitivity | Within each broad family, sub-discipline shares over time (not applicable with taxonomy v3) | [View](docs/l1_l2_results.md) |
 | Bayesian workflow | Prior predictive, PPC, fake data recovery, phi sensitivity | [View](docs/workflow_results.md) |
-| Step 3 experiment | LLM recommendation vs. post-2023 gamma (NB regression) | [View](experiment/Results.md) |
+| Step 3 experiment | LLM recommendation vs. post-2023 gamma (NB regression + exploratory) | [View](experiment/Results.md) |
 | Sensitivity A | Count-threshold variant of Step 3 (>=50 papers) | [View](R/sensitivity/README.md) |
 | Sensitivity B | Step 3 with v2→v3 taxonomy remapping (85% match) | [View](docs/step3_remapped_results.md) |
 | Sensitivity C | Distributional test: LLM vs pre/post-2023 (cosine, permutation) | [View](docs/distributional_test_results.md) |
@@ -103,13 +111,11 @@ Models inv_simpson directly at L2 group level with the same two-slope structure.
 
 ## Future directions
 
-The Step 3 regression (LLM recommendations vs. post-2023 gamma) returns null results across all specifications. Three design improvements could strengthen or definitively rule out the mean-collapse hypothesis:
+The analysis identifies a clear gap between the LLM's concentrated recommendations (38 effective methods) and the literature's continuing diversification (~100 effective methods). Two design improvements could determine whether this gap will close:
 
-1. **Distributional test.** Rather than regressing recommendation counts on noisy individual gammas, compare the *distribution* of LLM recommendations to the pre- vs. post-2023 method frequency vectors (e.g., KL divergence or cosine similarity). This sidesteps the errors-in-variables problem entirely by comparing whole distributions rather than individual point estimates. A preliminary version is implemented in `R/sensitivity/09_distributional_test.R`.
+1. **More post-LLM years.** With only 3–4 post-LLM years, gamma is weakly identified by construction (0/242 methods reach sig90). Rerunning in 2028 with 5–6 post-LLM years would substantially sharpen the estimates and reveal whether the diversification trend has slowed, plateaued, or reversed.
 
-2. **Coarser aggregation.** Run the regression at L2 level (25 groups) instead of L3 (242 methods). With fewer parameters and more data per estimate, L2-level gammas would be better-identified predictors. The diversity trajectory model (script 07) already provides L2-level estimates.
-
-3. **More post-LLM years.** With only 3–4 post-LLM years, gamma is weakly identified by construction (0/242 methods reach sig90). Rerunning in 2028 with 5–6 post-LLM years would substantially sharpen the estimates and make Step 3 a more powerful test.
+2. **Paper-level LLM usage data.** The current design cannot distinguish whether the LLM's distributional resemblance to the post-2023 literature (Sensitivity C) reflects causal influence or passive reflection of training data. Surveys or metadata on which papers used LLM-assisted methodological choices would allow a direct test of the causal pathway.
 
 ## Pipeline execution order
 
@@ -124,6 +130,7 @@ inspect_gamma.R         → gamma_results.csv (used by 05 and 06)
 04_workflow_checks.R    → Bayesian workflow validation
 05_robustness_2022.R    → 2022-break robustness check
 06_step3_llm_comparison.R → LLM recommendation vs gamma (requires inspect_gamma output)
+07_exploratory_graphs.R   → Descriptive exploratory graphs (requires 06 outputs + fit)
 
 # Sensitivity (not part of main pipeline; run after 06)
 R/sensitivity/06b_step3_count_threshold.R → Count-threshold variant of Step 3
@@ -143,6 +150,7 @@ Scripts 03–04 and 05–06 can run in parallel within their pairs. `inspect_gam
 │   ├── 04_workflow_checks.R    # Bayesian workflow validation
 │   ├── 05_robustness_2022.R    # 2022-break robustness check
 │   ├── 06_step3_llm_comparison.R  # LLM recommendation vs gamma
+│   ├── 07_exploratory_graphs.R    # Descriptive exploratory analysis
 │   ├── inspect_gamma.R         # Quick gamma posterior inspection
 │   ├── sensitivity/
 │   │   ├── README.md              # Sensitivity analysis descriptions
@@ -167,6 +175,7 @@ Scripts 03–04 and 05–06 can run in parallel within their pairs. `inspect_gam
 │       │   ├── workflow/       # Bayesian workflow check plots
 │       │   ├── robustness/     # 2022-break robustness plots
 │       │   ├── step3/          # LLM comparison plots
+│       │   ├── exploratory/   # Descriptive exploratory plots
 │       │   └── sensitivity/   # Sensitivity analysis plots
 │       ├── phi_free/           # Gamma results CSV
 │       └── l2/                 # L1→L2 model fits

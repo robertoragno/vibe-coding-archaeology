@@ -263,20 +263,28 @@ ggsave(file.path(OUT_DIR, "plot_beta_gamma_scatter.png"), plot_g4,
        width = 12, height = 6, dpi = 200, bg = "white")
 cat("G4 saved.\n")
 
-# ── Summary stats ────────────────────────────────────────────────────────────
+# ── LLM concentration stats (no plot — diversity trajectory already in ────────
+# docs/l2_l3_results.md via the primary model's posterior inv_simpson).
+# We just compute the LLM-side numbers for the Results.md table.
 
-cat("\n=== Summary ===\n")
+inv_simpson <- function(x) {
+  p <- x / sum(x)
+  p <- p[p > 0]
+  1 / sum(p^2)
+}
 
-rec_with_params <- l3_combined |> filter(freq_llm > 0)
-cat(sprintf("L3 methods with >= 1 rec: %d\n", nrow(rec_with_params)))
+rec_novice  <- setNames(remapped$n_recommended_novice, remapped$l3)
+rec_inter   <- setNames(remapped$n_recommended_intermediate, remapped$l3)
+rec_expert  <- setNames(remapped$n_recommended_expert, remapped$l3)
 
-cor_beta  <- cor(rec_with_params$mean_beta, log1p(rec_with_params$freq_llm),
-                 method = "spearman")
-cor_gamma <- cor(rec_with_params$mean_gamma, log1p(rec_with_params$freq_llm),
-                 method = "spearman")
-cor_pre   <- cor(l2_agg$share_pre, l2_agg$share_llm, method = "spearman")
-cat(sprintf("L3 Spearman (beta vs log LLM count): rho = %.3f\n", cor_beta))
-cat(sprintf("L3 Spearman (gamma vs log LLM count): rho = %.3f\n", cor_gamma))
-cat(sprintf("L2 Spearman (pre-2023 share vs LLM share): rho = %.3f\n", cor_pre))
+freq_novice  <- rec_novice[l3_vocab$l3];  freq_novice[is.na(freq_novice)] <- 0
+freq_inter   <- rec_inter[l3_vocab$l3];   freq_inter[is.na(freq_inter)] <- 0
+freq_expert  <- rec_expert[l3_vocab$l3];  freq_expert[is.na(freq_expert)] <- 0
+
+cat("\n=== LLM recommendation concentration ===\n")
+cat(sprintf("Overall:      %.1f effective methods\n", inv_simpson(l3_freq$freq_llm)))
+cat(sprintf("Novice:       %.1f effective methods\n", inv_simpson(freq_novice)))
+cat(sprintf("Intermediate: %.1f effective methods\n", inv_simpson(freq_inter)))
+cat(sprintf("Expert:       %.1f effective methods\n", inv_simpson(freq_expert)))
 
 cat("\nAll graphs saved to:", OUT_DIR, "\n")

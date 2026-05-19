@@ -57,17 +57,36 @@ The two-panel scatter below tests both. Each point is an L3 method that received
 
 <img src="../data/output/figures/exploratory/plot_beta_gamma_scatter.png" width="700">
 
+### The mean-collapse mechanism: concentration comparison
+
+The previous graphs ask whether the LLM recommends the *same* methods that gained share — but that is not the only way to test mean collapse. The more direct question is: **is the LLM's recommendation distribution narrower than the literature's?** If researchers adopt LLM suggestions, the field's methodological diversity should be pulled toward the LLM's concentrated profile.
+
+The answer is unambiguous. The LLM's effective method count (Inverse Simpson) is dramatically lower than the literature's — and the gap is largest for the novice profile, consistent with the hypothesis:
+
+| Distribution | Effective methods (Inv. Simpson) | Methods covering 50% of mass |
+|---|---|---|
+| Pre-2023 literature | 86 | 34 |
+| Post-2023 literature | 111 | 41 |
+| LLM overall | 38 | 18 |
+| LLM — novice | 20 | — |
+| LLM — intermediate | 27 | — |
+| LLM — expert | 67 | — |
+
+The published literature has been *diversifying* since 2010, and this trend continued uninterrupted through the post-2023 period — the within-group diversity trajectories in the [primary L2→L3 analysis](../docs/l2_l3_results.md) show no post-2023 downturn in most sub-disciplines. The LLM's overall diversity (38) sits below any year in the literature's history. The profile gradient (novice 20 < intermediate 27 < expert 67) matches the prediction: less-constrained prompts produce more concentrated output.
+
 ### What these descriptive analyses suggest
 
-Three patterns emerge:
+Four patterns emerge:
 
-1. **Extreme concentration.** The LLM's recommendations are far more concentrated than the published literature. A handful of methods (ABM, network analysis, GIS, NLP) absorb most recommendations, regardless of expertise level. At L2, the LLM massively over-recommends Network Analysis, ABM, and ML relative to their actual literature share.
+1. **The LLM is dramatically more concentrated than the literature.** 18 methods cover 50% of LLM recommendations, compared to 34–41 for the literature. The mechanism for mean collapse — a narrow recommendation distribution — is clearly present. The novice profile is the most concentrated (20 effective methods), consistent with the hypothesis that unconstrained LLM advice is the most homogenising.
 
-2. **The LLM recommends popular, established methods.** The most-recommended L3 methods tend to have negative γ (losing share post-2023, relative to trend). The LLM appears to recommend from its training corpus — methods that were prominent before 2023 — rather than tracking post-2023 shifts.
+2. **But the literature is diversifying, not converging.** The Inverse Simpson index has risen from ~63 (2010) to ~105 (2026), and this upward trend continued through 2023–2026. If LLMs were driving convergence, we would expect a post-2023 downturn in diversity — but there is none. The mechanism exists; the effect has not manifested.
 
-3. **Neither pre-existing growth nor post-2023 excess predicts recommendations.** The two-panel scatter shows that the LLM's preferences are independent of both β (pre-existing trajectory) and γ (post-2023 excess). The LLM is not chasing methods that were already rising, nor methods that specifically accelerated after LLM adoption. It is recommending the most *recognisable* methods — those with the largest training-corpus footprint — regardless of their temporal trajectory.
+3. **The LLM recommends popular, established methods.** The most-recommended L3 methods tend to have negative γ (losing share post-2023, relative to trend). The LLM appears to recommend from its training corpus — methods that were prominent before 2023 — rather than tracking post-2023 shifts.
 
-These descriptive patterns are consistent with the Bayesian regression's null result (below) and suggest that the null finding is not an artifact of the regression framework. The distributional test (Sensitivity C) found a credible positive signal using cosine similarity between whole frequency vectors — but that test measures whether the LLM's *overall distribution shape* resembles the post-2023 literature more than the pre-2023 literature, which is a different and weaker claim than "the LLM recommends the methods that gained share." The descriptive analysis here shows the LLM does not preferentially target gaining methods; rather, its broad distributional profile happens to be marginally closer to the post-2023 mix.
+4. **Neither pre-existing growth nor post-2023 excess predicts recommendations.** The two-panel scatter shows that the LLM's preferences are independent of both β (pre-existing trajectory) and γ (post-2023 excess). The LLM is not chasing methods that were already rising, nor methods that specifically accelerated after LLM adoption. It is recommending the most *recognisable* methods — those with the largest training-corpus footprint — regardless of their temporal trajectory.
+
+**Reconciling the concentration gap with the null regression.** The regression (below) asks: "do the *specific* methods gaining share align with LLM recommendations?" The concentration comparison asks: "is the LLM's *overall menu* narrower than the literature's?" These are different tests. The regression is null because the LLM's concentrated recommendations do not align with the particular methods that changed post-2023 — it recommends a narrow, stable set of established methods regardless of which methods are currently rising or falling. The distributional test (Sensitivity C) found a positive signal because the LLM's *overall shape* is marginally closer to the post-2023 literature than the pre-2023 literature — a weaker, non-directional claim about distributional resemblance.
 
 ---
 
