@@ -1,0 +1,243 @@
+"l3","l2","mean_beta","sd_beta","lo90_beta","hi90_beta"
+"L3-046: Bootstrap and Jackknife Resampling","L2-00: Univariate & Classical Hypothesis Testing",-0.248141162683175,0.15012608411814,-0.49400729,-0.00165927782500015
+"L3-049: Randomization-Based Statistical Inference","L2-00: Univariate & Classical Hypothesis Testing",0.0701450653148111,0.130620497770474,-0.1429951595,0.28632945
+"L3-098: Nonparametric Statistical Methods","L2-00: Univariate & Classical Hypothesis Testing",0.0970129795222408,0.110845250993409,-0.0843081798,0.2812310415
+"L3-109: Categorical Association Testing","L2-00: Univariate & Classical Hypothesis Testing",0.0574884079473439,0.183743073437178,-0.2396495805,0.361341701
+"L3-110: Reliability and Agreement Statistics","L2-00: Univariate & Classical Hypothesis Testing",0.136801516803609,0.20826958098109,-0.1960007625,0.490169419
+"L3-112: Pearson and Partial Correlation","L2-00: Univariate & Classical Hypothesis Testing",-0.107130102942053,0.148161988647392,-0.3502442665,0.135923812
+"L3-113: Non-Parametric Rank Correlation","L2-00: Univariate & Classical Hypothesis Testing",-0.184514331166258,0.135384927434638,-0.4044122005,0.03812530635
+"L3-114: Analysis of Variance Family","L2-00: Univariate & Classical Hypothesis Testing",0.111955908223463,0.206263458864414,-0.223007706,0.453320693
+"L3-116: Non-Parametric Rank-Based Tests","L2-00: Univariate & Classical Hypothesis Testing",0.121088908403385,0.165820007081108,-0.1488510035,0.393818615
+"L3-118: Statistical Hypothesis Testing","L2-00: Univariate & Classical Hypothesis Testing",0.0777842332316628,0.216305657189618,-0.281127149,0.4305456475
+"L3-119: Post Hoc Multiple Comparison Tests","L2-00: Univariate & Classical Hypothesis Testing",-0.161643842049795,0.165394749401241,-0.4308060245,0.112768308999999
+"L3-120: Student's t-test Variants","L2-00: Univariate & Classical Hypothesis Testing",0.187826890209403,0.202460200462574,-0.1427971915,0.531200667
+"L3-165: Statistical Frequency and Ratio Analysis","L2-00: Univariate & Classical Hypothesis Testing",0.142889214408087,0.185784847384179,-0.1596256115,0.4559601905
+"L3-229: Univariate Statistical Analysis","L2-00: Univariate & Classical Hypothesis Testing",-0.225554840503879,0.1685369563786,-0.50421837,0.0512265720999998
+"L3-230: Descriptive and Inferential Statistics","L2-00: Univariate & Classical Hypothesis Testing",-0.184861204731687,0.211220022892763,-0.5293203975,0.1656660505
+"L3-016: Nonlinear Dimensionality Reduction","L2-01: Multivariate Analysis & Dimensionality Reduction",0.32729168028784,0.168708590562528,0.06165155585,0.606570227999999
+"L3-019: Principal Component Analysis Variants","L2-01: Multivariate Analysis & Dimensionality Reduction",0.325261671179077,0.225018737061505,-0.0354629096,0.697142207
+"L3-020: Factor and Correspondence Analysis","L2-01: Multivariate Analysis & Dimensionality Reduction",0.421624526912389,0.184823145684926,0.12815564,0.732502985
+"L3-021: Multivariate Ordination and Seriation","L2-01: Multivariate Analysis & Dimensionality Reduction",-0.268254834014512,0.111676271114613,-0.4523664795,-0.0849168363000003
+"L3-023: Statistical Data Normalization","L2-01: Multivariate Analysis & Dimensionality Reduction",0.0288808847536397,0.15625094189913,-0.229015037,0.287467106
+"L3-031: Fractal and Multifractal Analysis","L2-01: Multivariate Analysis & Dimensionality Reduction",-0.0137815511889329,0.147791535962276,-0.2604529425,0.2270281445
+"L3-115: Multivariate Statistical Analysis","L2-01: Multivariate Analysis & Dimensionality Reduction",-0.387176562589552,0.120526315349699,-0.583496476,-0.1866407405
+"L3-137: Linear Dimensionality Reduction Methods","L2-01: Multivariate Analysis & Dimensionality Reduction",-0.0523405586244022,0.180701921039059,-0.3449424835,0.246672902
+"L3-167: Multivariate Statistical & Machine Learning Methods","L2-01: Multivariate Analysis & Dimensionality Reduction",0.101755263177779,0.145232231846336,-0.1319915025,0.3456037895
+"L3-232: Specialized Domain Analyses","L2-01: Multivariate Analysis & Dimensionality Reduction",0.199625653374965,0.138562607049186,-0.0275079818,0.4257142775
+"L3-239: Redundancy Analysis Variants","L2-01: Multivariate Analysis & Dimensionality Reduction",-0.0796783996680399,0.19074915758912,-0.388153068,0.2385719115
+"L3-006: Partial Least Squares Variants","L2-02: Regression & Generalized Linear Models",-0.0537922209183081,0.0731943458496715,-0.1719095255,0.06714449915
+"L3-024: Panel Data Econometric Methods","L2-02: Regression & Generalized Linear Models",0.552310059530768,0.213789329947032,0.2152132255,0.9119199125
+"L3-045: Survival Analysis Methods","L2-02: Regression & Generalized Linear Models",0.0669803738996049,0.132580105628634,-0.150208374,0.285963724
+"L3-062: Gaussian Process Regression","L2-02: Regression & Generalized Linear Models",-0.220768416983421,0.15806368264537,-0.478743637,0.0455016606999998
+"L3-092: Weighted Averaging Methods","L2-02: Regression & Generalized Linear Models",-0.240162011208496,0.164895175737029,-0.5111959855,0.0295405428999999
+"L3-096: Root Mean Square Error Metrics","L2-02: Regression & Generalized Linear Models",-0.2421216167015,0.175958478681971,-0.5323617835,0.0450600864499999
+"L3-122: Linear Mixed-Effect Models","L2-02: Regression & Generalized Linear Models",-0.079126412413845,0.14731666107774,-0.3175276995,0.1655563445
+"L3-123: Generalized Linear Mixed Models","L2-02: Regression & Generalized Linear Models",-0.0942294517625284,0.193449505652337,-0.4090186425,0.2275355955
+"L3-126: Stepwise Variable Selection","L2-02: Regression & Generalized Linear Models",0.212968648624301,0.114730692619386,0.02342687265,0.398461617
+"L3-129: Multiple Regression Models","L2-02: Regression & Generalized Linear Models",-0.242952918352711,0.124461513355824,-0.449129476,-0.0401335272500003
+"L3-130: Least Squares Regression","L2-02: Regression & Generalized Linear Models",-0.226931710053052,0.208735894994016,-0.5769380355,0.110774224
+"L3-134: Logistic Regression Variants","L2-02: Regression & Generalized Linear Models",-0.0830975844325896,0.126288452123563,-0.2864574325,0.1259654475
+"L3-146: Regression Analysis","L2-02: Regression & Generalized Linear Models",0.00827398236475732,0.162709145309595,-0.262003209,0.275719222
+"L3-147: Linear Regression Variants","L2-02: Regression & Generalized Linear Models",0.122620341550228,0.201516022786527,-0.195860548,0.4581928765
+"L3-163: Pollen and Spore Quantification","L2-02: Regression & Generalized Linear Models",-0.181906759651457,0.154670470915956,-0.4375060055,0.07067564365
+"L3-164: Transfer Function Calibration","L2-02: Regression & Generalized Linear Models",0.008814690649672,0.228053390031539,-0.361540162,0.3809056825
+"L3-166: Parametric Survival and Decay Distributions","L2-02: Regression & Generalized Linear Models",-0.275576121622442,0.171013325643426,-0.566988336,-0.00070114203775055
+"L3-221: Experimental Design and Sensitivity Analysis","L2-02: Regression & Generalized Linear Models",0.139490355202866,0.230214717109483,-0.235695306,0.522001315999999
+"L3-001: Self-Organizing Neural Networks","L2-03: Clustering & Unsupervised Learning",0.263355021480986,0.16490777183961,-0.00237874331,0.5377607905
+"L3-010: Hierarchical Clustering Algorithms","L2-03: Clustering & Unsupervised Learning",0.0137849808785251,0.147785507618952,-0.226877405,0.260773503
+"L3-011: Hierarchical Clustering Linkages","L2-03: Clustering & Unsupervised Learning",-0.305088811517166,0.1766297701821,-0.593632675,-0.0155772176000002
+"L3-029: Fuzzy Logic and Clustering","L2-03: Clustering & Unsupervised Learning",-0.169748185322949,0.185351503976308,-0.472805778,0.1336153315
+"L3-052: K-Means Clustering","L2-03: Clustering & Unsupervised Learning",0.192875293626257,0.159501616053873,-0.0703634434,0.4558017715
+"L3-063: Gaussian Mixture Modeling","L2-03: Clustering & Unsupervised Learning",0.00149702613302898,0.165254657714325,-0.2646184125,0.2745784775
+"L3-030: Clustering Validation Metrics","L2-04: Distance & Similarity Metrics",-0.059184569014631,0.208033913372401,-0.395232017,0.2829974825
+"L3-057: Mahalanobis Distance Variants","L2-04: Distance & Similarity Metrics",-0.190925693186966,0.0913595503967401,-0.34412801,-0.0382610940000001
+"L3-069: Pairwise Similarity Metrics","L2-04: Distance & Similarity Metrics",0.238957467382802,0.187400553037516,-0.0669046737,0.5510857205
+"L3-070: Genetic and Biological Distance Metrics","L2-04: Distance & Similarity Metrics",0.0287665036444062,0.186942224481922,-0.2725191825,0.336211372
+"L3-099: Image Similarity Metrics","L2-04: Distance & Similarity Metrics",-0.111687340098229,0.166553035753586,-0.3823630635,0.164875013
+"L3-103: Ecological Diversity Metrics","L2-04: Distance & Similarity Metrics",-0.0807502391243639,0.210543015926984,-0.42586902,0.268071665499999
+"L3-106: Performance Evaluation Metrics","L2-04: Distance & Similarity Metrics",0.0133326136156671,0.136102635480683,-0.209411452,0.237788713
+"L3-007: Phylogenetic Reconstruction Methods","L2-05: Bayesian & Probabilistic Inference",-0.385587774197618,0.158611388050038,-0.6525747755,-0.123726606
+"L3-014: Inverse Problem Solving","L2-05: Bayesian & Probabilistic Inference",-0.347881329007851,0.208454132793935,-0.689703676,-0.00852024998500016
+"L3-050: Stratified and Adaptive Sampling","L2-05: Bayesian & Probabilistic Inference",-0.210503001607522,0.199149097700259,-0.5370013525,0.1143189875
+"L3-078: Markov Chain Monte Carlo","L2-05: Bayesian & Probabilistic Inference",0.0707624267909183,0.140383129833363,-0.1558377735,0.307261754
+"L3-095: Statistical Error Quantification and Modeling","L2-05: Bayesian & Probabilistic Inference",-0.00865751402459012,0.173136712969521,-0.2945078305,0.276271899
+"L3-101: Information-Theoretic Entropy Measures","L2-05: Bayesian & Probabilistic Inference",0.176131918127433,0.17519155867489,-0.1093507915,0.465435097
+"L3-125: Bayesian Multilevel Modeling","L2-05: Bayesian & Probabilistic Inference",-0.0895574583961125,0.160222577734502,-0.355741629,0.170986105
+"L3-127: Bayesian Outlier Detection","L2-05: Bayesian & Probabilistic Inference",0.276179605084301,0.203112049080997,-0.04939555095,0.6214461875
+"L3-135: Bayesian and Advanced Count Models","L2-05: Bayesian & Probabilistic Inference",-0.54048565032125,0.100071391750101,-0.703866601,-0.377539835
+"L3-158: Bayesian Statistical Inference","L2-05: Bayesian & Probabilistic Inference",-0.118913948015989,0.233220172559584,-0.510524652,0.264164657499999
+"L3-159: Probabilistic Uncertainty Quantification","L2-05: Bayesian & Probabilistic Inference",-0.1460386118627,0.200279349725477,-0.476687233,0.1801391565
+"L3-215: Numerical Glaciological Modeling","L2-05: Bayesian & Probabilistic Inference",-0.32038298470733,0.209690321768165,-0.6618605955,0.0242629354
+"L3-000: Wavelet-Based Signal Decomposition","L2-06: Time Series & Sequence Analysis",-0.081713401688206,0.130762479269293,-0.296812564,0.1350500525
+"L3-012: Bayesian Change Point Analysis","L2-06: Time Series & Sequence Analysis",-3.2357229668445e-06,0.000290357622390807,-0.0004778762395,0.00046867224
+"L3-073: Fourier and Spectral Analysis Methods","L2-06: Time Series & Sequence Analysis",0.170479045142194,0.158395351423039,-0.08982862025,0.434432855
+"L3-075: Time Series Signal Filtering","L2-06: Time Series & Sequence Analysis",0.0659286329778063,0.149278582012862,-0.1744130645,0.311611357
+"L3-100: Experimental Modal Analysis","L2-06: Time Series & Sequence Analysis",0.0407686161742259,0.122238037087124,-0.1581198195,0.246304356
+"L3-111: Lag-Based Correlation Analysis","L2-06: Time Series & Sequence Analysis",-0.156612304738446,0.116654365284159,-0.347065081,0.0340441267999999
+"L3-136: Time Series Stationarity and Causality","L2-06: Time Series & Sequence Analysis",0.0222881376717227,0.122015306794639,-0.1754823005,0.224256885
+"L3-145: Temporal Event and Sequence Analysis","L2-06: Time Series & Sequence Analysis",-0.260595535509465,0.128215718185725,-0.4707442125,-0.0474132896000002
+"L3-028: Fuzzy Delphi and Rough Set Methods","L2-07: Chronological Modelling & Dating",0.129375149811383,0.155062962482949,-0.1217987205,0.3864308175
+"L3-124: Radiocarbon Summed Probability Distributions","L2-07: Chronological Modelling & Dating",-0.0893429928213555,0.151760359205019,-0.33752684,0.158655284
+"L3-131: Bayesian Radiocarbon Calibration","L2-07: Chronological Modelling & Dating",-0.244431949108918,0.134962076797107,-0.4668753225,-0.0213223455500003
+"L3-132: Chronostratigraphic Dating Methods","L2-07: Chronological Modelling & Dating",-0.138203526446251,0.194862140012452,-0.4630668135,0.1814938005
+"L3-133: Bayesian Radiocarbon Wiggle Matching","L2-07: Chronological Modelling & Dating",0.0976867408567195,0.168100623916702,-0.172395499,0.373904763999999
+"L3-140: Luminescence and ESR Dating","L2-07: Chronological Modelling & Dating",0.0242567869524991,0.196047036141774,-0.2970886075,0.343201613
+"L3-141: Nonlinear Structural Dynamic Analysis","L2-07: Chronological Modelling & Dating",0.4190023239039,0.134686808907598,0.196397065,0.6421123105
+"L3-142: Bayesian Age-Depth Modeling","L2-07: Chronological Modelling & Dating",-0.0491491892878409,0.155342351444312,-0.303949898,0.210969564
+"L3-144: Bayesian Chronological Modeling","L2-07: Chronological Modelling & Dating",-0.156949070713115,0.172469127503132,-0.4431696445,0.129287863
+"L3-151: Radiometric and Luminescence Dating","L2-07: Chronological Modelling & Dating",0.0477835054386049,0.165720376795945,-0.224950691,0.321721193
+"L3-153: Radiocarbon and Chronometric Dating","L2-07: Chronological Modelling & Dating",0.0127422340285121,0.117634029846249,-0.178001291,0.2093442185
+"L3-154: Bayesian Radiocarbon Calibration","L2-07: Chronological Modelling & Dating",-0.0687187244606587,0.182938242373221,-0.366712806,0.2327938625
+"L3-238: Comparative and Historical Analysis Methods","L2-07: Chronological Modelling & Dating",-0.24951422446526,0.136751317491179,-0.4742370805,-0.0205189266000006
+"L3-025: Density-Based Clustering","L2-08: Spatial Statistics & Point Pattern Analysis",0.342154651451498,0.147984276485352,0.1032885065,0.589041343
+"L3-027: Poisson Point Process Modeling","L2-08: Spatial Statistics & Point Pattern Analysis",-0.236512729609761,0.229347744782242,-0.6138135735,0.1380721145
+"L3-032: Polynomial Trend Surface Analysis","L2-08: Spatial Statistics & Point Pattern Analysis",5.4055114368605e-06,0.000294766262585174,-0.0004812097665,0.0004957480345
+"L3-033: Kernel Density Estimation","L2-08: Spatial Statistics & Point Pattern Analysis",0.109558509104567,0.160117993621021,-0.14710782,0.3770614015
+"L3-155: Voronoi and Delaunay Geometric Methods","L2-08: Spatial Statistics & Point Pattern Analysis",-0.053889047650742,0.115229837824708,-0.240210977,0.136285122
+"L3-210: Spatial Interpolation Methods","L2-08: Spatial Statistics & Point Pattern Analysis",2.84530912213779e-06,0.000297861788727846,-0.00047927888,0.00050215795
+"L3-211: Variogram Modeling","L2-08: Spatial Statistics & Point Pattern Analysis",-0.0473417407413406,0.114733136429394,-0.233630133,0.1407019935
+"L3-212: Kriging Interpolation Methods","L2-08: Spatial Statistics & Point Pattern Analysis",-0.140585454669241,0.126375304878353,-0.3494133815,0.0661619175999999
+"L3-222: Spatial Autocorrelation and Geostatistics","L2-08: Spatial Statistics & Point Pattern Analysis",-0.207695385179798,0.157692571133795,-0.4624491285,0.0520001518499999
+"L3-053: Local Relief Modeling","L2-09: GIS & Landscape Analysis",-0.068018347981553,0.180344900837578,-0.3591398655,0.2293710885
+"L3-066: Least Cost Path Modeling","L2-09: GIS & Landscape Analysis",0.0910094141029566,0.146629289785798,-0.15098269,0.332803382
+"L3-067: Weighted Multi-Criteria Cost Surface Modeling","L2-09: GIS & Landscape Analysis",-0.500619441600541,0.140028782907333,-0.7266516765,-0.26857666
+"L3-093: Weighted Overlay and Entropy Methods","L2-09: GIS & Landscape Analysis",-0.293986900542895,0.187916360766242,-0.6033579935,0.0128455251999998
+"L3-199: Viewshed and Intervisibility Analysis","L2-09: GIS & Landscape Analysis",-0.0647089201926628,0.103239311104669,-0.235400672,0.1052457165
+"L3-208: Digital Terrain Modeling and Analysis","L2-09: GIS & Landscape Analysis",0.599104004404325,0.19374174555823,0.290853026,0.928851477
+"L3-214: GIS-Based Landscape Characterization","L2-09: GIS & Landscape Analysis",0.0562372173551595,0.210615546798485,-0.2925416635,0.4018232205
+"L3-217: Cartographic Data Analysis","L2-09: GIS & Landscape Analysis",0.1185082447614,0.190876618006791,-0.1897414595,0.43706632
+"L3-218: Hydrological Sediment Yield Modeling","L2-09: GIS & Landscape Analysis",-0.457248574701651,0.144309171372334,-0.695120937,-0.21992231
+"L3-223: Spatial Syntax and Modeling","L2-09: GIS & Landscape Analysis",0.103603272179098,0.197582227556932,-0.216778914,0.430522842
+"L3-225: GIS-Based Spatial Suitability Analysis","L2-09: GIS & Landscape Analysis",-0.0776068325550428,0.112425617747815,-0.2583159215,0.106096187
+"L3-226: Geographic Information System Modeling","L2-09: GIS & Landscape Analysis",0.281885261121411,0.20860098208586,-0.0549299695,0.6305141785
+"L3-228: Hydrological and Hydraulic Modeling","L2-09: GIS & Landscape Analysis",-1.6642748506355e-06,0.000286484888607407,-0.000476084045,0.0004613252285
+"L3-013: Remote Sensing Spectral Indices","L2-10: Remote Sensing & Satellite Imagery",-0.128312119771023,0.21727615698228,-0.4815076055,0.2343726245
+"L3-072: Spectral Unmixing and Analysis","L2-10: Remote Sensing & Satellite Imagery",0.191569630642934,0.190560013847649,-0.11912748,0.5123341275
+"L3-172: Multispectral and Hyperspectral Imaging","L2-10: Remote Sensing & Satellite Imagery",0.141188600805256,0.225552958782992,-0.227234588,0.5114049875
+"L3-175: Geospatial Image Orthorectification","L2-10: Remote Sensing & Satellite Imagery",0.532143016388125,0.152437894527647,0.2815266855,0.7878579165
+"L3-235: Remote Sensing Accuracy Metrics","L2-10: Remote Sensing & Satellite Imagery",0.042518932420725,0.23507445525037,-0.339567735,0.4324675965
+"L3-237: SAR Interferometry and Inversion","L2-10: Remote Sensing & Satellite Imagery",-5.66115678096451e-06,0.000294341303802472,-0.0004865694205,0.0004863514215
+"L3-240: Multispectral and Hyperspectral Imaging","L2-10: Remote Sensing & Satellite Imagery",-0.40757843897124,0.170442280411617,-0.6865912475,-0.1271108455
+"L3-002: Impulse Response Characterization","L2-11: Geophysical Prospection",0.0390364297677855,0.140246925250904,-0.1895479915,0.2738658315
+"L3-048: Seismic Tomography and Migration","L2-11: Geophysical Prospection",-2.62819593999512e-06,0.000288704775887641,-0.000480535281,0.000470998007
+"L3-149: Paleomagnetic and Rock Magnetic Methods","L2-11: Geophysical Prospection",-0.0568086248710648,0.106206638573843,-0.2300533165,0.1195694715
+"L3-150: Electrical Resistivity and GPR Prospecting","L2-11: Geophysical Prospection",0.296748200014142,0.171316018070617,0.0189305417,0.5805199665
+"L3-054: Point Cloud Registration and Alignment","L2-12: Photogrammetry & 3D Reconstruction",-0.151452977444312,0.126138406958077,-0.356696734,0.0592444204
+"L3-068: X-ray Computed Tomography","L2-12: Photogrammetry & 3D Reconstruction",0.139273270109335,0.173340852093575,-0.1387125835,0.430402722
+"L3-071: Optical Interferometry and Profilometry","L2-12: Photogrammetry & 3D Reconstruction",0.0745405417127904,0.10134101344705,-0.0949209463,0.2407322025
+"L3-152: Laser and Structured Light 3D Scanning","L2-12: Photogrammetry & 3D Reconstruction",0.234696545112566,0.181889289556115,-0.0673893185,0.5378486705
+"L3-161: Vector Geometry and Representation","L2-12: Photogrammetry & 3D Reconstruction",-0.212468567159084,0.173728752689485,-0.4988629145,0.0736177257999998
+"L3-171: 3D Geometry and Reconstruction","L2-12: Photogrammetry & 3D Reconstruction",0.000822901686067637,0.16467463265491,-0.269578068,0.269383449
+"L3-189: Satellite-Based Geodetic Surveying","L2-12: Photogrammetry & 3D Reconstruction",-0.327852516894653,0.140021033957024,-0.5554619815,-0.0977763962000003
+"L3-195: Photogrammetric Reconstruction","L2-12: Photogrammetry & 3D Reconstruction",0.681659627255875,0.211404503333583,0.340180162,1.04110432
+"L3-196: 3D Reconstruction and Depth Estimation","L2-12: Photogrammetry & 3D Reconstruction",0.00626236906466089,0.183923442932817,-0.29041045,0.3130799785
+"L3-004: Spline-Based Smoothing and Interpolation","L2-13: Geometric Morphometrics",0.053598093886051,0.184830764951597,-0.2501481505,0.3593508945
+"L3-005: Procrustes Analysis Methods","L2-13: Geometric Morphometrics",-0.0172749304526316,0.166614248724029,-0.286461426,0.258451677
+"L3-094: Elliptic Fourier Shape Analysis","L2-13: Geometric Morphometrics",-0.0320123712915084,0.134981813816037,-0.2509228835,0.1911662265
+"L3-160: Triangular Geometric Analysis","L2-13: Geometric Morphometrics",0.113170363509388,0.129188272369503,-0.09724413845,0.327387838
+"L3-182: Landmark-Based Craniometric Analysis","L2-13: Geometric Morphometrics",-4.66718318685863e-06,0.000288602770331871,-0.000470956668,0.000459528248499999
+"L3-183: Geometric Morphometrics","L2-13: Geometric Morphometrics",0.145289318445386,0.11085055775349,-0.03894482745,0.3287770075
+"L3-058: Circular Histogram Statistics","L2-14: Computer Vision & Image Processing",0.183973802616619,0.109800803372843,0.00373986382000001,0.3649549305
+"L3-059: Data Normalization and Standardization","L2-14: Computer Vision & Image Processing",0.178512150985847,0.135713714641309,-0.0455696636,0.403026948
+"L3-076: Edge Detection and Filtering","L2-14: Computer Vision & Image Processing",0.0558564911264031,0.21482552631847,-0.296576262,0.4114680805
+"L3-086: Optical and Electron Microscopy","L2-14: Computer Vision & Image Processing",0.319275883545315,0.239315946098461,-0.06627923725,0.719093546
+"L3-087: Advanced Infrared Thermography","L2-14: Computer Vision & Image Processing",1.8798062635995e-06,0.000286024940090014,-0.000461444043,0.000469900275
+"L3-102: Audio Signal Processing & Analysis","L2-14: Computer Vision & Image Processing",0.00560138368302678,0.152775210229833,-0.2450472975,0.2557162765
+"L3-108: Dental Microwear Texture Analysis","L2-14: Computer Vision & Image Processing",-0.0303999632362458,0.140546921242885,-0.2617493045,0.203574409
+"L3-156: Histogram-Based Image Thresholding","L2-14: Computer Vision & Image Processing",-6.9546817512675e-07,0.000287950633863726,-0.0004777931085,0.000471462608
+"L3-157: Image Segmentation Algorithms","L2-14: Computer Vision & Image Processing",0.6259317782725,0.154251552006492,0.3702650605,0.8815346645
+"L3-173: Handcrafted Texture and Shape Descriptors","L2-14: Computer Vision & Image Processing",1.21201238955487e-06,0.000296151143916489,-0.0004917212235,0.000492968268
+"L3-174: Hand-Crafted Local Geometric Descriptors","L2-14: Computer Vision & Image Processing",0.0237441617754684,0.132029106085322,-0.19136028,0.239059273
+"L3-176: Imaging and Photogrammetric Analysis","L2-14: Computer Vision & Image Processing",-0.0713857247103759,0.163276536103568,-0.3383278955,0.1943517485
+"L3-177: Image Inpainting and Enhancement","L2-14: Computer Vision & Image Processing",-0.0978004048064468,0.192776500468712,-0.4101950265,0.223373179
+"L3-178: Histogram-Based Radiometric Enhancement","L2-14: Computer Vision & Image Processing",-0.154239076434884,0.0901688182250628,-0.2994346445,-0.00461936238500009
+"L3-179: Mathematical Morphology","L2-14: Computer Vision & Image Processing",0.0514494249675898,0.213341524907754,-0.2955028585,0.408469931
+"L3-180: Surface Texture and Gradient Metrics","L2-14: Computer Vision & Image Processing",6.35406900457375e-07,0.000289841231132934,-0.00048263111,0.000477941806
+"L3-187: Image Recognition and OCR","L2-14: Computer Vision & Image Processing",0.168812354298232,0.177021523432244,-0.120042585,0.4652614255
+"L3-188: Digital Image Analysis and Processing","L2-14: Computer Vision & Image Processing",0.151678390459105,0.187430950344911,-0.1539986085,0.465511958
+"L3-190: Colorimetric and False Color Analysis","L2-14: Computer Vision & Image Processing",0.203053175393875,0.187833249609218,-0.1020435015,0.5146193855
+"L3-191: Colorimetric Color Space Transformations","L2-14: Computer Vision & Image Processing",0.0788255468259021,0.188531541026459,-0.225734254,0.3968691985
+"L3-003: Gradient Boosting Decision Trees","L2-15: Machine Learning & Supervised Classification",-0.276687130629436,0.220197084950141,-0.6358541715,0.0821239708499997
+"L3-008: Decision Tree Algorithms","L2-15: Machine Learning & Supervised Classification",-0.12163695194318,0.190293905251427,-0.431376081,0.198844483
+"L3-015: Discriminant Analysis Variants","L2-15: Machine Learning & Supervised Classification",0.0957381714320902,0.103543823560247,-0.07270162945,0.2635665135
+"L3-017: Support Vector Machine Variants","L2-15: Machine Learning & Supervised Classification",-2.30964534110188e-06,0.000288802801065112,-0.0004767097155,0.0004703122525
+"L3-022: Random Forest Ensemble Methods","L2-15: Machine Learning & Supervised Classification",-0.171551675101963,0.188388492802792,-0.4823974405,0.1389223105
+"L3-034: Bootstrap Aggregating Ensembles","L2-15: Machine Learning & Supervised Classification",1.04911509143e-07,0.000296969260969339,-0.0004889334565,0.000485133439
+"L3-039: Association Rule Mining Algorithms","L2-15: Machine Learning & Supervised Classification",0.00948036732877713,0.207419627890701,-0.3337697345,0.3503454905
+"L3-047: Cross-Validation Techniques","L2-15: Machine Learning & Supervised Classification",-0.069276952899693,0.23144506415448,-0.448872757,0.317145072
+"L3-056: Nearest Neighbor Analysis","L2-15: Machine Learning & Supervised Classification",-0.0113576530281067,0.209721957077471,-0.355194196,0.335545153
+"L3-128: Modern Analogue Techniques","L2-15: Machine Learning & Supervised Classification",4.42747499433675e-06,0.000283328474163972,-0.0004594386345,0.000472348851
+"L3-236: Automated Content Classification","L2-15: Machine Learning & Supervised Classification",0.00713303038807375,0.105841232543766,-0.165921719,0.183842865
+"L3-009: YOLO Object Detection Variants","L2-16: Deep Learning & Neural Networks",-0.16521836031158,0.115077784444585,-0.3502400895,0.0219413449999997
+"L3-018: Image Data Augmentation","L2-16: Deep Learning & Neural Networks",4.77493787614625e-06,0.000286796958398737,-0.000468029362,0.00047738318
+"L3-143: Multi-Scale Feature Fusion","L2-16: Deep Learning & Neural Networks",1.71822332627975e-06,0.000289474830713862,-0.000476162808,0.0004864392565
+"L3-170: Neural Radiance Field Rendering","L2-16: Deep Learning & Neural Networks",4.32334806562525e-06,0.000296967087488892,-0.000494255669,0.000494275701
+"L3-181: Deep Learning Loss Functions","L2-16: Deep Learning & Neural Networks",-2.23868772017938e-06,0.00029320473497955,-0.000480532994,0.0004789660175
+"L3-184: Denoising Diffusion Probabilistic Models","L2-16: Deep Learning & Neural Networks",-0.0443490915088803,0.16533203861859,-0.316886142,0.2276534975
+"L3-186: Few-Shot and Self-Supervised Adaptation","L2-16: Deep Learning & Neural Networks",0.050219707532019,0.115953458138939,-0.1399355615,0.2406931995
+"L3-192: Generative Adversarial Networks","L2-16: Deep Learning & Neural Networks",0.30709212374429,0.160008858813585,0.0485384211,0.571976316
+"L3-197: Feedforward and Recurrent Neural Networks","L2-16: Deep Learning & Neural Networks",0.412429416218613,0.132643357562457,0.1927916335,0.6329134585
+"L3-198: Encoder-Decoder Architectures","L2-16: Deep Learning & Neural Networks",-2.476418203051e-06,0.00028160677759156,-0.000469546485,0.0004604564395
+"L3-200: Spatial and Channel Attention Mechanisms","L2-16: Deep Learning & Neural Networks",-1.60856111344562e-06,0.000294935948858683,-0.0004859043245,0.0004841411275
+"L3-201: Attention Mechanism Variants","L2-16: Deep Learning & Neural Networks",0.0944158792933231,0.21426922730473,-0.255648322,0.4537278395
+"L3-202: Deep Learning Semantic Segmentation","L2-16: Deep Learning & Neural Networks",-0.0121850208506056,0.170570269290675,-0.287874184,0.268964358
+"L3-203: Residual Learning Architectures","L2-16: Deep Learning & Neural Networks",0.218492405380639,0.158195025068436,-0.03408597475,0.4850626595
+"L3-204: Convolutional Neural Network Architectures","L2-16: Deep Learning & Neural Networks",-0.126943678197566,0.172112247108814,-0.4054206395,0.158451437
+"L3-205: Advanced Convolutional Architectures","L2-16: Deep Learning & Neural Networks",0.321774093341204,0.148769036376151,0.0773768909,0.5704042295
+"L3-206: Convolutional Neural Network Architectures","L2-16: Deep Learning & Neural Networks",1.81022747378875e-06,0.000294931346191711,-0.000479834777,0.000484671005
+"L3-241: Archaeological Dating and Analysis Methods","L2-16: Deep Learning & Neural Networks",-2.60914692565e-06,0.000294232739063726,-0.0004839262975,0.0004774736685
+"L3-185: Pretrained Transformer Architectures","L2-17: NLP & Text Mining",0.0207829019816953,0.108811136969775,-0.154789471,0.2041033235
+"L3-193: Natural Language Processing","L2-17: NLP & Text Mining",-4.13475187913413e-06,0.000298132247567832,-0.0004882664515,0.000489552421
+"L3-194: Word Embedding Models","L2-17: NLP & Text Mining",0.165994860802472,0.2078436399181,-0.1694819515,0.5161724045
+"L3-035: Inductively Coupled Plasma Spectrometry","L2-18: Archaeometry & Compositional Analysis",-0.332649264555434,0.143601201637956,-0.5676414815,-0.0911379598
+"L3-036: Nuclear Magnetic Resonance Spectroscopy","L2-18: Archaeometry & Compositional Analysis",0.162509146258555,0.224233605856371,-0.206416864,0.5388821315
+"L3-040: Polymerase Chain Reaction Variants","L2-18: Archaeometry & Compositional Analysis",3.2793599673775e-06,0.000283614731367225,-0.00045469128,0.0004646135335
+"L3-042: Liquid Chromatography Variants","L2-18: Archaeometry & Compositional Analysis",0.0759270604714418,0.115023980989109,-0.1112050225,0.2652507895
+"L3-060: Neutron Activation Analysis","L2-18: Archaeometry & Compositional Analysis",2.26466258603125e-07,0.000286689660227772,-0.000471466231,0.0004673994465
+"L3-061: Microscopic Mineralogical Characterization","L2-18: Archaeometry & Compositional Analysis",1.99456860830637e-06,0.000289065596219347,-0.000473846768,0.000477598551499999
+"L3-074: X-ray and Neutron Diffraction","L2-18: Archaeometry & Compositional Analysis",-9.10948640607e-07,0.00028736327380619,-0.000471747889,0.000473883875
+"L3-077: Raman Spectroscopy Variants","L2-18: Archaeometry & Compositional Analysis",2.58872563358738e-06,0.00028492269964704,-0.000474623498,0.0004751054105
+"L3-082: Fourier Transform Infrared Spectroscopy","L2-18: Archaeometry & Compositional Analysis",-9.99567776949675e-07,0.000293952659120693,-0.000488481264,0.000478044782999999
+"L3-083: Reflectance and Emission Spectroscopy","L2-18: Archaeometry & Compositional Analysis",9.84548192979663e-07,0.00029582772181743,-0.000485253075,0.0004813397345
+"L3-084: Scanning Electron Microscopy with Energy Dispersive Spectroscopy","L2-18: Archaeometry & Compositional Analysis",0.103988117452726,0.174809830749239,-0.184464744,0.3913619625
+"L3-085: Microscopic and Microanalytical Methods","L2-18: Archaeometry & Compositional Analysis",0.229559087798338,0.14564914326174,-0.0139485798,0.4674743695
+"L3-088: X-ray Fluorescence and Absorption Spectroscopy","L2-18: Archaeometry & Compositional Analysis",-0.22830224014838,0.164706026418318,-0.502266292,0.0405542168499999
+"L3-089: X-ray Fluorescence Spectroscopy","L2-18: Archaeometry & Compositional Analysis",-2.16996800301289e-06,0.000291508042947922,-0.000481649533,0.0004691601875
+"L3-107: Chemometric and Spectroscopic Analysis","L2-18: Archaeometry & Compositional Analysis",-6.11596670358515e-06,0.000288797882340343,-0.0004780623965,0.000469033605499999
+"L3-168: Spectroscopic and Mass Spectrometric Analysis","L2-18: Archaeometry & Compositional Analysis",0.249844145280836,0.205484930743794,-0.0854693685,0.5915926685
+"L3-209: Thermogravimetric and Thermal Analysis","L2-18: Archaeometry & Compositional Analysis",2.28013269023687e-06,0.000284559599698006,-0.000466338918,0.0004742625465
+"L3-233: Thermal Analysis and Spectroscopy","L2-18: Archaeometry & Compositional Analysis",0.26564961455674,0.147460144077019,0.0281414759,0.5107282775
+"L3-234: Differential Spectroscopic Methods","L2-18: Archaeometry & Compositional Analysis",0.219286521554759,0.127406362565518,0.00851792307,0.429204608
+"L3-038: Ancient DNA and Population Genomics","L2-19: Isotope & Bioarchaeological Analysis",0.0328037650033636,0.200343945114249,-0.2967849495,0.36168112
+"L3-041: DNA Sequencing and Metabarcoding","L2-19: Isotope & Bioarchaeological Analysis",2.58094137300188e-06,0.000284210960397213,-0.0004693337675,0.000472652622
+"L3-043: Gas Chromatography Mass Spectrometry","L2-19: Isotope & Bioarchaeological Analysis",-5.45988413660625e-07,0.000289547674450672,-0.0004722673225,0.0004780935085
+"L3-044: Mass Spectrometry-Based Proteomics","L2-19: Isotope & Bioarchaeological Analysis",-0.114843889604556,0.125038862548847,-0.320490116,0.09205643615
+"L3-064: Bayesian Multi-Source Mixing Models","L2-19: Isotope & Bioarchaeological Analysis",2.55402489245089e-06,0.000288774906765788,-0.0004746772345,0.0004870971545
+"L3-065: End Member Mixing Models","L2-19: Isotope & Bioarchaeological Analysis",0.229207403268131,0.175243745612917,-0.05969681525,0.5186410915
+"L3-105: Stable Isotope Ratio Analysis","L2-19: Isotope & Bioarchaeological Analysis",0.118021209458672,0.14680906982174,-0.119238056,0.36446609
+"L3-121: Particle Size Distribution Analysis","L2-20: Geoarchaeology & Sediment Analysis",-0.261951290067882,0.155903148937123,-0.515848267,-0.00183196370500021
+"L3-162: Micromorphological Residue Analysis","L2-20: Geoarchaeology & Sediment Analysis",-3.00216017924863e-06,0.000292783201504619,-0.0004915672695,0.0004742197515
+"L3-026: Monte Carlo Simulation Methods","L2-21: Agent-Based Modelling & Simulation",0.222441937933739,0.11169267580397,0.0377107158,0.4078536465
+"L3-081: Matrix Population Projection Models","L2-21: Agent-Based Modelling & Simulation",2.39865359513963e-06,0.000291987409311912,-0.0004859277845,0.000484175315
+"L3-097: Metaheuristic Optimization Algorithms","L2-21: Agent-Based Modelling & Simulation",2.71833505920694e-06,0.000284490311475436,-0.0004709486325,0.000465451031
+"L3-216: Process-Based Simulation Models","L2-21: Agent-Based Modelling & Simulation",3.86978674699637e-06,0.000286491208325754,-0.000471939511,0.0004698749485
+"L3-220: Discrete and Agent-Based Simulation","L2-21: Agent-Based Modelling & Simulation",-2.72626682217013e-06,0.000288338255974507,-0.0004823363565,0.00046067986
+"L3-231: Qualitative Data Analysis Methods","L2-21: Agent-Based Modelling & Simulation",2.27203250165712e-06,0.000288054142866823,-0.000467755577,0.0004633914945
+"L3-037: Network Centrality Metrics","L2-22: Network Analysis & Graph Theory",6.89352142830563e-06,0.000289376028528832,-0.000469629214,0.000480930872499999
+"L3-055: Path Analysis and Network Modeling","L2-22: Network Analysis & Graph Theory",-0.117194823109848,0.110676146693341,-0.2979032585,0.0677789532
+"L3-079: Graph Structural Analysis","L2-22: Network Analysis & Graph Theory",0.210815848424274,0.0874320612397008,0.0669939065,0.353525404
+"L3-080: Network Analysis and Modeling","L2-22: Network Analysis & Graph Theory",0.278291326242921,0.147238598945957,0.04302529945,0.522087644
+"L3-091: Bibliometric and Scientometric Mapping","L2-22: Network Analysis & Graph Theory",-6.86894892967875e-06,0.000288408248286442,-0.0004885502955,0.000462024583
+"L3-051: Maximum Entropy and Maximum Likelihood Methods","L2-23: Ecological & Palaeoenvironmental Modelling",8.96723428522625e-07,0.00028290668063634,-0.0004708066535,0.000465186805999999
+"L3-104: Ecological and Agricultural Suitability Indices","L2-23: Ecological & Palaeoenvironmental Modelling",-0.165880802484963,0.0960620753855638,-0.325081927,-0.0074908773050001
+"L3-213: Species Distribution Modeling","L2-23: Ecological & Palaeoenvironmental Modelling",-2.02059259242375e-06,0.000291295525018621,-0.0004691638315,0.000471339227
+"L3-219: Numerical Mass and Transport Balance","L2-23: Ecological & Palaeoenvironmental Modelling",0.0943877998221201,0.205741322417498,-0.2425254545,0.434660675
+"L3-224: Climate and Building Energy Modeling","L2-23: Ecological & Palaeoenvironmental Modelling",6.5304712812225e-06,0.000284666966085627,-0.000460905866,0.000474736662
+"L3-227: Lagrangian Particle Tracking","L2-23: Ecological & Palaeoenvironmental Modelling",0.251650620966492,0.116812228198338,0.06368102275,0.448319349
+"L3-090: Multi-Criteria Decision Analysis","L2-24: Visualization & Scientific Communication",6.70497619697662e-06,0.00028265136855271,-0.0004633947335,0.0004638712175
+"L3-117: Bivariate Data Visualization","L2-24: Visualization & Scientific Communication",-1.7501001318875e-07,0.000289541868409767,-0.0004703216955,0.000475703065999999
+"L3-138: Finite Element and Related Numerical Methods","L2-24: Visualization & Scientific Communication",-1.87582194639325e-06,0.00029139308727603,-0.0004824896165,0.000488359694
+"L3-139: Geotechnical Limit Analysis and Constitutive Modeling","L2-24: Visualization & Scientific Communication",-3.38705059732875e-06,0.000283044490898773,-0.0004639425,0.000469659243
+"L3-148: Virtual Osteological Reconstruction","L2-24: Visualization & Scientific Communication",0.0209118683868235,0.218714672729001,-0.3348707865,0.383780873
+"L3-169: Parametric and Procedural Design","L2-24: Visualization & Scientific Communication",-0.54034514293185,0.155725630965151,-0.7929525215,-0.280526862
+"L3-207: Visual Pattern Recognition","L2-24: Visualization & Scientific Communication",-0.115317948461201,0.253561717273023,-0.5344991375,0.2949047605

@@ -15,6 +15,7 @@ suppressPackageStartupMessages({
 EXPERIMENT_CSV <- here("experiment/analysis/experiment_results.csv")
 REMAPPED_CSV   <- here("data/output/step3_remapped_joined.csv")
 GAMMA_CSV      <- here("data/output/phi_free/gamma_results.csv")
+BETA_CSV       <- here("data/output/phi_free/beta_results.csv")
 STAN_DATA_RDS  <- here("data/output/stan_data.rds")
 VOCAB_RDS      <- here("data/output/vocab.rds")
 
@@ -26,6 +27,7 @@ dir.create(OUT_DIR, recursive = TRUE, showWarnings = FALSE)
 experiment <- read.csv(EXPERIMENT_CSV)
 remapped   <- read.csv(REMAPPED_CSV)
 gamma_df   <- read.csv(GAMMA_CSV)
+beta_df    <- read.csv(BETA_CSV)
 stan_data  <- readRDS(STAN_DATA_RDS)
 vocab      <- readRDS(VOCAB_RDS)
 
@@ -202,82 +204,79 @@ ggsave(file.path(OUT_DIR, "plot_l2_triple_bar.png"), plot_g3,
        width = 10, height = 8, dpi = 200, bg = "white")
 cat("G3 saved.\n")
 
-# ── G4: L2-level scatter (LLM share vs post-2023 shift) ─────────────────────
-
-spearman_l2 <- cor.test(l2_agg$delta, l2_agg$share_llm, method = "spearman",
-                        exact = FALSE)
-rho_l2 <- spearman_l2$estimate
-p_l2   <- spearman_l2$p.value
-
-plot_g4 <- ggplot(l2_agg, aes(x = delta, y = share_llm)) +
-  geom_point(size = 3, colour = "#0072B2") +
-  geom_smooth(method = "lm", se = TRUE, colour = "grey40", linewidth = 0.7) +
-  geom_text_repel(aes(label = l2_short), size = 2.8, max.overlaps = 25) +
-  annotate("text", x = Inf, y = Inf,
-           label = sprintf("Spearman rho = %.3f\np = %.3f", rho_l2, p_l2),
-           hjust = 1.1, vjust = 1.5, size = 3.5) +
-  scale_x_continuous(labels = scales::percent_format(accuracy = 0.1)) +
-  scale_y_continuous(labels = scales::percent_format(accuracy = 0.1)) +
-  labs(
-    title = "L2-level: LLM recommendation share vs. post-2023 literature shift",
-    subtitle = "Each point = one of 25 L2 sub-disciplines",
-    x = "Post-2023 share minus pre-2023 share",
-    y = "LLM recommendation share"
-  ) +
-  theme_minimal(base_size = 11)
-
-ggsave(file.path(OUT_DIR, "plot_l2_scatter.png"), plot_g4,
-       width = 8, height = 6, dpi = 200, bg = "white")
-cat("G4 saved.\n")
-
-# ── G5: Spearman rank correlation L3 (permutation) ──────────────────────────
-# L2-level gamma aggregation is not meaningful: L3 gammas are compositional
-# within each L2 group, so their weighted mean is near-zero by construction.
-# The valid L2-level test is G4 (delta share vs LLM share).
+# ── G4: Pre-existing trend vs post-2023 excess (two-panel L3 scatter) ────────
+# The key confound: does the LLM recommend methods that were already growing
+# (positive beta) rather than methods that specifically accelerated post-2023
+# (positive gamma)? This two-panel scatter separates the two.
 
 gamma_vec <- setNames(gamma_df$mean_gamma, gamma_df$l3)
+beta_vec  <- setNames(beta_df$mean_beta, beta_df$l3)
 
-l3_for_corr <- l3_freq |>
-  mutate(mean_gamma = gamma_vec[l3]) |>
-  filter(!is.na(mean_gamma))
+l3_combined <- l3_freq |>
+  mutate(
+    mean_gamma = gamma_vec[l3],
+    mean_beta  = beta_vec[l3],
+    log_llm    = log1p(freq_llm)
+  ) |>
+  filter(!is.na(mean_gamma), !is.na(mean_beta))
 
-spearman_l3 <- cor.test(l3_for_corr$mean_gamma, l3_for_corr$freq_llm,
-                        method = "spearman", exact = FALSE)
+scatter_long <- l3_combined |>
+  filter(freq_llm > 0) |>
+  select(l3, l2, freq_llm, mean_beta, mean_gamma) |>
+  pivot_longer(cols = c(mean_beta, mean_gamma),
+               names_to = "parameter", values_to = "value") |>
+  mutate(
+    parameter = recode(parameter,
+      mean_beta  = "beta (pre-existing trend 2010-2022)",
+      mean_gamma = "gamma (post-2023 excess above trend)"
+    ),
+    l3_short = sub("^L3-\\d+: ", "", l3)
+  )
 
-set.seed(42)
-n_perm <- 10000
-perm_l3 <- replicate(n_perm, {
-  cor(sample(l3_for_corr$mean_gamma), l3_for_corr$freq_llm, method = "spearman")
-})
+top_labels <- l3_combined |>
+  filter(freq_llm > 0) |>
+  slice_max(freq_llm, n = 10) |>
+  pull(l3)
 
-perm_df <- tibble(rho = perm_l3)
-obs_rho <- spearman_l3$estimate
+scatter_long <- scatter_long |>
+  mutate(show_label = l3 %in% top_labels)
 
-plot_g5 <- ggplot(perm_df, aes(x = rho)) +
-  geom_histogram(bins = 60, fill = "grey70", colour = "grey50") +
-  geom_vline(xintercept = obs_rho, colour = "#D55E00", linewidth = 1) +
-  annotate("text", x = obs_rho, y = Inf,
-           label = sprintf("rho = %.3f", obs_rho),
-           vjust = 2, hjust = -0.1, colour = "#D55E00", size = 3.5) +
-  labs(
-    title = "L3-level Spearman rank correlation: LLM recommendation count vs. mean gamma",
-    subtitle = "Grey = permutation null (10,000 shuffles); red line = observed (242 methods)",
-    x = expression("Spearman" ~ rho), y = "Count"
+plot_g4 <- ggplot(scatter_long, aes(x = value, y = freq_llm)) +
+  geom_point(alpha = 0.5, size = 2, colour = "#0072B2") +
+  geom_text_repel(
+    data = filter(scatter_long, show_label),
+    aes(label = l3_short), size = 2.5, max.overlaps = 15,
+    segment.alpha = 0.3
   ) +
-  theme_minimal(base_size = 11)
+  geom_vline(xintercept = 0, linetype = "dashed", colour = "grey50") +
+  facet_wrap(~parameter, scales = "free_x") +
+  scale_y_log10() +
+  labs(
+    title = "Were the recommended methods already growing before LLMs?",
+    subtitle = "Each point = one L3 method with >= 1 recommendation (log scale). Left: pre-existing trend; right: post-2023 excess.",
+    x = "Posterior mean", y = "LLM recommendation count (log scale)"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(strip.text = element_text(size = 10, face = "bold"))
 
-ggsave(file.path(OUT_DIR, "plot_rank_correlation.png"), plot_g5,
-       width = 7, height = 5, dpi = 200, bg = "white")
-cat("G5 saved.\n")
+ggsave(file.path(OUT_DIR, "plot_beta_gamma_scatter.png"), plot_g4,
+       width = 12, height = 6, dpi = 200, bg = "white")
+cat("G4 saved.\n")
 
 # ── Summary stats ────────────────────────────────────────────────────────────
 
 cat("\n=== Summary ===\n")
-cat(sprintf("L3-level Spearman: rho = %.3f, p = %.3f\n",
-            spearman_l3$estimate, spearman_l3$p.value))
-cat(sprintf("L2-level Spearman (delta share vs LLM share): rho = %.3f, p = %.3f\n",
-            rho_l2, p_l2))
-cat(sprintf("L3 permutation p (one-sided, rho >= obs): %.4f\n",
-            mean(perm_l3 >= spearman_l3$estimate)))
+
+rec_with_params <- l3_combined |> filter(freq_llm > 0)
+cat(sprintf("L3 methods with >= 1 rec: %d\n", nrow(rec_with_params)))
+
+cor_beta  <- cor(rec_with_params$mean_beta, log1p(rec_with_params$freq_llm),
+                 method = "spearman")
+cor_gamma <- cor(rec_with_params$mean_gamma, log1p(rec_with_params$freq_llm),
+                 method = "spearman")
+cor_pre   <- cor(l2_agg$share_pre, l2_agg$share_llm, method = "spearman")
+cat(sprintf("L3 Spearman (beta vs log LLM count): rho = %.3f\n", cor_beta))
+cat(sprintf("L3 Spearman (gamma vs log LLM count): rho = %.3f\n", cor_gamma))
+cat(sprintf("L2 Spearman (pre-2023 share vs LLM share): rho = %.3f\n", cor_pre))
 
 cat("\nAll graphs saved to:", OUT_DIR, "\n")

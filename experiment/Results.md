@@ -49,27 +49,23 @@ Aggregating to the 25 L2 sub-disciplines shows a striking pattern. The LLM massi
 
 <img src="../data/output/figures/exploratory/plot_l2_triple_bar.png" width="700">
 
-The L2-level scatter plot tests whether the LLM preferentially recommends sub-disciplines that grew post-2023. The Spearman rank correlation between post-2023 share shift (post minus pre) and LLM recommendation share is ρ = 0.120 (p = 0.568) — no meaningful association. The LLM's strong preferences (Network Analysis, ABM) are not aligned with which sub-disciplines gained or lost share.
+### Were the recommended methods already growing before LLMs?
 
-<img src="../data/output/figures/exploratory/plot_l2_scatter.png" width="600">
+This is the key confounding question: maybe the LLM simply recommends methods that were already on an upward trajectory, and those methods continued to grow for reasons unrelated to LLMs. The main model separates the pre-existing trend (β, the long-run slope 2010–2022) from the post-2023 excess (γ, the additional shift above the pre-existing trend). If the LLM tracks pre-existing growth, we'd see high recommendation counts for methods with positive β. If it tracks post-2023 acceleration specifically, we'd see alignment with positive γ.
 
-### Non-parametric rank correlation at L3
+The two-panel scatter below tests both. Each point is an L3 method that received at least one recommendation (205 methods). Neither panel shows a relationship: the most-recommended methods (Process-Based Simulation Models, Network Analysis, NLP, GIS) span the full range of both β and γ. The LLM's preferences are orthogonal to both pre-existing growth and post-2023 acceleration.
 
-At L3 level (242 methods), the Spearman rank correlation between recommendation count and mean γ is ρ = −0.007 (p = 0.917) — dead null. A permutation test (10,000 shuffles) confirms: the observed ρ falls squarely within the null distribution.
-
-Note: aggregating L3 gammas to L2 level is not meaningful for this test. The main model estimates γ compositionally *within* each L2 group, so the weighted mean of L3 gammas per L2 group is near-zero by construction (range: −2.8 × 10⁻⁶ to +1.9 × 10⁻⁶). The valid L2-level test of post-2023 alignment is the delta-share scatter above (G4: ρ = 0.120, n.s.).
-
-<img src="../data/output/figures/exploratory/plot_rank_correlation.png" width="520">
+<img src="../data/output/figures/exploratory/plot_beta_gamma_scatter.png" width="700">
 
 ### What these descriptive analyses suggest
 
-Three patterns emerge from the descriptive analysis:
+Three patterns emerge:
 
-1. **Extreme concentration.** The LLM's recommendations are far more concentrated than the published literature. A handful of methods (ABM, network analysis, GIS, NLP) absorb most recommendations, regardless of expertise level.
+1. **Extreme concentration.** The LLM's recommendations are far more concentrated than the published literature. A handful of methods (ABM, network analysis, GIS, NLP) absorb most recommendations, regardless of expertise level. At L2, the LLM massively over-recommends Network Analysis, ABM, and ML relative to their actual literature share.
 
 2. **The LLM recommends popular, established methods.** The most-recommended L3 methods tend to have negative γ (losing share post-2023, relative to trend). The LLM appears to recommend from its training corpus — methods that were prominent before 2023 — rather than tracking post-2023 shifts.
 
-3. **No alignment with post-2023 growth at any granularity.** Neither the L3 rank correlation (ρ ≈ 0) nor the L2 delta-share scatter (ρ = 0.12, n.s.) shows the positive association predicted by the mean-collapse hypothesis.
+3. **Neither pre-existing growth nor post-2023 excess predicts recommendations.** The two-panel scatter shows that the LLM's preferences are independent of both β (pre-existing trajectory) and γ (post-2023 excess). The LLM is not chasing methods that were already rising, nor methods that specifically accelerated after LLM adoption. It is recommending the most *recognisable* methods — those with the largest training-corpus footprint — regardless of their temporal trajectory.
 
 These descriptive patterns are consistent with the Bayesian regression's null result (below) and suggest that the null finding is not an artifact of the regression framework. The distributional test (Sensitivity C) found a credible positive signal using cosine similarity between whole frequency vectors — but that test measures whether the LLM's *overall distribution shape* resembles the post-2023 literature more than the pre-2023 literature, which is a different and weaker claim than "the LLM recommends the methods that gained share." The descriptive analysis here shows the LLM does not preferentially target gaining methods; rather, its broad distributional profile happens to be marginally closer to the post-2023 mix.
 
