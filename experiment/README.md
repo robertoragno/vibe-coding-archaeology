@@ -156,11 +156,15 @@ The number of iterations should be sufficient to cover the full combinatorial sp
 
 ---
 
-## The model
+## The models
 
-**Qwen3 (local instance).** A local model is used for two reasons: (1) the number of iterations required makes API costs prohibitive; (2) a local model with a fixed checkpoint ensures reproducibility — the same prompt always produces the same output distribution. The model version and training cutoff must be reported explicitly in any publication, as the mean collapse signal is model-specific and cutoff-dependent.
+The experiment is run with two local LLMs to test whether recommendation behaviour is model-specific or structural.
 
-The system prompt is identical across all profiles and all iterations. Temperature is set to a low value to minimise stochastic variation and isolate the structural recommendation behaviour of the model.
+**Qwen3 (local instance).** The primary model. A local model is used for two reasons: (1) the number of iterations required makes API costs prohibitive; (2) a local model with a fixed checkpoint ensures reproducibility — the same prompt always produces the same output distribution.
+
+**Gemma (local instance).** A second model from a different family (Google DeepMind) run with the identical pipeline, prompts, and sampling design. If both models produce the same concentration pattern despite different training corpora, the finding is more likely a structural property of LLMs in general rather than an artefact of one model's training data.
+
+The system prompt is identical across all profiles, all iterations, and both models. Temperature is set to a low value to minimise stochastic variation and isolate the structural recommendation behaviour. The model version and training cutoff must be reported explicitly in any publication, as the mean collapse signal is model-specific and cutoff-dependent.
 
 ---
 

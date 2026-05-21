@@ -16,7 +16,15 @@ The prior on sigma_gamma (`exponential(4)`) is intentionally tighter than the pr
 
 The primary analysis operates at the L2-to-L3 level: within each sub-discipline, we watch the fine-grained technique mix evolve. As a robustness check on the temporal assumption, we re-run the primary analysis with the `post_llm` break set at 2022 (ChatGPT's launch) rather than 2023; stability of gamma estimates across both breakpoints strengthens the temporal inference. A second sensitivity analysis models the inverse Simpson diversity index directly at the L2 group level, testing whether sub-discipline-level homogenisation is detectable outside the compositional framework.
 
-The bibliometric analysis is paired with a prompting experiment. We systematically query Qwen3 (fixed local checkpoint) at three simulated expertise levels and with three types of methodological question, and classify each response into the same L3 taxonomy using Qwen. This gives us a direct estimate of what methods Qwen3 currently recommends. We then correlate recommendation frequency with the posterior mean gamma for each method. Critically, this comparison is made against **gamma specifically** — the excess share post-2023 above the pre-existing trend — rather than against raw method prevalence. This is what allows us to distinguish between two alternative explanations: the model recommending methods that were already trending before 2023 (reflecting its training data) versus recommending methods that accelerated specifically after LLM adoption (consistent with causal influence on research practice). If LLMs are driving convergence, the methods Qwen3 recommends most often should be the ones whose post-2023 share increased most in the published literature, after accounting for prior trajectories.
+The bibliometric analysis is paired with a prompting experiment. We systematically query two local LLMs — Qwen3 (Alibaba) and Gemma (Google DeepMind) — at three simulated expertise levels with methodological questions, and classify each response into the same L3 taxonomy. This gives a direct estimate of what methods each LLM currently recommends. Using two models from different families with different training corpora tests whether recommendation behaviour is model-specific or structural.
+
+The key analytical step is a two-predictor negative-binomial regression that separates training-corpus prevalence from post-2023 trajectory:
+
+```
+n_rec[i] ~ NB2(exp(alpha + b_pre * log1p(n_pre[i]) + b_gamma * gamma[i]), phi)
+```
+
+where `n_pre[i]` is the pre-2023 literature count for method *i* (a proxy for training-corpus exposure) and `gamma[i]` is the signed post-2023 excess. If `b_pre` is positive and `b_gamma` is near zero, the LLM is reflecting its training data but not tracking post-2023 shifts. If both are positive, the LLM is doing both. This separation is critical because a single-predictor regression on gamma alone conflates the two mechanisms.
 
 The model is validated through a four-stage Bayesian workflow following Gelman et al. (2020): prior predictive checks confirm the priors generate plausible diversity values; posterior predictive checks show all 25 L2 groups are well-calibrated (see [workflow checks](docs/workflow_results.md)); fake-data simulation confirms sigma_gamma is identifiable through hierarchical aggregation across groups; and phi is estimated from data — the posterior concentrates at phi ≈ 1133, confirming the field is compositionally regular.
 
@@ -58,25 +66,27 @@ Individual estimates should be read as directional indicators, not precise effec
 
 **Step 3 — Does the LLM's recommendation profile match the post-2023 literature?**
 
-The prompting experiment queries Qwen3 (fixed local checkpoint) at 3 expertise levels with 3 question types, classifies each response into the L3 taxonomy via Qwen, and tests whether the LLM's recommendations align with post-2023 methodological shifts. We approach this from three angles: a Bayesian regression on individual method gammas, a distributional comparison, and descriptive exploratory analysis. See `experiment/Results.md` for detailed results.
+The prompting experiment queries Qwen3 and Gemma at 3 expertise levels with 28 archaeological research questions, classifies each response into the L3 taxonomy, and tests whether the LLM's recommendations align with post-2023 methodological shifts. We approach this from four angles. See `experiment/Results.md` for detailed results.
 
-*Regression on individual gammas.* A Bayesian negative-binomial regression (`n_rec[i] ~ NegBin2(exp(α + β × γ̄ᵢ), φ)`) tests whether methods that gained share post-2023 (positive γ) are recommended more often. The overall β posterior is negative (mean = −0.309, 90% CI crossing zero). All expertise profiles show the same pattern. The LLM does not preferentially recommend the specific methods that gained share post-2023.
+*Two-predictor regression (primary test).* A Bayesian negative-binomial regression separates training-corpus prevalence (`b_pre`) from post-2023 trajectory (`b_gamma`). The result is unambiguous: `b_pre` is credibly positive in all 8 conditions (2 models × 4 profiles, P > 0 = 1.000) — both LLMs recommend methods in proportion to their pre-2023 corpus presence. `b_gamma` is indistinguishable from zero in every condition (P ranges 0.518–0.594) — after controlling for prevalence, neither LLM shows any sensitivity to post-2023 trajectory. The LLMs reflect their training data, not recent shifts.
 
-*Distributional test.* Comparing the *whole* LLM recommendation distribution to pre- vs. post-2023 method frequency vectors finds that recommendations are credibly closer to the post-2023 literature (posterior predictive delta cosine = +0.071, 90% CI [+0.058, +0.085]), with the profile gradient matching the mean-collapse prediction (novice > intermediate > expert). This is a weaker claim than the regression: it says the LLM's *overall distributional shape* resembles the post-2023 mix, not that it targets specific gaining methods.
+*Concentration analysis (with Bayesian uncertainty).* The Inverse Simpson index, computed with full Dirichlet-conjugate posterior uncertainty, confirms that both LLMs are dramatically more concentrated than the literature. Posterior medians: literature 88–114 effective methods; Qwen3 overall 32 [30.5, 33.4]; Gemma overall 29 [28.0, 30.4]. The gap is credible (P = 1.000). The profile gradient (novice < intermediate < expert) survives with full uncertainty, and the novice b_pre is the largest (Qwen3 novice: +1.048 vs expert: +0.417), explaining the concentration gradient mechanistically: less-constrained prompts allow the LLM to default more heavily to corpus frequency.
 
-*Exploratory descriptive analysis* (`R/07_exploratory_graphs.R`). The LLM's recommendations are dramatically more concentrated than the published literature. Measured by the Inverse Simpson index: the literature uses 86–111 effective methods (rising over time), while the LLM recommends with only 38 effective methods overall — and just 20 for the novice profile. The mechanism for mean collapse is clearly present. However, the LLM's concentrated recommendations are independent of both pre-existing trends (β) and post-2023 acceleration (γ). The LLM recommends the most *recognisable* methods (ABM, network analysis, GIS, NLP) regardless of their temporal trajectory.
+*Cross-model replication.* Qwen3 and Gemma agree moderately on which methods to recommend (Spearman rho = 0.595) but produce the same structural concentration pattern. Gemma is credibly more concentrated than Qwen3 overall (P = 0.992 for the difference). The concentration mechanism is model-independent; the specific recommendations are not.
+
+*Distributional test.* The LLM's overall distributional shape is credibly closer to the post-2023 literature than the pre-2023 literature (delta cosine = +0.071, 90% CI [+0.058, +0.085]), with a novice > intermediate > expert gradient. This weaker, non-directional signal is consistent with the LLM reflecting a recent training corpus rather than actively tracking post-2023 trends.
 
 **What the results mean in plain terms**
 
 The mean-collapse hypothesis has two parts: (1) the LLM recommends a narrow set of methods, and (2) the literature converges toward that set. The evidence supports (1) but not (2).
 
-The LLM's recommendation diversity (38 effective methods) is roughly a third of the literature's (~100 effective methods). The novice profile is even more concentrated (20 effective methods), consistent with the idea that unconstrained LLM advice is the most homogenising. The mechanism for convergence is demonstrably present.
+Both LLMs recommend methods in direct proportion to their pre-2023 corpus prevalence. The less guidance a researcher provides, the stronger this prevalence effect — producing a recommendation distribution roughly a third as diverse as the published literature. The mechanism for convergence is demonstrably present, structural across two model families, and quantified with full Bayesian uncertainty.
 
-But the literature has not converged. The Inverse Simpson index has risen from ~63 (2010) to ~105 (2026), and this diversifying trend continued uninterrupted through the post-2023 period. sigma_gamma = 0.110 [0.010, 0.222] shows weak evidence of post-2023 reshuffling, but its magnitude is smaller than the pre-existing trend (sigma_gamma < sigma_beta, 0.110 vs 0.288), and no individual method shows a credible shift. The sensitivity analyses (2022-break, diversity trajectory) are consistently null.
+But the literature has not converged. The Inverse Simpson index has risen from ~88 (pre-2023) to ~114 (post-2023), and this diversifying trend continued uninterrupted through the post-LLM period. sigma_gamma = 0.110 [0.010, 0.222] shows weak evidence of post-2023 reshuffling, but its magnitude is smaller than the pre-existing trend (sigma_gamma < sigma_beta, 0.110 vs 0.288), and no individual method shows a credible shift.
 
-Moreover, the LLM's concentrated recommendations do not target the methods that are actually changing. Neither pre-existing growth (β) nor post-2023 excess (γ) predicts what the LLM recommends. It recommends from training-corpus prominence — methods that were well-represented before 2023 — regardless of whether those methods are currently rising or falling.
+The two-predictor regression resolves the key ambiguity in the earlier single-predictor analysis, which produced negative beta posteriors. That negative direction was a confound: the most prevalent pre-2023 methods (which the LLM favours) happen to have slightly negative gamma (they were already large and stable, not post-2023 gainers). Once prevalence is separated from gamma, the apparent negative relationship disappears — the LLM is simply indifferent to post-2023 trajectory.
 
-The honest summary: LLMs have the potential to narrow methodological choice (the gun is loaded), but 3–4 years after widespread adoption, the field continues to diversify (it has not fired). Whether this reflects low adoption rates, researcher selectivity in which LLM advice they follow, or countervailing forces toward specialisation — we cannot distinguish with this data.
+The honest summary: LLMs recommend from training-corpus prominence (the gun is loaded), but 3–4 years after widespread adoption, the field continues to diversify (it has not fired). Whether this reflects low adoption rates, researcher selectivity in which LLM advice they follow, or countervailing forces toward specialisation — the current data cannot distinguish.
 
 ## Sensitivity Analyses
 
@@ -103,7 +113,10 @@ Models inv_simpson directly at L2 group level with the same two-slope structure.
 | L2→L3 primary | Within each sub-discipline, specific technique shares over time | [View](docs/l2_l3_results.md) |
 | L1→L2 sensitivity | Within each broad family, sub-discipline shares over time (not applicable with taxonomy v3) | [View](docs/l1_l2_results.md) |
 | Bayesian workflow | Prior predictive, PPC, fake data recovery, phi sensitivity | [View](docs/workflow_results.md) |
-| Step 3 experiment | LLM recommendation vs. post-2023 gamma (NB regression + exploratory) | [View](experiment/Results.md) |
+| Step 3: NB regression | Single-predictor NB on gamma (Qwen3 + Gemma) | [View](experiment/Results.md) |
+| Step 3: Concentration | Dirichlet-conjugate concentration posteriors (both models × 3 profiles) | [View](experiment/Results.md) |
+| Step 3: Prevalence vs trajectory | Two-predictor NB separating corpus prevalence from post-2023 shifts | [View](experiment/Results.md) |
+| Cross-model comparison | Qwen3 vs Gemma recommendation patterns and divergences | [View](experiment/Results.md) |
 | Sensitivity A | Count-threshold variant of Step 3 (>=50 papers) | [View](R/sensitivity/README.md) |
 | Sensitivity B | Step 3 with v2→v3 taxonomy remapping (85% match) | [View](docs/step3_remapped_results.md) |
 | Sensitivity C | Distributional test: LLM vs pre/post-2023 (cosine, permutation) | [View](docs/distributional_test_results.md) |
@@ -111,7 +124,7 @@ Models inv_simpson directly at L2 group level with the same two-slope structure.
 
 ## Future directions
 
-The analysis identifies a clear gap between the LLM's concentrated recommendations (38 effective methods) and the literature's continuing diversification (~100 effective methods). Two design improvements could determine whether this gap will close:
+The analysis identifies a clear gap between the LLM's concentrated recommendations (29–32 effective methods) and the literature's continuing diversification (~114 effective methods). Two design improvements could determine whether this gap will close:
 
 1. **More post-LLM years.** With only 3–4 post-LLM years, gamma is weakly identified by construction (0/242 methods reach sig90). Rerunning in 2028 with 5–6 post-LLM years would substantially sharpen the estimates and reveal whether the diversification trend has slowed, plateaued, or reversed.
 
@@ -122,70 +135,85 @@ The analysis identifies a clear gap between the LLM's concentrated recommendatio
 The scripts must be run in this order (each depends on outputs from earlier steps):
 
 ```
-00_data_prep.R          → stan_data.rds, vocab.rds
-01_fit_model.R          → MCMC fit (phi-free model)
-02_extract_plot.R       → L2→L3 posteriors, diversity plots
-inspect_gamma.R         → gamma_results.csv (used by 05 and 06)
-03_l1_l2_analysis.R     → L1→L2 sensitivity (not applicable with taxonomy v3 — no L1)
-04_workflow_checks.R    → Bayesian workflow validation
-05_robustness_2022.R    → 2022-break robustness check
-06_step3_llm_comparison.R → LLM recommendation vs gamma (requires inspect_gamma output)
-07_exploratory_graphs.R   → Descriptive exploratory graphs (requires 06 outputs + fit)
+# Core bibliometric pipeline
+00_data_prep.R            → stan_data.rds, vocab.rds
+01_fit_model.R            → MCMC fit (phi-free Dirichlet-Multinomial)
+02_extract_plot.R         → L2→L3 posteriors, diversity plots
+inspect_gamma.R           → gamma_results.csv (used by 05, 06, 08, 09)
+03_l1_l2_analysis.R       → L1→L2 sensitivity (not applicable with v3 taxonomy)
+04_workflow_checks.R      → Bayesian workflow validation
+05_robustness_2022.R      → 2022-break robustness check
 
-# Sensitivity (not part of main pipeline; run after 06)
+# Experiment: single-predictor NB regression (n_rec ~ gamma)
+06_step3_llm_comparison.R       → Qwen3 NB regression on gamma
+06b_step3_llm_comparison_gemma.R → Gemma NB regression on gamma
+
+# Experiment: exploratory descriptive analysis
+07_exploratory_graphs.R         → Qwen3 exploratory graphs
+07b_exploratory_gemma.R         → Gemma exploratory + cross-model comparison
+
+# Experiment: Bayesian concentration posteriors
+08_experiment_concentration.R   → Dirichlet-conjugate inv_simpson posteriors
+
+# Experiment: two-predictor regression (n_rec ~ n_pre + gamma)
+09_literature_vs_llm.R          → Separates corpus prevalence from post-2023 trajectory
+
+# Sensitivity (standalone, run after main pipeline)
 R/sensitivity/06b_step3_count_threshold.R → Count-threshold variant of Step 3
 R/sensitivity/07_diversity_trajectory.R   → Direct diversity trajectory model
+R/sensitivity/08_step3_v2_remapped.R      → v2→v3 taxonomy remapping
+R/sensitivity/09_distributional_test.R    → Distributional cosine test
 ```
 
-Scripts 03–04 and 05–06 can run in parallel within their pairs. `inspect_gamma.R` sits between 02 and the downstream scripts because it produces `data/output/phi_free/gamma_results.csv`, which scripts 05 and 06 read directly. The sensitivity scripts in `R/sensitivity/` are standalone and can be run after the main pipeline completes.
+Scripts 03–04 and 05–06 can run in parallel within their pairs. `inspect_gamma.R` sits between 02 and the downstream scripts because it produces `data/output/phi_free/gamma_results.csv`. The experiment scripts (06–09) require gamma_results.csv and the experiment CSVs in `experiment/analysis/`.
 
 ## Repository structure
 
 ```
 ├── R/
-│   ├── 00_data_prep.R          # Data loading & Stan data preparation
-│   ├── 01_fit_model.R          # L2→L3 primary model (cmdstanr, phi-free)
-│   ├── 02_extract_plot.R       # Extract posteriors & generate L2→L3 plots
-│   ├── 03_l1_l2_analysis.R     # L1→L2 sensitivity analysis
-│   ├── 04_workflow_checks.R    # Bayesian workflow validation
-│   ├── 05_robustness_2022.R    # 2022-break robustness check
-│   ├── 06_step3_llm_comparison.R  # LLM recommendation vs gamma
-│   ├── 07_exploratory_graphs.R    # Descriptive exploratory analysis
-│   ├── inspect_gamma.R         # Quick gamma posterior inspection
-│   ├── sensitivity/
-│   │   ├── README.md              # Sensitivity analysis descriptions
-│   │   ├── 06b_step3_count_threshold.R  # Count-threshold Step 3 variant
-│   │   └── 07_diversity_trajectory.R    # Direct diversity trajectory model
-│   └── archive/                # Deprecated scripts
+│   ├── 00_data_prep.R                     # Data loading & Stan data preparation
+│   ├── 01_fit_model.R                     # L2→L3 primary model (cmdstanr, phi-free)
+│   ├── 02_extract_plot.R                  # Extract posteriors & generate L2→L3 plots
+│   ├── 03_l1_l2_analysis.R               # L1→L2 sensitivity analysis
+│   ├── 04_workflow_checks.R              # Bayesian workflow validation
+│   ├── 05_robustness_2022.R              # 2022-break robustness check
+│   ├── 06_step3_llm_comparison.R         # Qwen3: single-predictor NB on gamma
+│   ├── 06b_step3_llm_comparison_gemma.R  # Gemma: single-predictor NB on gamma
+│   ├── 07_exploratory_graphs.R           # Qwen3 descriptive exploratory analysis
+│   ├── 07b_exploratory_gemma.R           # Gemma exploratory + cross-model comparison
+│   ├── 08_experiment_concentration.R     # Dirichlet-conjugate concentration posteriors
+│   ├── 09_literature_vs_llm.R            # Two-predictor NB: prevalence vs trajectory
+│   ├── inspect_gamma.R                   # Gamma posterior extraction
+│   ├── sensitivity/                      # Sensitivity and robustness analyses
+│   └── archive/                          # Deprecated scripts
 ├── stan/
-│   ├── diversity_model_phi_free.stan       # Primary L2→L3 model
-│   ├── l1_l2_diversity_model.stan          # L1→L2 fixed-phi model
-│   ├── l1_l2_diversity_model_phi_free.stan # L1→L2 phi-free model
-│   ├── poisson_gamma_regression.stan       # Step 3 NB regression
-│   └── diversity_trajectory.stan          # Sensitivity B: diversity trajectory
+│   ├── diversity_model_phi_free.stan     # Primary L2→L3 Dirichlet-Multinomial
+│   ├── poisson_gamma_regression.stan     # Single-predictor NB regression
+│   ├── nb2_prevalence_gamma.stan         # Two-predictor NB regression
+│   ├── diversity_trajectory.stan         # Direct diversity trajectory model
+│   ├── l1_l2_diversity_model.stan        # L1→L2 fixed-phi model
+│   └── l1_l2_diversity_model_phi_free.stan
 ├── data/
-│   ├── input/
-│   │   ├── taxonomy_v1/        # Original taxonomy data
-│   │   ├── taxonomy_v2/        # Previous taxonomy (3-level: L1/L2/L3)
-│   │   └── taxonomy_v3/        # Current taxonomy (2-level: L2/L3)
+│   ├── input/                            # Taxonomy and raw corpus data (gitignored)
 │   └── output/
-│       ├── figures/
-│       │   ├── l2_l3/          # Primary L2→L3 analysis plots
-│       │   ├── l1_l2/          # L1→L2 sensitivity plots
-│       │   ├── workflow/       # Bayesian workflow check plots
-│       │   ├── robustness/     # 2022-break robustness plots
-│       │   ├── step3/          # LLM comparison plots
-│       │   ├── exploratory/   # Descriptive exploratory plots
-│       │   └── sensitivity/   # Sensitivity analysis plots
-│       ├── phi_free/           # Gamma results CSV
-│       └── l2/                 # L1→L2 model fits
-├── docs/
-│   ├── l2_l3_results.md
-│   ├── l1_l2_results.md
-│   ├── workflow_results.md
-│   └── archive/
-└── experiment/
-    ├── prompts/
-    ├── responses/
-    └── analysis/
+│       ├── figures/                      # All analysis plots by subdirectory
+│       │   ├── l2_l3/                    # Primary analysis
+│       │   ├── step3/                    # Qwen3 NB regression
+│       │   ├── step3_gemma/              # Gemma NB regression
+│       │   ├── exploratory/              # Qwen3 descriptive
+│       │   ├── exploratory_gemma/        # Gemma descriptive
+│       │   ├── comparison/               # Cross-model comparison
+│       │   ├── concentration/            # Bayesian concentration posteriors
+│       │   ├── prevalence_gamma/         # Two-predictor regression
+│       │   └── ...                       # workflow, robustness, sensitivity, etc.
+│       └── phi_free/                     # Gamma and beta results CSVs
+├── docs/                                 # Analysis result documentation
+├── experiment/
+│   ├── README.md                         # Experiment design and methodology
+│   ├── Results.md                        # Detailed experiment results
+│   └── analysis/
+│       ├── experiment_results_QWEN.csv   # Qwen3 experiment output (v3 taxonomy)
+│       ├── experiment_results_GEMMA.csv  # Gemma experiment output
+│       └── archive/                      # Superseded experiment data
+└── logs/                                 # Runtime logs (gitignored)
 ```

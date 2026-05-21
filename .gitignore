@@ -1,24 +1,44 @@
+# Data
 data/input/
 data/output/fit.rds
 data/output/l2/fit_l2.rds
 data/output/inv_simpson_draws.rds
+data/output_taxonomy_v2_backup/
 *.rds
 !data/output/vocab.rds
 !data/output/stan_data.rds
 *.xlsx
+
+# R / IDE
 .Rhistory
 .RData
 .Rproj.user/
-logs/
-old_scripts/
+R.Rproj
+
+# Compiled Stan binaries
 stan/diversity_model
 stan/diversity_model.rds
-.DS_Store
-.claude/
-*.pdf
-R.Rproj
+stan/diversity_model_phi_free
+stan/diversity_trajectory
+stan/l1_l2_diversity_model
+stan/l1_l2_diversity_model_phi_free
+stan/poisson_gamma_regression
+stan/nb2_prevalence_gamma
+
+# Logs and scratch
+logs/
+old_scripts/
+gzfile
 telegram_stan_bot.R
 data/output/figure*.png
+
+# OS / editor
+.DS_Store
+.claude/
+
+# Mining (separate pipeline)
 Mining_Script/
-gzfile
+
+# Misc
+*.pdf
 

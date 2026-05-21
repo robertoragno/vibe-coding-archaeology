@@ -82,7 +82,7 @@ The LLM's effective method count is dramatically lower than the literature's —
 
 The published literature has been *diversifying* since 2010, and this trend continued uninterrupted through the post-2023 period — the within-group diversity trajectories in the [primary L2->L3 analysis](../docs/l2_l3_results.md) show no post-2023 downturn in most sub-disciplines. The LLM's overall diversity (30) sits below any year in the literature's history. The profile gradient (novice 18 < intermediate 26 < expert 53) matches the prediction: less-constrained prompts produce more concentrated output.
 
-### What these descriptive analyses suggest
+### What these descriptive analyses suggest (Qwen3)
 
 Four patterns emerge:
 
@@ -95,6 +95,121 @@ Four patterns emerge:
 4. **Neither pre-existing growth nor post-2023 excess predicts recommendations.** The two-panel scatter shows that the LLM's preferences are independent of both beta (pre-existing trajectory) and gamma (post-2023 excess). The LLM is not chasing methods that were already rising, nor methods that specifically accelerated after LLM adoption. It is recommending the most *recognisable* methods — those with the largest training-corpus footprint — regardless of their temporal trajectory.
 
 **Reconciling the concentration gap with the null regression.** The regression (below) asks: "do the *specific* methods gaining share align with LLM recommendations?" The concentration comparison asks: "is the LLM's *overall menu* narrower than the literature's?" These are different tests. The regression is null because the LLM's concentrated recommendations do not align with the particular methods that changed post-2023 — it recommends a narrow, stable set of established methods regardless of which methods are currently rising or falling. The distributional test (Sensitivity C) found a positive signal because the LLM's *overall shape* is marginally closer to the post-2023 literature than the pre-2023 literature — a weaker, non-directional claim about distributional resemblance.
+
+---
+
+## Gemma replication — exploratory descriptive analysis
+
+Script: `R/07b_exploratory_gemma.R`
+
+The same experiment pipeline was run with Gemma (Google DeepMind), a model from a different family with a different training corpus. The goal is to test whether the patterns observed with Qwen3 are model-specific or structural to LLMs in general. All prompts, sampling design, and L3 mapping procedures are identical.
+
+### Gemma experiment data summary
+
+| Metric | Gemma | Qwen3 |
+|---|---|---|
+| Total recommendations (consistent mappings) | 5,252 | 6,651 |
+| Distinct L3 methods covered | 165 | 194 |
+| L3 methods with >= 1 recommendation | 164 / 242 (68%) | 190 / 242 (78%) |
+| L3 mapping consistency rate | 96.5% | 96.2% |
+
+### Recommendations by profile
+
+| Profile | Gemma total | Gemma distinct L3 | Qwen3 total | Qwen3 distinct L3 |
+|---|---|---|---|---|
+| Novice | 1,716 | 78 | 2,398 | 128 |
+| Intermediate | 1,671 | 111 | 2,127 | 138 |
+| Expert | 1,865 | 150 | 2,126 | 165 |
+
+Gemma produces fewer recommendations per response than Qwen3 (~7.1 methods per novice response vs. ~9.9 for Qwen3), but the profile gradient is the same: novice responses list more methods per iteration, and expert responses cover more *distinct* methods.
+
+### What does Gemma recommend? (L4 level)
+
+<img src="../data/output/figures/exploratory_gemma/plot_top20_l4_gemma.png" width="600">
+
+### Gemma L3 recommendations and post-2023 trajectories
+
+<img src="../data/output/figures/exploratory_gemma/plot_top20_l3_gemma.png" width="600">
+
+The top method landscape differs from Qwen3 in important ways. Agent-Based Simulation (L3-220), Qwen3's most-recommended method (693 recommendations), drops to 6th place for Gemma (183). Network Analysis remains prominent in both models. Gemma instead favours GIS Modeling (L3-226, 447), Multivariate Statistical & Machine Learning Methods (L3-167, 464), and Time Series analysis (L3-136, 260) — the latter does not appear in Qwen3's top 10 at all. Of the Gemma top 10, 5 have negative gamma (losing share post-2023) and 5 have positive gamma, though none is credibly nonzero — a less lopsided split than Qwen3's 7/3.
+
+### Top 10 most-recommended L3 methods — Gemma
+
+| L3 method | Total | Mean gamma | sig90 |
+|---|---|---|---|
+| L3-080: Network Analysis and Modeling | 504 | -0.083 | FALSE |
+| L3-167: Multivariate Statistical & Machine Learning Methods | 464 | +0.028 | FALSE |
+| L3-226: Geographic Information System Modeling | 447 | -0.033 | FALSE |
+| L3-136: Time Series Stationarity and Causality | 260 | +0.012 | FALSE |
+| L3-193: Natural Language Processing | 228 | -0.033 | FALSE |
+| L3-220: Discrete and Agent-Based Simulation | 183 | -0.035 | FALSE |
+| L3-176: Imaging and Photogrammetric Analysis | 182 | +0.014 | FALSE |
+| L3-222: Spatial Autocorrelation and Geostatistics | 141 | +0.038 | FALSE |
+| L3-019: Principal Component Analysis Variants | 124 | -0.034 | FALSE |
+| L3-158: Bayesian Statistical Inference | 104 | -0.021 | FALSE |
+
+### L2-level comparison: Gemma vs. literature
+
+<img src="../data/output/figures/exploratory_gemma/plot_l2_triple_bar_gemma.png" width="700">
+
+### Gemma: pre-existing trend vs. post-2023 excess
+
+<img src="../data/output/figures/exploratory_gemma/plot_beta_gamma_scatter_gemma.png" width="700">
+
+As with Qwen3, neither beta (pre-existing trend) nor gamma (post-2023 excess) predicts which methods Gemma recommends. The most-recommended methods span the full range of both parameters.
+
+---
+
+## Cross-model comparison: Qwen3 vs Gemma
+
+Script: `R/07b_exploratory_gemma.R` (comparison section)
+
+### L3 frequency correlation
+
+<img src="../data/output/figures/comparison/plot_l3_qwen_vs_gemma.png" width="600">
+
+The Spearman rank correlation between Qwen3 and Gemma L3 recommendation frequencies is **rho = 0.595** — moderately strong but far from interchangeable. The two models agree on a broad set of popular methods (Network Analysis, GIS, ML, NLP, PCA) but diverge on which ones dominate. Of their respective top 20 L3 methods, 12 are shared and 8 are unique to each model.
+
+### Top recommended methods: model divergences
+
+<img src="../data/output/figures/comparison/plot_top10_qwen_vs_gemma.png" width="700">
+
+Key divergences:
+- **Agent-Based Simulation (L3-220):** Qwen3's top method (10.4% of recommendations) drops to 3.5% for Gemma.
+- **GIS Modeling (L3-226):** Gemma allocates 8.5% vs Qwen3's 3.7%.
+- **ML Methods (L3-167):** Gemma favours this more strongly (8.8% vs 4.5%).
+- **Time Series (L3-136):** Prominent for Gemma (5.0%) but absent from Qwen3's top 20.
+
+These differences likely reflect different distributions in each model's training corpus rather than any substantive difference in the underlying archaeological question.
+
+### Concentration comparison: the structural finding
+
+<img src="../data/output/figures/comparison/plot_concentration_comparison.png" width="700">
+
+| Distribution | Total recommendations | Effective methods (Inv. Simpson) | Methods covering 50% of mass |
+|---|---|---|---|
+| Pre-2023 literature | 8,495 | 86 | 34 |
+| Post-2023 literature | 6,660 | 111 | 41 |
+| Qwen3 overall | 6,651 | 30 | 15 |
+| Qwen3 — novice | 2,398 | 18 | 7 |
+| Qwen3 — intermediate | 2,127 | 26 | 12 |
+| Qwen3 — expert | 2,126 | 53 | 22 |
+| Gemma overall | 5,252 | 27 | 10 |
+| Gemma — novice | 1,716 | 17 | 6 |
+| Gemma — intermediate | 1,671 | 24 | 9 |
+| Gemma — expert | 1,865 | 40 | 15 |
+
+Gemma is slightly *more* concentrated than Qwen3 at every level (overall: 27 vs 30 effective methods; novice: 17 vs 18; expert: 40 vs 53). Both models preserve the same profile gradient: novice < intermediate < expert. Both are dramatically below the published literature (86–111 effective methods).
+
+### What the cross-model comparison adds
+
+Three findings strengthen the overall analysis:
+
+1. **The concentration mechanism is not model-specific.** Two models from different families (Alibaba vs Google DeepMind), with different training corpora, produce the same structural pattern: recommendation distributions far narrower than the published literature, with a monotone novice < intermediate < expert gradient. This is evidence that the concentration mechanism is a general property of LLM recommendation behaviour, not an artefact of one model.
+
+2. **The *specific* methods recommended are model-dependent.** The rank correlation (rho = 0.595) shows moderate agreement, but substantial divergences exist in which methods each model favours most. If researchers consult different LLMs, they may receive different specific method recommendations — but the overall *narrowness* of those recommendations is consistent.
+
+3. **Neither model tracks post-2023 trajectories.** Both models recommend established, recognisable methods regardless of their recent growth or decline. The mean-collapse mechanism — concentration of recommendations — is present in both, but neither model's specific recommendations align with the methods that actually changed share post-2023.
 
 ---
 
@@ -126,6 +241,8 @@ Of the 10 most-recommended methods, 7 have negative gamma (losing share post-202
 ---
 
 ## Bayesian negative-binomial regression (beta posteriors)
+
+> **Note:** This single-predictor regression conflates training-corpus prevalence with post-2023 trajectory. The [two-predictor model below](#two-predictor-nb2-regression-prevalence-vs-trajectory) separates them and resolves the apparent negative direction reported here.
 
 ### The generative story
 
@@ -197,7 +314,7 @@ The width of the posteriors and the negative direction reflect two structural li
 
 2. **Qwen3 is a proxy for the LLMs archaeologists are actually using.** The reshuffling in the corpus reflects whatever LLMs researchers were querying during 2023-2025 — primarily ChatGPT and GPT-4. Qwen3 is a different model from a different family with a different training corpus.
 
-The honest summary is: with the experiment data now properly classified against the v3 taxonomy and 190/242 methods covered, Step 3 provides a fair test of the mean-collapse hypothesis. The test finds no directional support — the LLM's recommendations are not aligned with methods gaining share post-2023. The remaining uncertainty comes from noisy gamma estimates and the proxy nature of Qwen3.
+The honest summary is: with the experiment data now properly classified against the v3 taxonomy and 190/242 methods covered, Step 3 provides a fair test of the mean-collapse hypothesis. The test finds no directional support — the LLM's recommendations are not aligned with methods gaining share post-2023. The Gemma replication (see below) partially addresses the proxy concern: a second model from a different family produces the same structural concentration pattern, suggesting the null result is not an artefact of Qwen3's specific training data. The remaining uncertainty comes from noisy gamma estimates.
 
 ---
 
@@ -225,23 +342,168 @@ All bars in Plot D are grey: all most-recommended methods have uncertain post-20
 
 ---
 
+## Gemma: Bayesian negative-binomial regression
+
+Script: `R/06b_step3_llm_comparison_gemma.R`
+
+The same negative-binomial regression is run on Gemma recommendation counts. The model, priors, and diagnostics are identical to the Qwen3 analysis above.
+
+### Convergence
+
+| Profile | Max Rhat | Min n_eff |
+|---|---|---|
+| Overall | 1.001 | 3646 |
+| Novice | 1.002 | 3990 |
+| Intermediate | 1.001 | 3653 |
+| Expert | 1.001 | 3588 |
+
+### Results
+
+| Profile | beta mean | 90% credible interval | P(beta > 0) |
+|---|---|---|---|
+| Overall | -0.426 | [-1.941, +1.132] | 0.323 |
+| Novice | -0.179 | [-1.749, +1.385] | 0.429 |
+| Intermediate | -0.359 | [-1.960, +1.254] | 0.365 |
+| Expert | -0.344 | [-1.930, +1.268] | 0.360 |
+
+### Gemma Plot A — Overall beta posterior
+
+<img src="../data/output/figures/step3_gemma/plot_beta_posterior_overall.png" width="520">
+
+### Gemma Plot B — Beta posterior by expertise profile
+
+<img src="../data/output/figures/step3_gemma/plot_beta_posterior_by_profile.png" width="520">
+
+### Gemma Plot C — Signed gamma vs. recommendation count
+
+<img src="../data/output/figures/step3_gemma/plot_gamma_vs_recommendations.png" width="520">
+
+### Gemma Plot D — Top 20 recommended methods and their post-2023 direction
+
+<img src="../data/output/figures/step3_gemma/plot_top_recommended_direction.png" width="520">
+
+### Cross-model regression comparison
+
+| Profile | Qwen3 beta | Qwen3 P(>0) | Gemma beta | Gemma P(>0) |
+|---|---|---|---|---|
+| Overall | -0.861 | 0.178 | -0.426 | 0.323 |
+| Novice | -0.729 | 0.220 | -0.179 | 0.429 |
+| Intermediate | -0.585 | 0.261 | -0.359 | 0.365 |
+| Expert | -0.285 | 0.386 | -0.344 | 0.360 |
+
+Both models produce negative beta posteriors with CIs crossing zero — the same qualitative null result. Gemma's posteriors are less negative than Qwen3's (overall: -0.426 vs -0.861), but both are centred well below zero and far from the positive values that the mean-collapse hypothesis predicts.
+
+The profile gradient differs between models. Qwen3 shows the reversed gradient (novice most negative, expert least), while Gemma's profile posteriors are flatter and do not show a clear ordering. In both cases the profile differences are not credible — the posteriors overlap substantially. The consistent finding is that no profile, in either model, shows evidence of positive beta.
+
+---
+
+## Bayesian concentration posteriors
+
+Script: `R/08_experiment_concentration.R`
+
+The inverse Simpson indices reported in the exploratory section are point estimates from raw counts — they carry no uncertainty. This section replaces them with full posterior distributions via the conjugate Dirichlet update. Given a count vector n = (n_1, ..., n_K) across K = 242 methods, the posterior over proportions is Dir(1 + n_1, ..., 1 + n_K). Drawing from this posterior and computing inv_simpson = 1 / sum(p_k^2) on each draw gives a full distribution over effective method counts.
+
+### Posterior concentration summary
+
+| Distribution | Median effective methods | 90% CI |
+|---|---|---|
+| Pre-2023 literature | 88.4 | [85.4, 91.4] |
+| Post-2023 literature | 113.6 | [110.5, 116.9] |
+| Qwen3 — overall | 32.0 | [30.5, 33.4] |
+| Qwen3 — novice | 21.4 | [20.0, 22.9] |
+| Qwen3 — intermediate | 30.9 | [28.6, 33.4] |
+| Qwen3 — expert | 60.9 | [57.0, 64.9] |
+| Gemma — overall | 29.2 | [28.0, 30.4] |
+| Gemma — novice | 20.9 | [19.4, 22.4] |
+| Gemma — intermediate | 29.8 | [27.6, 32.0] |
+| Gemma — expert | 47.2 | [43.7, 50.6] |
+
+<img src="../data/output/figures/concentration/plot_concentration_posteriors.png" width="700">
+
+### Posterior contrasts
+
+The conjugate posterior allows direct probability statements about concentration differences:
+
+- **Qwen3 vs Gemma (overall):** Qwen3 is credibly more diverse than Gemma (median difference = +2.8 effective methods, 90% CI [+0.9, +4.6], P(Qwen > Gemma) = 0.992).
+- **Qwen3 vs Gemma (novice):** Not credibly different at this profile (median = +0.5, P = 0.657). Both novice profiles collapse to ~20 effective methods.
+- **Literature vs LLMs:** Both LLMs are credibly below the published literature (P = 1.000 in both cases). The post-2023 literature uses ~114 effective methods; the most concentrated LLM profile (Gemma novice) uses ~21 — a 5:1 ratio.
+
+The profile gradient (novice < intermediate < expert) is preserved in both models and survives with full posterior uncertainty. The literature's own diversification — from 88 effective methods pre-2023 to 114 post-2023 — is itself credibly nonzero (the CIs do not overlap). The field is diversifying while the LLMs recommend from a narrowing subset.
+
+---
+
+## Two-predictor NB2 regression: prevalence vs trajectory
+
+Script: `R/09_literature_vs_llm.R`  
+Stan model: `stan/nb2_prevalence_gamma.stan`
+
+### The question
+
+The single-predictor regression (sections above) asks: does gamma predict recommendation frequency? But this conflates two mechanisms. An LLM trained primarily on pre-2023 literature would naturally recommend methods that are prevalent in that corpus. If pre-2023 prevalence also correlates with gamma (because growing methods tend to be common), the regression picks up a training-data effect rather than a post-2023 tracking effect.
+
+The two-predictor model separates these:
+
+```
+n_rec[i] ~ NB2(exp(alpha + b_pre * log1p(n_pre[i]) + b_gamma * gamma[i]), phi)
+```
+
+where `n_pre[i]` is the number of pre-2023 papers using method *i* (a proxy for training-corpus exposure) and `gamma[i]` is the signed post-2023 excess. b_pre measures whether the LLM reflects its training data. b_gamma measures whether, *after controlling for training-data prevalence*, the LLM additionally tracks post-2023 shifts.
+
+### Results
+
+| Model | Profile | b_pre mean | b_pre 90% CI | P(b_pre > 0) | b_gamma mean | b_gamma 90% CI | P(b_gamma > 0) |
+|---|---|---|---|---|---|---|---|
+| Qwen3 | overall | +0.658 | [+0.504, +0.803] | 1.000 | +0.083 | [-1.470, +1.656] | 0.537 |
+| Qwen3 | novice | +1.048 | [+0.821, +1.281] | 1.000 | +0.107 | [-1.504, +1.684] | 0.547 |
+| Qwen3 | intermediate | +0.674 | [+0.490, +0.857] | 1.000 | +0.035 | [-1.470, +1.574] | 0.518 |
+| Qwen3 | expert | +0.417 | [+0.262, +0.574] | 1.000 | +0.224 | [-1.359, +1.761] | 0.586 |
+| Gemma | overall | +0.580 | [+0.411, +0.754] | 1.000 | +0.146 | [-1.422, +1.724] | 0.556 |
+| Gemma | novice | +0.684 | [+0.390, +0.991] | 1.000 | +0.087 | [-1.522, +1.659] | 0.531 |
+| Gemma | intermediate | +0.537 | [+0.332, +0.741] | 1.000 | +0.032 | [-1.569, +1.646] | 0.521 |
+| Gemma | expert | +0.506 | [+0.339, +0.671] | 1.000 | +0.218 | [-1.340, +1.780] | 0.594 |
+
+<img src="../data/output/figures/prevalence_gamma/plot_bpre_bgamma_posteriors.png" width="700">
+
+<img src="../data/output/figures/prevalence_gamma/plot_bpre_bgamma_by_profile.png" width="700">
+
+### Interpretation
+
+**b_pre is credibly positive in every condition.** Both models, all profiles, P(b_pre > 0) = 1.000. The LLMs recommend methods in proportion to how often those methods appeared in the pre-2023 literature. This is the training-data reflection effect: the models reach for methods they have seen most often.
+
+**b_gamma is indistinguishable from zero in every condition.** All 90% CIs cross zero, P(b_gamma > 0) ranges from 0.518 to 0.594. After controlling for training-corpus prevalence, neither LLM shows any sensitivity to post-2023 trajectory. The models neither chase methods that gained share post-2023 nor avoid methods that lost share — they are simply indifferent to post-2023 changes once pre-2023 prevalence is accounted for.
+
+**The novice profile has the strongest b_pre.** Qwen3 novice: b_pre = +1.048 vs expert: +0.417. Gemma shows the same pattern (novice +0.684 vs expert +0.506). The less methodological guidance the researcher provides, the more the LLM falls back on training-corpus prominence. This is the mechanism behind the concentration gradient: novice profiles produce narrower recommendations because they allow the LLM to default entirely to corpus frequency.
+
+**The previous single-predictor beta was negative because of a confound.** In the single-predictor model, beta was negative (overall: Qwen -0.861, Gemma -0.426). The two-predictor model resolves this: the LLM's recommendations scale with pre-2023 prevalence (positive b_pre), and the most prevalent pre-2023 methods happen to have slightly negative gamma (they were already large and stable, not post-2023 gainers). Once prevalence is separated from gamma, the apparent negative relationship disappears.
+
+---
+
 ## Overall assessment: did the paper succeed?
 
-The short answer is: **Steps 1-2 still hold weakly; Step 3 now provides a proper test and finds no support for mean collapse.**
+The short answer is: **Steps 1-2 still hold weakly; Step 3 finds no support for mean collapse but clearly identifies the underlying mechanism.**
 
 **What the paper delivers:**
 
 - **There is weak evidence of post-2023 reshuffling.** The main model (Steps 1-2) finds sigma_gamma = 0.110 [0.010, 0.222] — above zero but with the lower bound near it. Some reshuffling occurred, but its magnitude is small relative to long-run trends (sigma_gamma < sigma_beta, 0.110 vs 0.288). No individual method has a credible non-zero gamma at the 90% level.
 - **Sensitivity analyses are consistently null.** The 2022-break robustness check (sigma_gamma = 0.045), the count-threshold sensitivity (beta = -0.138), and the direct diversity trajectory model (sigma_gamma = 0.064) all return effectively null results.
+- **LLM recommendations are driven by training-corpus prevalence, not post-2023 trajectory.** The two-predictor NB2 regression cleanly separates the two mechanisms. b_pre is credibly positive in all 8 conditions (P = 1.000): both LLMs recommend methods proportional to their pre-2023 corpus presence. b_gamma is indistinguishable from zero in all conditions (P ranges 0.518–0.594): neither LLM tracks post-2023 shifts after controlling for prevalence.
+- **The concentration mechanism is structural and model-independent.** Both LLMs produce recommendation distributions dramatically narrower than the published literature (posterior median: 29–32 vs 88–114 effective methods). The profile gradient (novice < intermediate < expert) is preserved with full Bayesian uncertainty. The concentration gap is credible (P = 1.000 for literature vs either LLM).
 
 **What the paper does not deliver:**
 
-- **Step 3 finds no alignment between LLM recommendations and post-2023 gains.** With 190/242 methods now matched (up from 53/242 under the previous v2 classification), the regression has adequate coverage. All beta posteriors remain negative, meaning the LLM tends to recommend methods that *lost* share post-2023. The result is uninformative rather than contradictory — CIs cross zero — but the direction opposes the hypothesis.
+- **No evidence that LLM recommendations align with post-2023 gains.** The single-predictor regression produced negative beta posteriors, but the two-predictor model shows this was a confound: the most prevalent pre-2023 methods (which the LLM favours) happen to have slightly negative gamma. Once prevalence is controlled, the LLM is indifferent to post-2023 trajectory.
+- **The cross-model replication (Gemma) confirms the concentration mechanism is general** but does not change the null result: neither model's specific recommendations align with post-2023 gains.
 - **No individual method-level claims are credible.** 0/242 methods reach sig90.
 
 **Honest framing:**
 
-The evidence for post-2023 methodological reshuffling in computational archaeology is weak. Some reshuffling exists (sigma_gamma > 0), but it is small, uncertain, and dwarfed by pre-existing trends. With the experiment data now classified against the v3 taxonomy, Step 3 provides a proper test of the mean-collapse hypothesis and finds no directional support: the LLM's recommendations are not aligned with methods gaining share post-2023. The LLM is dramatically more concentrated than the literature (30 vs. 86-111 effective methods), confirming that the *mechanism* for mean collapse exists, but the *effect* has not manifested in the published literature.
+The evidence for post-2023 methodological reshuffling in computational archaeology is weak. Some reshuffling exists (sigma_gamma > 0), but it is small, uncertain, and dwarfed by pre-existing trends.
+
+The experiment clarifies *what LLMs actually do* when asked for methodological advice. They recommend methods in proportion to pre-2023 corpus prevalence (b_pre credibly positive, P = 1.000 in all conditions) and are indifferent to post-2023 trajectory (b_gamma indistinguishable from zero in all conditions). The less methodological guidance a researcher provides, the stronger this prevalence effect (novice b_pre > expert b_pre in both models), producing the concentration gradient observed in the inverse Simpson analysis.
+
+Both Qwen3 and Gemma produce recommendation distributions dramatically more concentrated than the published literature (29–32 vs 88–114 effective methods, with full Bayesian uncertainty confirming the gap). The mechanism for mean collapse — a narrow, corpus-frequency-driven recommendation distribution — is clearly present and is not model-specific. But the literature has not converged. The inverse Simpson index has risen from ~88 (pre-2023) to ~114 (post-2023), and this diversifying trend continued uninterrupted through the post-LLM period.
+
+The honest summary: LLMs recommend from training-corpus prominence (the gun is loaded), but 3–4 years after widespread adoption, the field continues to diversify (it has not fired). Whether this reflects low adoption rates, researcher selectivity in which LLM advice they follow, or countervailing forces toward specialisation — the current data cannot distinguish.
 
 ---
 
