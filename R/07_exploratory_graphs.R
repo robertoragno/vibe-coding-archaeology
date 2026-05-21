@@ -12,8 +12,8 @@ suppressPackageStartupMessages({
 
 # ── Paths ────────────────────────────────────────────────────────────────────
 
-EXPERIMENT_CSV <- here("experiment/analysis/experiment_results.csv")
-REMAPPED_CSV   <- here("data/output/step3_remapped_joined.csv")
+EXPERIMENT_CSV <- here("experiment/analysis/experiment_results_QWEN.csv")
+JOINED_CSV     <- here("data/output/step3_joined_table.csv")
 GAMMA_CSV      <- here("data/output/phi_free/gamma_results.csv")
 BETA_CSV       <- here("data/output/phi_free/beta_results.csv")
 STAN_DATA_RDS  <- here("data/output/stan_data.rds")
@@ -25,7 +25,7 @@ dir.create(OUT_DIR, recursive = TRUE, showWarnings = FALSE)
 # ── Load data ────────────────────────────────────────────────────────────────
 
 experiment <- read.csv(EXPERIMENT_CSV)
-remapped   <- read.csv(REMAPPED_CSV)
+joined   <- read.csv(JOINED_CSV)
 gamma_df   <- read.csv(GAMMA_CSV)
 beta_df    <- read.csv(BETA_CSV)
 stan_data  <- readRDS(STAN_DATA_RDS)
@@ -80,9 +80,9 @@ ggsave(file.path(OUT_DIR, "plot_top20_l4.png"), plot_g1,
        width = 8, height = 6, dpi = 200, bg = "white")
 cat("G1 saved.\n")
 
-# ── G2: Top 20 L3 methods with gamma coloring (remapped) ────────────────────
+# ── G2: Top 20 L3 methods with gamma coloring (joined) ────────────────────
 
-rec_gamma <- remapped |>
+rec_gamma <- joined |>
   filter(n_recommended_total > 0) |>
   arrange(desc(n_recommended_total)) |>
   head(20) |>
@@ -104,14 +104,14 @@ plot_g2 <- ggplot(rec_gamma, aes(x = n_recommended_total, y = l3_short, fill = m
   ) +
   scale_x_continuous(expand = expansion(mult = c(0, 0.15))) +
   labs(
-    title = "Top 20 recommended L3 methods (remapped, 205/242 match)",
+    title = "Top 20 recommended L3 methods (194/242 matched)",
     subtitle = expression("Bar colour = signed posterior mean" ~ gamma ~ "(red = gaining post-2023, blue = declining)"),
     x = "Total recommendations", y = NULL
   ) +
   theme_minimal(base_size = 11) +
   theme(legend.position = "bottom")
 
-ggsave(file.path(OUT_DIR, "plot_top20_l3_remapped.png"), plot_g2,
+ggsave(file.path(OUT_DIR, "plot_top20_l3.png"), plot_g2,
        width = 9, height = 6, dpi = 200, bg = "white")
 cat("G2 saved.\n")
 
@@ -141,7 +141,7 @@ for (g in seq_len(N_groups)) {
 l3_freq <- l3_vocab |>
   mutate(freq_pre = freq_pre, freq_post = freq_post)
 
-rec_vec <- setNames(remapped$n_recommended_total, remapped$l3)
+rec_vec <- setNames(joined$n_recommended_total, joined$l3)
 l3_freq$freq_llm <- rec_vec[l3_freq$l3]
 l3_freq$freq_llm[is.na(l3_freq$freq_llm)] <- 0
 
@@ -273,9 +273,9 @@ inv_simpson <- function(x) {
   1 / sum(p^2)
 }
 
-rec_novice  <- setNames(remapped$n_recommended_novice, remapped$l3)
-rec_inter   <- setNames(remapped$n_recommended_intermediate, remapped$l3)
-rec_expert  <- setNames(remapped$n_recommended_expert, remapped$l3)
+rec_novice  <- setNames(joined$n_recommended_novice, joined$l3)
+rec_inter   <- setNames(joined$n_recommended_intermediate, joined$l3)
+rec_expert  <- setNames(joined$n_recommended_expert, joined$l3)
 
 freq_novice  <- rec_novice[l3_vocab$l3];  freq_novice[is.na(freq_novice)] <- 0
 freq_inter   <- rec_inter[l3_vocab$l3];   freq_inter[is.na(freq_inter)] <- 0
