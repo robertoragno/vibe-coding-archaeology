@@ -8,6 +8,18 @@ Think of each sub-discipline as a menu: from 2010 to 2022, some techniques were 
 
 Crucially, the model does not ask "did overall diversity increase or decrease?" It asks "did the mix of methods within sub-disciplines change heterogeneously?" A large sigma_gamma is consistent with convergence (many methods declining, a few rising) or fragmentation (many methods rising from obscurity) — the direction is determined by the individual gamma estimates, not sigma_gamma itself.
 
+### Why proportions, not raw counts
+
+Computational archaeology published roughly 200 papers in 2010 and over 900 in 2025. If Network Analysis appeared in 20 papers in 2010 and 90 in 2025, a raw-count model would see a 4.5× increase. But the field itself grew 4.5× — Network Analysis held a steady ~10% share. A raw count model (e.g. Poisson or negative-binomial on per-method paper counts) confuses "the field grew" with "this method changed." Proportions are the right quantity for the convergence question: convergence means a few methods capturing a larger *share*, not that more papers exist.
+
+The Dirichlet-Multinomial handles proportions natively. Within each L2 sub-discipline, it models the full vector of L3 method shares jointly, respecting the constraint that shares must sum to 1. If one method's share rises, another's must fall. A Poisson on individual method counts treats each method independently and misses that compositional trade-off. A Poisson with a log-total offset could partially compensate, but it still models each method in isolation rather than as part of a competitive menu.
+
+### Why a fixed 2023 break, not a changepoint model
+
+An alternative design would let the data estimate *when* the break occurred rather than fixing it at 2023. In principle this is more flexible: if the real effect started in late 2024 (once LLM adoption reached critical mass in archaeology), a changepoint model would find it.
+
+In practice, the post-LLM window spans at most 4 candidate years (2022–2025). A discrete changepoint posterior over 4 candidates will be wide regardless of signal strength. The 2022-break robustness check already tests the most plausible alternative break year, and sigma_gamma *dropped* from 0.110 to 0.045 — shifting the break by one year weakened the signal rather than revealing a hidden one. With so few post-break years, a changepoint model would add a free parameter without meaningfully sharpening inference. The fixed-break design with a robustness check at 2022 is the more conservative and transparent choice.
+
 ## The model
 
 ```

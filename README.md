@@ -111,7 +111,6 @@ Models inv_simpson directly at L2 group level with the same two-slope structure.
 | Analysis | Description | Results |
 |---|---|---|
 | L2→L3 primary | Within each sub-discipline, specific technique shares over time | [View](docs/l2_l3_results.md) |
-| L1→L2 sensitivity | Within each broad family, sub-discipline shares over time (not applicable with taxonomy v3) | [View](docs/l1_l2_results.md) |
 | Bayesian workflow | Prior predictive, PPC, fake data recovery, phi sensitivity | [View](docs/workflow_results.md) |
 | Step 3: NB regression | Single-predictor NB on gamma (Qwen3 + Gemma) | [View](experiment/Results.md) |
 | Step 3: Concentration | Dirichlet-conjugate concentration posteriors (both models × 3 profiles) | [View](experiment/Results.md) |
@@ -140,7 +139,6 @@ The scripts must be run in this order (each depends on outputs from earlier step
 01_fit_model.R            → MCMC fit (phi-free Dirichlet-Multinomial)
 02_extract_plot.R         → L2→L3 posteriors, diversity plots
 inspect_gamma.R           → gamma_results.csv (used by 05, 06, 08, 09)
-03_l1_l2_analysis.R       → L1→L2 sensitivity (not applicable with v3 taxonomy)
 04_workflow_checks.R      → Bayesian workflow validation
 05_robustness_2022.R      → 2022-break robustness check
 
@@ -165,7 +163,7 @@ R/sensitivity/08_step3_v2_remapped.R      → v2→v3 taxonomy remapping
 R/sensitivity/09_distributional_test.R    → Distributional cosine test
 ```
 
-Scripts 03–04 and 05–06 can run in parallel within their pairs. `inspect_gamma.R` sits between 02 and the downstream scripts because it produces `data/output/phi_free/gamma_results.csv`. The experiment scripts (06–09) require gamma_results.csv and the experiment CSVs in `experiment/analysis/`.
+Scripts 04 and 05–06 can run in parallel. `inspect_gamma.R` sits between 02 and the downstream scripts because it produces `data/output/phi_free/gamma_results.csv`. The experiment scripts (06–09) require gamma_results.csv and the experiment CSVs in `experiment/analysis/`.
 
 ## Repository structure
 
@@ -174,7 +172,6 @@ Scripts 03–04 and 05–06 can run in parallel within their pairs. `inspect_gam
 │   ├── 00_data_prep.R                     # Data loading & Stan data preparation
 │   ├── 01_fit_model.R                     # L2→L3 primary model (cmdstanr, phi-free)
 │   ├── 02_extract_plot.R                  # Extract posteriors & generate L2→L3 plots
-│   ├── 03_l1_l2_analysis.R               # L1→L2 sensitivity analysis
 │   ├── 04_workflow_checks.R              # Bayesian workflow validation
 │   ├── 05_robustness_2022.R              # 2022-break robustness check
 │   ├── 06_step3_llm_comparison.R         # Qwen3: single-predictor NB on gamma
@@ -191,8 +188,7 @@ Scripts 03–04 and 05–06 can run in parallel within their pairs. `inspect_gam
 │   ├── poisson_gamma_regression.stan     # Single-predictor NB regression
 │   ├── nb2_prevalence_gamma.stan         # Two-predictor NB regression
 │   ├── diversity_trajectory.stan         # Direct diversity trajectory model
-│   ├── l1_l2_diversity_model.stan        # L1→L2 fixed-phi model
-│   └── l1_l2_diversity_model_phi_free.stan
+│   └── archive/                          # Deprecated models (l1_l2)
 ├── data/
 │   ├── input/                            # Taxonomy and raw corpus data (gitignored)
 │   └── output/
