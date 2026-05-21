@@ -61,7 +61,15 @@ The two-panel scatter below tests both. Each point is an L3 method that received
 
 The previous graphs ask whether the LLM recommends the *same* methods that gained share — but that is not the only way to test mean collapse. The more direct question is: **is the LLM's recommendation distribution narrower than the literature's?** If researchers adopt LLM suggestions, the field's methodological diversity should be pulled toward the LLM's concentrated profile.
 
-The answer is unambiguous. The LLM's effective method count (Inverse Simpson) is dramatically lower than the literature's — and the gap is largest for the novice profile, consistent with the hypothesis:
+The answer is unambiguous. The Inverse Simpson index is defined as:
+
+```
+D = 1 / sum(p_i^2)
+```
+
+where p_i is the proportion of recommendations (or papers) assigned to method *i*. It converts a frequency distribution into an "effective number of methods" — the number of equally-frequent methods that would produce the same level of concentration. A distribution spread evenly across 100 methods scores 100; one dominated by a handful of methods scores much lower, even if many methods appear at least once. The index depends on *proportions*, not on the total number of recommendations. A profile with fewer total recommendations can still have a higher effective method count if those recommendations are spread more evenly. Conversely, a profile with many recommendations will score low if most of them pile onto the same few methods. This is why the expert profile (2,126 recommendations, effective methods = 53) scores higher than the novice profile (2,398 recommendations, effective methods = 18): the expert's recommendations are distributed more broadly, while the novice's are concentrated on a narrow set.
+
+The LLM's effective method count is dramatically lower than the literature's — and the gap is largest for the novice profile, consistent with the hypothesis:
 
 | Distribution | Total recommendations | Effective methods (Inv. Simpson) | Methods covering 50% of mass |
 |---|---|---|---|
