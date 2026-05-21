@@ -63,14 +63,14 @@ The previous graphs ask whether the LLM recommends the *same* methods that gaine
 
 The answer is unambiguous. The LLM's effective method count (Inverse Simpson) is dramatically lower than the literature's — and the gap is largest for the novice profile, consistent with the hypothesis:
 
-| Distribution | Effective methods (Inv. Simpson) | Methods covering 50% of mass |
-|---|---|---|
-| Pre-2023 literature | 86 | 34 |
-| Post-2023 literature | 111 | 41 |
-| LLM overall | 30 | 15 |
-| LLM — novice | 18 | — |
-| LLM — intermediate | 26 | — |
-| LLM — expert | 53 | — |
+| Distribution | Total recommendations | Effective methods (Inv. Simpson) | Methods covering 50% of mass |
+|---|---|---|---|
+| Pre-2023 literature | 8,495 | 86 | 34 |
+| Post-2023 literature | 6,660 | 111 | 41 |
+| LLM overall | 6,651 | 30 | 15 |
+| LLM — novice | 2,398 | 18 | 7 |
+| LLM — intermediate | 2,127 | 26 | 12 |
+| LLM — expert | 2,126 | 53 | 22 |
 
 The published literature has been *diversifying* since 2010, and this trend continued uninterrupted through the post-2023 period — the within-group diversity trajectories in the [primary L2->L3 analysis](../docs/l2_l3_results.md) show no post-2023 downturn in most sub-disciplines. The LLM's overall diversity (30) sits below any year in the literature's history. The profile gradient (novice 18 < intermediate 26 < expert 53) matches the prediction: less-constrained prompts produce more concentrated output.
 
