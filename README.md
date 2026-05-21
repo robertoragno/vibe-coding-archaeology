@@ -94,9 +94,9 @@ The honest summary: LLMs recommend from training-corpus prominence (the gun is l
 
 33/242 L3 methods survive a >=50 paper filter in 2023–2025. Under this restriction, overall β = −0.138, P(β > 0) = 0.438 — still negative and consistent with the main analysis. The null Step 3 result is robust to restricting to well-represented methods.
 
-**Sensitivity B — Step 3 with v2→v3 remapping (08)**
+**Sensitivity B — Step 3 with v2→v3 taxonomy remapping (08)**
 
-The experiment was classified under the v2 taxonomy; only 53/242 v3 methods matched directly. Remapping via L3 prefix (same number, renamed label) raises coverage to 205/242 (85%). The results are unchanged: overall β = −0.339, P(β > 0) = 0.368. All profiles remain negative. The negative Step 3 result is not an artifact of taxonomy mismatch.
+The L3 taxonomy was revised during the project (v2: 225 methods → v3: 242 methods), with many labels renamed or reorganised. The early experiment run was classified under v2; only 53/242 v3 methods matched exactly. This sensitivity uses fuzzy string matching to remap the v2 labels onto v3, raising coverage to 205/242 (85%). The results are unchanged: overall β = −0.339, P(β > 0) = 0.368. All profiles remain negative. Note: the current experiment data was reclassified directly against v3, so this sensitivity applies only to the earlier v2-classified run.
 
 **Sensitivity C — Distributional test (09)**
 
