@@ -108,18 +108,30 @@ Models inv_simpson directly at L2 group level with the same two-slope structure.
 
 ## Analysis outputs
 
+**Bibliometric model (Steps 1–2)**
+
 | Analysis | Description | Results |
 |---|---|---|
-| L2→L3 primary | Within each sub-discipline, specific technique shares over time | [View](docs/l2_l3_results.md) |
+| L2→L3 primary | Technique shares over time within each sub-discipline | [View](docs/l2_l3_results.md) |
 | Bayesian workflow | Prior predictive, PPC, fake data recovery, phi sensitivity | [View](docs/workflow_results.md) |
-| Step 3: NB regression | Single-predictor NB on gamma (Qwen3 + Gemma) | [View](experiment/Results.md) |
-| Step 3: Concentration | Dirichlet-conjugate concentration posteriors (both models × 3 profiles) | [View](experiment/Results.md) |
-| Step 3: Prevalence vs trajectory | Two-predictor NB separating corpus prevalence from post-2023 shifts | [View](experiment/Results.md) |
+
+**LLM experiment (Step 3)**
+
+| Analysis | Description | Results |
+|---|---|---|
+| NB regression | Single-predictor NB on gamma (Qwen3 + Gemma) | [View](experiment/Results.md) |
+| Concentration | Dirichlet-conjugate inv_simpson posteriors (both models × 3 profiles) | [View](experiment/Results.md) |
+| Prevalence vs trajectory | Two-predictor NB separating corpus prevalence from post-2023 shifts | [View](experiment/Results.md) |
 | Cross-model comparison | Qwen3 vs Gemma recommendation patterns and divergences | [View](experiment/Results.md) |
-| Sensitivity A | Count-threshold variant of Step 3 (>=50 papers) | [View](R/sensitivity/README.md) |
-| Sensitivity B | Step 3 with v2→v3 taxonomy remapping (85% match) | [View](docs/step3_remapped_results.md) |
-| Sensitivity C | Distributional test: LLM vs pre/post-2023 (cosine, permutation) | [View](docs/distributional_test_results.md) |
-| Sensitivity D | Direct diversity trajectory model (inv_simpson) | [View](R/sensitivity/README.md) |
+
+**Sensitivity analyses**
+
+| Analysis | Description | Results |
+|---|---|---|
+| A: Count threshold | Step 3 restricted to methods with ≥50 papers | [View](R/sensitivity/README.md) |
+| B: Taxonomy remapping | Step 3 with v2→v3 fuzzy matching (85% coverage) | [View](docs/step3_remapped_results.md) |
+| C: Distributional test | LLM vs pre/post-2023 literature (cosine similarity) | [View](docs/distributional_test_results.md) |
+| D: Diversity trajectory | Direct inv_simpson model at L2 group level | [View](R/sensitivity/README.md) |
 
 ## Future directions
 
