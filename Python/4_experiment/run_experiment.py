@@ -29,7 +29,7 @@ from tqdm import tqdm
 
 # ─── CONFIGURATION ────────────────────────────────────────────────────────────
 
-TAXONOMY_CSV    = "/mnt/ssd_lavoro/LAB_AI_PC/AI_abstract/taxonomy/taxonomy_results.csv"
+TAXONOMY_CSV    = os.path.join(os.path.dirname(__file__), '..', '3_classification', 'taxonomy_results.csv')
 RESULTS_FILE    = os.path.join(os.path.dirname(__file__), 'experiment_results.csv')
 INPUTS_DIR      = os.path.dirname(__file__)          # where L2/Vague/Questions.xlsx live
 
@@ -96,7 +96,7 @@ def ensure_input_files():
 
     if not os.path.exists(l2_path):
         taxonomy = pd.read_csv(TAXONOMY_CSV)
-        l2_values = sorted(taxonomy['level_2_mid'].dropna().unique().tolist())
+        l2_values = sorted(taxonomy['l2'].str.replace(r'^L2-\d+:\s*', '', regex=True).dropna().unique().tolist())
         pd.DataFrame({'L2': l2_values}).to_excel(l2_path, index=False)
         print(f"Created {l2_path}  ({len(l2_values)} L2 categories)")
 
@@ -114,7 +114,7 @@ def ensure_input_files():
 def load_l3_taxonomy():
     """Return a sorted list of unique L3 labels from the taxonomy CSV."""
     df = pd.read_csv(TAXONOMY_CSV)
-    return sorted(df['level_3'].dropna().unique().tolist())
+    return sorted(df['l3'].dropna().unique().tolist())
 
 
 # ─── PROMPTS ──────────────────────────────────────────────────────────────────
@@ -325,18 +325,17 @@ def append_rows(results_file: str, rows: list):
 
 def find_model() -> str:
     search_root = os.path.join(os.path.dirname(__file__), '..')
-    # Prefer the 9B model by name
     candidates = (
         glob.glob(os.path.join(search_root, 'Qwen3.5-9B-Q8_0.gguf')) +
         glob.glob(os.path.join(search_root, '*9B*Q8_0.gguf')) +
-        glob.glob(os.path.join(search_root, '*Q8_0.gguf'))
+        glob.glob(os.path.join(search_root, '*Q8_0.gguf')) +
+        glob.glob(os.path.join(search_root, '*.gguf'))
     )
-    # Filter out embedding models
     candidates = [p for p in candidates if 'Embedding' not in os.path.basename(p)]
     if not candidates:
         raise FileNotFoundError(
-            "No Qwen 9B GGUF model found.  "
-            "Expected Qwen3.5-9B-Q8_0.gguf in the parent directory."
+            "No GGUF model found in the parent directory.\n"
+            "Either place a .gguf file there or set GGUF_MODEL_PATH."
         )
     return candidates[0]
 
@@ -361,8 +360,7 @@ def main():
         print(f"Resuming: {n_skip} (iteration, profile) pairs already done.")
 
     # ── Model ──────────────────────────────────────────────────────────────────
-    #model_path = find_model()
-    model_path = "/mnt/ssd_lavoro/LAB_AI_PC/Archaeogentic-researcher/models/gemma-4-E4B-it-UD-Q8_K_XL.gguf"
+    model_path = os.environ.get('GGUF_MODEL_PATH') or find_model()
     print(f"Loading model: {os.path.basename(model_path)}")
     llm = Llama(
         model_path=model_path,

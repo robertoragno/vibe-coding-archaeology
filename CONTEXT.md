@@ -19,8 +19,17 @@ Private GitHub repo: https://github.com/robertoragno/vibe-coding-archaeology
 - Run all scripts with `Rscript R/scriptname.R` from the project root
 - vocab.rds and stan_data.rds are in data/output/ — load from there, never reconstruct
 
+## Python preprocessing pipeline
+- `Python/1_dataset/`: Scopus API download + cleaning → df_cleaned.xlsx
+- `Python/2_methods_extractions/`: Qwen GGUF extracts computational methods from abstracts
+- `Python/3_classification/`: EVoC clustering + LLM labeling builds L2→L3 taxonomy
+  - Critical output: `taxonomy_abstract_join.csv` (columns: eid, canonical, is_garbage, l2, l2_description, l3, l3_description)
+  - Copy to `data/input/taxonomy_v3/` before running R pipeline
+- `Python/4_experiment/`: LLM recommendation simulation (3 profiles × 28 questions × 2 models)
+- All local LLM scripts expect a .gguf model in `Python/` or set via `GGUF_MODEL_PATH`
+
 ## Experiment
-- Two LLMs tested: Qwen3 (Alibaba) and Gemma (Google DeepMind), both local
+- Two LLMs tested: Qwen3 (Alibaba) and Gemma (Google DeepMind), both local GGUF models
 - Three researcher profiles: expert, intermediate, novice
 - 28 archaeological research questions × L2 methods × vague families
 - Results classified against v3 L3 taxonomy (242 methods)

@@ -143,7 +143,40 @@ The analysis identifies a clear gap between the LLM's concentrated recommendatio
 
 ## Pipeline execution order
 
-The scripts must be run in this order (each depends on outputs from earlier steps):
+The full pipeline runs in two phases: Python (data collection, method extraction, taxonomy construction, LLM experiment) then R (Bayesian modelling and analysis). Each phase's outputs feed into the next.
+
+### Phase 1 — Python preprocessing
+
+```
+# 1. Download corpus from Scopus API
+cd Python/1_dataset
+python downloader.py          → scopus_results.csv
+python cleaning.py            → df_cleaned.xlsx
+
+# 2. Extract computational methods from abstracts (local Qwen GGUF)
+cd Python/2_methods_extractions
+python computational_methods.py → qwen_method_results_gguf.csv
+
+# 3. Build L2→L3 taxonomy (EVoC clustering + LLM labeling)
+cd Python/3_classification
+python build_taxonomy_supervised.py → taxonomy_results.csv
+                                    → taxonomy_abstract_join.csv  ← R reads this
+                                    → taxonomy_descriptions.json
+
+# 4. Run LLM recommendation experiment (local Qwen / Gemma GGUF)
+cd Python/4_experiment
+python run_experiment.py        → experiment_results.csv
+```
+
+The critical handoff file is `taxonomy_abstract_join.csv` — copy it to `data/input/taxonomy_v3/` before starting the R pipeline:
+
+```bash
+cp Python/3_classification/taxonomy_abstract_join.csv data/input/taxonomy_v3/
+```
+
+Model files (`.gguf`) are not tracked in git. Place them in `Python/` or set `GGUF_MODEL_PATH` before running steps 2–4.
+
+### Phase 2 — R analysis
 
 ```
 # Core bibliometric pipeline
@@ -178,6 +211,20 @@ Scripts 04 and 05–06 can run in parallel. `inspect_gamma.R` sits between 02 an
 ## Repository structure
 
 ```
+├── Python/
+│   ├── 1_dataset/
+│   │   ├── downloader.py                 # Scopus API download with retry logic
+│   │   └── cleaning.py                   # Filter to Articles, drop missing fields
+│   ├── 2_methods_extractions/
+│   │   └── computational_methods.py      # Qwen GGUF: extract methods from abstracts
+│   ├── 3_classification/
+│   │   ├── build_taxonomy_supervised.py  # EVoC clustering → L2/L3 taxonomy + join CSV
+│   │   └── generate_taxonomy_supervised.py # Standalone HTML taxonomy explorer
+│   └── 4_experiment/
+│       ├── run_experiment.py             # Full experiment pipeline (3 profiles × 2 models)
+│       ├── experiment.md                 # Experiment design documentation
+│       ├── Expert.md / Intermediate.md / Novice.md  # Prompt templates
+│       └── archive/                      # Deprecated prototypes
 ├── R/
 │   ├── 00_data_prep.R                     # Data loading & Stan data preparation
 │   ├── 01_fit_model.R                     # L2→L3 primary model (cmdstanr, phi-free)

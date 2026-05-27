@@ -18,7 +18,7 @@ from tqdm import tqdm
 # ============================================================
 # CONFIG
 # ============================================================
-INPUT_CSV     = "vibe-coding-archaeology/Python/2_methods_extractions/qwen_method_results_gguf.csv"
+INPUT_CSV     = os.path.join(os.path.dirname(__file__), "..", "2_methods_extractions", "qwen_method_results_gguf.csv")
 OUTPUT_CSV    = "taxonomy_results.csv"
 JOIN_CSV      = "taxonomy_abstract_join.csv"
 DESC_JSON     = "taxonomy_descriptions.json"
@@ -947,12 +947,18 @@ for orig_term in unique_raw:
         "level_3_description": tax["level_3_description"],
     })
 
+COL_RENAME = {
+    "level_2": "l2", "level_2_description": "l2_description",
+    "level_3": "l3", "level_3_description": "l3_description",
+}
+
 df_out = pd.DataFrame(rows)
-df_out.sort_values(["level_2", "level_3", "canonical", "original_term"], inplace=True)
+df_out.rename(columns=COL_RENAME, inplace=True)
+df_out.sort_values(["l2", "l3", "canonical", "original_term"], inplace=True)
 df_out = df_out[[
     "original_term", "normalized", "canonical", "frequency", "is_garbage",
-    "level_2", "level_2_description",
-    "level_3", "level_3_description",
+    "l2", "l2_description",
+    "l3", "l3_description",
 ]]
 df_out.to_csv(OUTPUT_CSV, index=False, encoding="utf-8")
 print(f"  Saved: {OUTPUT_CSV}  ({len(df_out)} rows)")
@@ -987,14 +993,14 @@ for _, row in df_raw.iterrows():
             "eid": eid,
             "canonical": canon,
             "is_garbage": tax["is_garbage"],
-            "level_2": tax["level_2"],
-            "level_2_description": tax["level_2_description"],
-            "level_3": tax["level_3"],
-            "level_3_description": tax["level_3_description"],
+            "l2": tax["level_2"],
+            "l2_description": tax["level_2_description"],
+            "l3": tax["level_3"],
+            "l3_description": tax["level_3_description"],
         })
 
 df_join = pd.DataFrame(join_rows)
-df_join.sort_values(["eid", "level_2", "level_3"], inplace=True)
+df_join.sort_values(["eid", "l2", "l3"], inplace=True)
 df_join.to_csv(JOIN_CSV, index=False, encoding="utf-8")
 print(f"  Saved: {JOIN_CSV}  "
       f"({len(df_join)} rows, {df_join['eid'].nunique()} abstract)")

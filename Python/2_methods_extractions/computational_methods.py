@@ -5,9 +5,12 @@ from llama_cpp import Llama
 from tqdm import tqdm
 
 # --- 1. AUTOMATIC MODEL SEARCH ---
-gguf_files = glob.glob("../Qwen3.5-9B-Q8_0.gguf")
+_search_root = os.path.join(os.path.dirname(__file__), '..')
+gguf_files = glob.glob(os.path.join(_search_root, 'Qwen3.5-9B-Q8_0.gguf'))
 if not gguf_files:
-    raise FileNotFoundError("Error: No Q8_0.gguf file found in the directory. Did you download the model?")
+    gguf_files = glob.glob(os.path.join(_search_root, '*Q8_0.gguf'))
+if not gguf_files:
+    raise FileNotFoundError("No Q8_0.gguf model found in Python/. Did you download the model?")
 GGUF_MODEL_PATH = gguf_files[0]
 print(f"Model found: {GGUF_MODEL_PATH}")
 
@@ -15,7 +18,7 @@ print(f"Model found: {GGUF_MODEL_PATH}")
 RESULTS_FILE = 'qwen_method_results_gguf.csv'
 
 print("Loading Excel file...")
-NOME_FILE_EXCEL = 'vibe-coding-archaeology/Python/1_dataset/df_cleaned.xlsx'
+NOME_FILE_EXCEL = os.path.join(os.path.dirname(__file__), '..', '1_dataset', 'df_cleaned.xlsx')
 df = pd.read_excel(NOME_FILE_EXCEL)
 
 if 'eid' not in df.columns:
