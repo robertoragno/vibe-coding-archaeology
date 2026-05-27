@@ -1,4 +1,4 @@
-# 08_experiment_concentration.R
+# 07_experiment_concentration.R
 # Conjugate Dirichlet posterior on inv_simpson for each model x profile.
 # Reads: experiment CSVs, vocab.rds. Writes: concentration summary/draws CSVs, plot.
 
@@ -210,4 +210,4 @@ draws_wide <- all_draws |>
 write.csv(draws_wide, OUT_DRAWS, row.names = FALSE)
 cat("Draws saved:", OUT_DRAWS, "\n")
 
-cat("\n08_experiment_concentration.R complete.\n")
+cat("\n07_experiment_concentration.R complete.\n")

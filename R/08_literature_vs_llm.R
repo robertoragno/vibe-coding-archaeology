@@ -1,4 +1,4 @@
-# 09_literature_vs_llm.R
+# 08_literature_vs_llm.R
 # Two-predictor NB2: n_rec ~ log1p(n_pre) + gamma, separating corpus
 # prevalence from post-2023 trajectory. 8 fits: 2 models x 4 profiles.
 
@@ -259,4 +259,4 @@ for (model_name in c("Qwen3", "Gemma")) {
               mean(r$b_gamma), quantile(r$b_gamma, 0.05), quantile(r$b_gamma, 0.95), mean(r$b_gamma > 0)))
 }
 
-cat("\n09_literature_vs_llm.R complete.\n")
+cat("\n08_literature_vs_llm.R complete.\n")

@@ -150,23 +150,19 @@ The scripts must be run in this order (each depends on outputs from earlier step
 00_data_prep.R            → stan_data.rds, vocab.rds
 01_fit_model.R            → MCMC fit (phi-free Dirichlet-Multinomial)
 02_extract_plot.R         → L2→L3 posteriors, diversity plots
-inspect_gamma.R           → gamma_results.csv (used by 05, 06, 08, 09)
+inspect_gamma.R           → gamma_results.csv (used by 05, 06, 07, 08)
 04_workflow_checks.R      → Bayesian workflow validation
 05_robustness_2022.R      → 2022-break robustness check
 
-# Experiment: single-predictor NB regression (n_rec ~ gamma)
-06_step3_llm_comparison.R       → Qwen3 NB regression on gamma
-06b_step3_llm_comparison_gemma.R → Gemma NB regression on gamma
-
 # Experiment: exploratory descriptive analysis
-07_exploratory_graphs.R         → Qwen3 exploratory graphs
-07b_exploratory_gemma.R         → Gemma exploratory + cross-model comparison
+06_exploratory_graphs.R         → Qwen3 exploratory graphs
+06b_exploratory_gemma.R         → Gemma exploratory + cross-model comparison
 
 # Experiment: Bayesian concentration posteriors
-08_experiment_concentration.R   → Dirichlet-conjugate inv_simpson posteriors
+07_experiment_concentration.R   → Dirichlet-conjugate inv_simpson posteriors
 
 # Experiment: two-predictor regression (n_rec ~ n_pre + gamma)
-09_literature_vs_llm.R          → Separates corpus prevalence from post-2023 trajectory
+08_literature_vs_llm.R          → Separates corpus prevalence from post-2023 trajectory
 
 # Sensitivity (standalone, run after main pipeline)
 R/sensitivity/06b_step3_count_threshold.R → Count-threshold variant of Step 3
@@ -175,7 +171,9 @@ R/sensitivity/08_step3_v2_remapped.R      → v2→v3 taxonomy remapping
 R/sensitivity/09_distributional_test.R    → Distributional cosine test
 ```
 
-Scripts 04 and 05–06 can run in parallel. `inspect_gamma.R` sits between 02 and the downstream scripts because it produces `data/output/phi_free/gamma_results.csv`. The experiment scripts (06–09) require gamma_results.csv and the experiment CSVs in `experiment/analysis/`.
+Scripts 04 and 05–06 can run in parallel. `inspect_gamma.R` sits between 02 and the downstream scripts because it produces `data/output/phi_free/gamma_results.csv`. The experiment scripts (06–08) require gamma_results.csv and the experiment CSVs in `experiment/analysis/`.
+
+**Archived scripts** (in `R/archive/`): `06_step3_llm_comparison.R` and `06b_step3_llm_comparison_gemma.R` — single-predictor NB regressions on gamma alone, superseded by the two-predictor model in `08_literature_vs_llm.R`.
 
 ## Repository structure
 
@@ -186,12 +184,10 @@ Scripts 04 and 05–06 can run in parallel. `inspect_gamma.R` sits between 02 an
 │   ├── 02_extract_plot.R                  # Extract posteriors & generate L2→L3 plots
 │   ├── 04_workflow_checks.R              # Bayesian workflow validation
 │   ├── 05_robustness_2022.R              # 2022-break robustness check
-│   ├── 06_step3_llm_comparison.R         # Qwen3: single-predictor NB on gamma
-│   ├── 06b_step3_llm_comparison_gemma.R  # Gemma: single-predictor NB on gamma
-│   ├── 07_exploratory_graphs.R           # Qwen3 descriptive exploratory analysis
-│   ├── 07b_exploratory_gemma.R           # Gemma exploratory + cross-model comparison
-│   ├── 08_experiment_concentration.R     # Dirichlet-conjugate concentration posteriors
-│   ├── 09_literature_vs_llm.R            # Two-predictor NB: prevalence vs trajectory
+│   ├── 06_exploratory_graphs.R           # Qwen3 descriptive exploratory analysis
+│   ├── 06b_exploratory_gemma.R           # Gemma exploratory + cross-model comparison
+│   ├── 07_experiment_concentration.R     # Dirichlet-conjugate concentration posteriors
+│   ├── 08_literature_vs_llm.R            # Two-predictor NB: prevalence vs trajectory
 │   ├── inspect_gamma.R                   # Gamma posterior extraction
 │   ├── sensitivity/                      # Sensitivity and robustness analyses
 │   └── archive/                          # Deprecated scripts

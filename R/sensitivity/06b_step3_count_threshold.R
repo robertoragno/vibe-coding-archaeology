@@ -1,5 +1,5 @@
 # 06b_step3_count_threshold.R
-# Sensitivity variant of R/06_step3_llm_comparison.R.
+# Sensitivity variant of R/archive/06_step3_llm_comparison.R.
 # Restricts to L3 methods with >= MIN_COUNT papers in 2023-2025
 # (from the raw count data) before running the Bayesian NB regression.
 

@@ -41,7 +41,7 @@ Responses were classified directly against the v3 L3 taxonomy; no v2-to-v3 remap
 
 ## Exploratory descriptive analysis
 
-Scripts: `R/07_exploratory_graphs.R`, `R/07b_exploratory_gemma.R`
+Scripts: `R/06_exploratory_graphs.R`, `R/06b_exploratory_gemma.R`
 
 ### Top recommended methods (L4 and L3)
 
@@ -114,7 +114,7 @@ Both LLMs produce recommendation distributions dramatically narrower than the li
 
 ## Single-predictor negative-binomial regression: n_rec ~ gamma
 
-Scripts: `R/06_step3_llm_comparison.R`, `R/06b_step3_llm_comparison_gemma.R`
+Scripts: `R/archive/06_step3_llm_comparison.R (archived, superseded by 08)`, `R/archive/06b_step3_llm_comparison_gemma.R (archived, superseded by 08)`
 
 > **Note:** This regression conflates training-corpus prevalence with post-2023 trajectory. The [two-predictor model below](#two-predictor-nb2-regression-prevalence-vs-trajectory) separates them and resolves the apparent negative direction.
 
@@ -153,7 +153,7 @@ The width of the posteriors reflects two structural limitations: (1) gamma is es
 
 ## Bayesian concentration posteriors
 
-Script: `R/08_experiment_concentration.R`
+Script: `R/07_experiment_concentration.R`
 
 The point-estimate inverse Simpson indices from the exploratory section are replaced with full posterior distributions via the conjugate Dirichlet update: Dir(1 + n_1, ..., 1 + n_K) over 242 methods, with inv_simpson = 1 / sum(p_k^2) computed on each draw.
 
@@ -183,7 +183,7 @@ The profile gradient (novice < intermediate < expert) survives with full posteri
 
 ## Two-predictor NB2 regression: prevalence vs trajectory
 
-Script: `R/09_literature_vs_llm.R` | Stan model: `stan/nb2_prevalence_gamma.stan`
+Script: `R/08_literature_vs_llm.R` | Stan model: `stan/nb2_prevalence_gamma.stan`
 
 ### The question
 

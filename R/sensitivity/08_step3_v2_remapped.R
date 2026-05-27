@@ -5,7 +5,7 @@
 # The experiment responses were classified into v2 L3 labels. The v3 taxonomy
 # has different L3 labels (242 vs 225). Only 53 match exactly. This script
 # fuzzy-matches the remaining 155 v2 labels to their closest v3 counterpart,
-# then repeats the negative-binomial regression from 06_step3_llm_comparison.R.
+# then repeats the negative-binomial regression from archive/06_step3_llm_comparison.R (archived).
 
 suppressPackageStartupMessages({
   library(here)

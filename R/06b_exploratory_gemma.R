@@ -1,6 +1,6 @@
-# 07b_exploratory_gemma.R
+# 06b_exploratory_gemma.R
 # Exploratory graphs for Gemma experiment results + cross-model comparison
-# with Qwen3. Mirrors 07_exploratory_graphs.R structure.
+# with Qwen3. Mirrors 06_exploratory_graphs.R structure.
 
 suppressPackageStartupMessages({
   library(here)

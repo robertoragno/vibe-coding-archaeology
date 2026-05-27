@@ -1,4 +1,4 @@
-# 07_exploratory_graphs.R
+# 06_exploratory_graphs.R
 # Descriptive exploratory graphs of LLM experiment recommendations.
 # No Stan model — runs in seconds. Produces graphs for experiment/Results.md.
 
