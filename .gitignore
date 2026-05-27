@@ -42,3 +42,15 @@ Mining_Script/
 # Misc
 *.pdf
 
+Python/*/*.csv
+Python/*/*.log
+Python/*/*.pid
+Python/*/*.sh
+Python/*/*.txt
+Python/*/*.json
+Python/*/*.html
+Python/*/*.npy
+
+*.gguf
+
+!Python/4_experiment/*.xlsx
