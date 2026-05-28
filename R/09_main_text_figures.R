@@ -23,6 +23,7 @@ theme_paper <- theme_minimal(base_size = 10, base_family = "serif") +
     strip.text        = element_text(face = "bold", size = 9),
     plot.title        = element_text(face = "bold", size = 11),
     plot.subtitle     = element_text(size = 9, colour = "grey30"),
+    plot.caption      = element_text(size = 8, colour = "grey30", hjust = 0),
     legend.position   = "bottom",
     legend.key.size   = unit(0.4, "cm"),
     plot.margin       = margin(8, 8, 8, 8)
@@ -71,22 +72,23 @@ clean_l3 <- function(x) sub("^L3-[0-9]+: ", "", x)
 plot_df1 <- counts_long |>
   filter(l3 %in% top15, year <= 2025) |>
   mutate(l3_clean = clean_l3(l3),
-         l3_clean = factor(l3_clean, levels = clean_l3(top15)))
+         l3_clean = stringr::str_wrap(l3_clean, width = 30),
+         l3_clean = factor(l3_clean, levels = stringr::str_wrap(clean_l3(top15), width = 30)))
 
 fig1 <- ggplot(plot_df1, aes(x = year, y = n)) +
   geom_point(size = 0.6, colour = "grey30") +
   geom_smooth(method = "loess", span = 0.6, se = TRUE,
               colour = "black", fill = "grey70", linewidth = 0.5) +
   geom_vline(xintercept = 2023, linetype = "dashed", linewidth = 0.3) +
-  facet_wrap(~ l3_clean, scales = "free_y", ncol = 5) +
+  facet_wrap(~ l3_clean, scales = "free_y", ncol = 3) +
   labs(x = "Year", y = "Observed paper count",
-       title = "Fig. 1. Raw observed paper counts for top 15 L3 methods (2010–2025)",
-       subtitle = "Dashed line: 2023 LLM adoption boundary. Ribbon: loess ± 1 SE.") +
+       title = "Raw observed paper counts for top 15 L3 methods (2010–2025)",
+       caption = "Dashed line: 2023 LLM adoption boundary. Ribbon: loess ± 1 SE.") +
   theme_paper +
-  theme(strip.text = element_text(size = 7))
+  theme(strip.text = element_text(size = 6.5))
 
 ggsave(file.path(OUT_DIR, "fig1_raw_counts.png"), fig1,
-       width = 10, height = 7, dpi = 300, bg = "white")
+       width = 9, height = 11, dpi = 300, bg = "white")
 cat("Fig. 1 saved.\n")
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -109,8 +111,8 @@ fig2 <- ggplot(sigma_df, aes(x = value)) +
   geom_vline(xintercept = 0, linetype = "dashed", linewidth = 0.3) +
   facet_wrap(~ parameter, scales = "free", ncol = 2) +
   labs(x = "Posterior value", y = "Density",
-       title = "Fig. 2. Hierarchical scale posteriors: baseline trend vs. post-LLM shift",
-       subtitle = expression(sigma[gamma] > 0 ~ "indicates uneven post-2023 divergence across methods.")) +
+       title = "Hierarchical scale posteriors: baseline trend vs. post-LLM shift",
+       caption = expression(sigma[gamma] > 0 ~ "indicates uneven post-2023 divergence across methods.")) +
   theme_paper
 
 ggsave(file.path(OUT_DIR, "fig2_sigma_posteriors.png"), fig2,
@@ -186,8 +188,8 @@ fig3 <- ggplot(plot_df3, aes(x = share, y = l2_clean, fill = source)) +
                     name = NULL) +
   scale_x_continuous(labels = scales::percent_format(accuracy = 1)) +
   labs(x = "Share of total", y = NULL,
-       title = "Fig. 3. Method share by L2 sub-discipline",
-       subtitle = "LLM recommendations (Qwen3) vs. pre/post-2023 published literature.") +
+       title = "Method share by L2 sub-discipline",
+       caption = "LLM recommendations (Qwen3) vs. pre/post-2023 published literature.") +
   theme_paper +
   theme(axis.text.y = element_text(size = 7.5))
 
@@ -222,8 +224,8 @@ fig4 <- ggplot(qwen_l3, aes(x = n_rec, y = l3_clean, fill = direction)) +
                     name = "Post-2023 trajectory (γ)") +
   scale_x_continuous(expand = expansion(mult = c(0, 0.15))) +
   labs(x = "Total recommendations (Qwen3)", y = NULL,
-       title = "Fig. 4. Top 20 recommended L3 methods",
-       subtitle = "Shading indicates signed posterior mean γ (post-2023 excess above trend).") +
+       title = "Top 20 recommended L3 methods",
+       caption = "Shading indicates signed posterior mean γ (post-2023 excess above trend).") +
   theme_paper +
   theme(axis.text.y = element_text(size = 7.5))
 
@@ -271,8 +273,8 @@ fig5 <- ggplot(plot_df5, aes(x = share, y = l3_clean, fill = model)) +
   scale_fill_manual(values = c("Qwen3" = "grey30", "Gemma" = "grey70"), name = NULL) +
   scale_x_continuous(labels = scales::percent_format(accuracy = 0.1)) +
   labs(x = "Share of total recommendations", y = NULL,
-       title = "Fig. 5. Top recommended L3 methods: Qwen3 vs. Gemma",
-       subtitle = "Union of each model’s top 10. Share of total recommendations.") +
+       title = "Top recommended L3 methods: Qwen3 vs. Gemma",
+       caption = "Union of each model’s top 10. Share of total recommendations.") +
   theme_paper +
   theme(axis.text.y = element_text(size = 7.5))
 
@@ -312,8 +314,8 @@ fig6 <- ggplot(conc_long, aes(x = inv_simpson, y = source)) +
   ) +
   labs(x = "Effective number of methods (Inverse Simpson)",
        y = NULL,
-       title = "Fig. 6. Recommendation concentration: posterior distributions",
-       subtitle = "Dirichlet conjugate posterior. Higher = more diverse. Dark band: 50% CI; light: 90% CI.") +
+       title = "Recommendation concentration: posterior distributions",
+       caption = "Dirichlet conjugate posterior. Higher = more diverse. Dark band: 50% CI; light: 90% CI.") +
   theme_paper +
   theme(axis.text.y = element_text(size = 8))
 
@@ -329,14 +331,14 @@ prev_draws <- read.csv(here("data/output/prevalence_gamma_draws.csv"),
                        stringsAsFactors = FALSE)
 
 plot_df7 <- bind_rows(
-  data.frame(value = prev_draws$qwen_b_pre,
-             parameter = "b[pre] (corpus prevalence)", model = "Qwen3"),
   data.frame(value = prev_draws$qwen_b_gamma,
-             parameter = "b[gamma] (post-2023 excess)", model = "Qwen3"),
-  data.frame(value = prev_draws$gemma_b_pre,
-             parameter = "b[pre] (corpus prevalence)", model = "Gemma"),
+             parameter = "(A) b[gamma] (post-2023 excess)", model = "Qwen3"),
   data.frame(value = prev_draws$gemma_b_gamma,
-             parameter = "b[gamma] (post-2023 excess)", model = "Gemma")
+             parameter = "(A) b[gamma] (post-2023 excess)", model = "Gemma"),
+  data.frame(value = prev_draws$qwen_b_pre,
+             parameter = "(B) b[pre] (corpus prevalence)", model = "Qwen3"),
+  data.frame(value = prev_draws$gemma_b_pre,
+             parameter = "(B) b[pre] (corpus prevalence)", model = "Gemma")
 )
 
 fig7 <- ggplot(plot_df7, aes(x = value, y = model, fill = model)) +
@@ -351,8 +353,8 @@ fig7 <- ggplot(plot_df7, aes(x = value, y = model, fill = model)) +
   facet_wrap(~ parameter, scales = "free_x", ncol = 1) +
   scale_fill_manual(values = c("Qwen3" = "grey35", "Gemma" = "grey70")) +
   labs(x = "Posterior coefficient", y = NULL,
-       title = "Fig. 7. Training-corpus prevalence vs. post-2023 trajectory",
-       subtitle = "Two-predictor NB2: n_rec ~ log1p(n_pre) + γ. Overall (all profiles pooled). Bands: 50%/90% CI.") +
+       title = "Training-corpus prevalence vs. post-2023 trajectory",
+       caption = "Two-predictor NB2: n_rec ~ log1p(n_pre) + γ. Overall (all profiles pooled). Bands: 50%/90% CI.") +
   theme_paper +
   theme(legend.position = "none")
 
@@ -373,7 +375,8 @@ prev_summary <- read.csv(here("data/output/prevalence_gamma_summary.csv"),
 # They don't — the saved draws are overall only. Use the summary table with CIs.
 
 prev_summary$profile <- factor(prev_summary$profile,
-                                levels = c("overall", "novice", "intermediate", "expert"))
+                                levels = c("overall", "novice", "intermediate", "expert"),
+                                labels = c("(A) overall", "(B) novice", "(C) intermediate", "(D) expert"))
 
 fig8 <- ggplot(prev_summary, aes(y = model)) +
   geom_vline(xintercept = 0, linetype = "dashed", linewidth = 0.3) +
@@ -384,8 +387,8 @@ fig8 <- ggplot(prev_summary, aes(y = model)) +
   facet_wrap(~ profile, ncol = 1) +
   labs(x = expression(b[gamma] ~ "(post-2023 excess coefficient)"),
        y = NULL,
-       title = expression("Fig. 8." ~ b[gamma] ~ "by profile and model"),
-       subtitle = "Point: posterior mean. Horizontal bar: 90% credible interval.") +
+       title = expression(b[gamma] ~ "by profile and model"),
+       caption = "Point: posterior mean. Horizontal bar: 90% credible interval.") +
   theme_paper
 
 ggsave(file.path(OUT_DIR, "fig8_bgamma_by_profile.png"), fig8,
