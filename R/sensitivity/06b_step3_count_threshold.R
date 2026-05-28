@@ -22,7 +22,7 @@ gamma_csv_fallback <- here("data/output/phi_free/gamma_results.csv")
 GAMMA_CSV      <- if (file.exists(gamma_csv_primary)) gamma_csv_primary else gamma_csv_fallback
 VOCAB_PATH     <- here("data/output/vocab.rds")
 STAN_DATA_PATH <- here("data/output/stan_data.rds")
-STAN_FILE      <- here("stan/poisson_gamma_regression.stan")
+STAN_FILE      <- here("stan/archive/poisson_gamma_regression.stan")
 EXPERIMENT_CSV <- here("experiment/analysis/experiment_results.csv")
 
 dir.create(here("data/output/sensitivity"), recursive = TRUE, showWarnings = FALSE)

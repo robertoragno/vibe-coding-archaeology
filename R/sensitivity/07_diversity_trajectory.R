@@ -14,7 +14,7 @@ suppressPackageStartupMessages({
 FIT_RDS       <- here("data/output/fit_phi_free.rds")
 VOCAB_RDS     <- here("data/output/vocab.rds")
 STAN_DATA_RDS <- here("data/output/stan_data.rds")
-STAN_FILE     <- here("stan/diversity_trajectory.stan")
+STAN_FILE     <- here("stan/sensitivity/diversity_trajectory.stan")
 
 OUT_FIT  <- here("data/output/fit_diversity_trajectory.rds")
 OUT_PLOT <- here("R/sensitivity/diversity_gamma_by_group.png")
