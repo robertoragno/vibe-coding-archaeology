@@ -120,7 +120,7 @@ ggsave(file.path(OUT_DIR, "fig2_sigma_posteriors.png"), fig2,
 cat("Fig. 2 saved.\n")
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Fig. 3 — Method share by L2: literature vs LLM recommendations
+# Fig. 3 — Method share by L2: literature vs both LLMs
 # ═══════════════════════════════════════════════════════════════════════════
 
 pre_idx  <- which(year_levels < 2023)
@@ -139,57 +139,69 @@ qwen_raw <- read.csv(here("experiment/analysis/experiment_results_QWEN.csv"),
                       stringsAsFactors = FALSE)
 qwen_con <- qwen_raw |> filter(toupper(as.character(l3_mapping_consistent)) == "TRUE")
 
+gemma_raw <- read.csv(here("experiment/analysis/experiment_results_GEMMA.csv"),
+                      stringsAsFactors = FALSE)
+gemma_con <- gemma_raw |> filter(toupper(as.character(l3_mapping_consistent)) == "TRUE")
+
 l3_to_l2 <- setNames(l3_vocab$l2, l3_vocab$l3)
+
 qwen_con$l2 <- l3_to_l2[qwen_con$l3_mapping]
-llm_l2 <- qwen_con |>
-  filter(!is.na(l2)) |>
-  count(l2, name = "llm")
+qwen_l2 <- qwen_con |> filter(!is.na(l2)) |> count(l2, name = "qwen")
 
-l2_shares <- l2_shares |> left_join(llm_l2, by = "l2") |>
-  mutate(llm = replace_na(llm, 0))
+gemma_con$l2 <- l3_to_l2[gemma_con$l3_mapping]
+gemma_l2 <- gemma_con |> filter(!is.na(l2)) |> count(l2, name = "gemma")
 
-l2_total_pre  <- sum(l2_shares$pre)
-l2_total_post <- sum(l2_shares$post)
-l2_total_llm  <- sum(l2_shares$llm)
+l2_shares <- l2_shares |>
+  left_join(qwen_l2, by = "l2") |>
+  left_join(gemma_l2, by = "l2") |>
+  mutate(qwen = replace_na(qwen, 0), gemma = replace_na(gemma, 0))
+
+l2_total_pre   <- sum(l2_shares$pre)
+l2_total_post  <- sum(l2_shares$post)
+l2_total_qwen  <- sum(l2_shares$qwen)
+l2_total_gemma <- sum(l2_shares$gemma)
 
 clean_l2 <- function(x) sub("^L2-[0-9]+: ", "", x)
 
 plot_df3 <- l2_shares |>
   mutate(
-    pre_share  = pre / l2_total_pre,
-    post_share = post / l2_total_post,
-    llm_share  = llm / l2_total_llm,
-    l2_clean   = clean_l2(l2)
+    pre_share   = pre / l2_total_pre,
+    post_share  = post / l2_total_post,
+    qwen_share  = qwen / l2_total_qwen,
+    gemma_share = gemma / l2_total_gemma,
+    l2_clean    = clean_l2(l2)
   ) |>
-  pivot_longer(cols = c(pre_share, post_share, llm_share),
+  pivot_longer(cols = c(pre_share, post_share, qwen_share, gemma_share),
                names_to = "source", values_to = "share") |>
   mutate(source = recode(source,
-    "pre_share"  = "Pre-2023 literature",
-    "post_share" = "Post-2023 literature",
-    "llm_share"  = "LLM recommendations"
+    "pre_share"   = "Pre-2023 literature",
+    "post_share"  = "Post-2023 literature",
+    "qwen_share"  = "Qwen3",
+    "gemma_share" = "Gemma"
   )) |>
-  mutate(source = factor(source, levels = c("LLM recommendations",
+  mutate(source = factor(source, levels = c("Qwen3", "Gemma",
                                              "Post-2023 literature",
                                              "Pre-2023 literature")))
 
 l2_order <- l2_shares |>
   mutate(l2_clean = clean_l2(l2)) |>
-  arrange(llm / l2_total_llm) |>
+  arrange(qwen / l2_total_qwen) |>
   pull(l2_clean)
 
 plot_df3$l2_clean <- factor(plot_df3$l2_clean, levels = l2_order)
 
 fig3 <- ggplot(plot_df3, aes(x = share, y = l2_clean, fill = source)) +
-  geom_col(position = position_dodge(width = 0.7), width = 0.6,
+  geom_col(position = position_dodge(width = 0.8), width = 0.7,
            colour = "black", linewidth = 0.15) +
-  scale_fill_manual(values = c("LLM recommendations" = "grey20",
-                                "Post-2023 literature" = "grey55",
+  scale_fill_manual(values = c("Qwen3" = "grey15",
+                                "Gemma" = "grey40",
+                                "Post-2023 literature" = "grey65",
                                 "Pre-2023 literature" = "grey85"),
                     name = NULL) +
   scale_x_continuous(labels = scales::percent_format(accuracy = 1)) +
   labs(x = "Share of total", y = NULL,
        title = "Method share by L2 sub-discipline",
-       caption = "LLM recommendations (Qwen3) vs. pre/post-2023 published literature.") +
+       caption = "LLM recommendations (Qwen3 and Gemma) vs. pre/post-2023 published literature.") +
   theme_paper +
   theme(axis.text.y = element_text(size = 7.5))
 
@@ -198,48 +210,8 @@ ggsave(file.path(OUT_DIR, "fig3_l2_triple_bar.png"), fig3,
 cat("Fig. 3 saved.\n")
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Fig. 4 — Top 20 recommended L3 methods, shaded by gamma direction
+# Fig. 4 — Top 10 L3: Qwen3 vs Gemma, shaded by gamma direction
 # ═══════════════════════════════════════════════════════════════════════════
-
-qwen_l3 <- qwen_con |>
-  filter(!is.na(l3_mapping)) |>
-  count(l3 = l3_mapping, name = "n_rec") |>
-  arrange(desc(n_rec)) |>
-  slice_head(n = 20)
-
-gamma_lookup <- setNames(gamma_df$mean_gamma, gamma_df$l3)
-qwen_l3$gamma <- gamma_lookup[qwen_l3$l3]
-qwen_l3$l3_clean <- clean_l3 <- sub("^L3-[0-9]+: ", "", qwen_l3$l3)
-qwen_l3$direction <- ifelse(qwen_l3$gamma >= 0, "Gaining post-2023", "Declining post-2023")
-
-qwen_l3$l3_clean <- factor(qwen_l3$l3_clean,
-                            levels = rev(qwen_l3$l3_clean))
-
-fig4 <- ggplot(qwen_l3, aes(x = n_rec, y = l3_clean, fill = direction)) +
-  geom_col(colour = "black", linewidth = 0.2, width = 0.7) +
-  geom_text(aes(label = sprintf("%+.3f", gamma)),
-            hjust = -0.1, size = 2.5, family = "serif") +
-  scale_fill_manual(values = c("Gaining post-2023" = "grey35",
-                                "Declining post-2023" = "grey80"),
-                    name = "Post-2023 trajectory (γ)") +
-  scale_x_continuous(expand = expansion(mult = c(0, 0.15))) +
-  labs(x = "Total recommendations (Qwen3)", y = NULL,
-       title = "Top 20 recommended L3 methods",
-       caption = "Shading indicates signed posterior mean γ (post-2023 excess above trend).") +
-  theme_paper +
-  theme(axis.text.y = element_text(size = 7.5))
-
-ggsave(file.path(OUT_DIR, "fig4_top20_l3_gamma.png"), fig4,
-       width = 8, height = 5.5, dpi = 300, bg = "white")
-cat("Fig. 4 saved.\n")
-
-# ═══════════════════════════════════════════════════════════════════════════
-# Fig. 5 — Top 10 L3: Qwen3 vs Gemma
-# ═══════════════════════════════════════════════════════════════════════════
-
-gemma_raw <- read.csv(here("experiment/analysis/experiment_results_GEMMA.csv"),
-                      stringsAsFactors = FALSE)
-gemma_con <- gemma_raw |> filter(toupper(as.character(l3_mapping_consistent)) == "TRUE")
 
 qwen_all <- qwen_con |>
   filter(!is.na(l3_mapping)) |>
@@ -255,35 +227,50 @@ top10_q <- qwen_all |> slice_max(qwen, n = 10) |> pull(l3)
 top10_g <- gemma_all |> slice_max(gemma, n = 10) |> pull(l3)
 top10_union <- union(top10_q, top10_g)
 
+gamma_lookup <- setNames(gamma_df$mean_gamma, gamma_df$l3)
+
 cmp <- full_join(qwen_all, gemma_all, by = "l3") |>
   filter(l3 %in% top10_union) |>
   mutate(across(c(qwen_share, gemma_share), ~ replace_na(.x, 0)),
-         l3_clean = sub("^L3-[0-9]+: ", "", l3))
+         l3_clean = sub("^L3-[0-9]+: ", "", l3),
+         gamma = gamma_lookup[l3],
+         direction = ifelse(gamma >= 0, "Gaining post-2023", "Declining post-2023"))
 
-order5 <- cmp |> arrange(qwen_share) |> pull(l3_clean)
+order4 <- cmp |> arrange(qwen_share) |> pull(l3_clean)
 
-plot_df5 <- cmp |>
-  select(l3_clean, Qwen3 = qwen_share, Gemma = gemma_share) |>
-  pivot_longer(-l3_clean, names_to = "model", values_to = "share") |>
-  mutate(l3_clean = factor(l3_clean, levels = order5))
+plot_df4 <- cmp |>
+  select(l3_clean, direction, Qwen3 = qwen_share, Gemma = gemma_share) |>
+  pivot_longer(c(Qwen3, Gemma), names_to = "model", values_to = "share") |>
+  mutate(l3_clean = factor(l3_clean, levels = order4),
+         fill_group = paste(model, direction))
 
-fig5 <- ggplot(plot_df5, aes(x = share, y = l3_clean, fill = model)) +
+fig4 <- ggplot(plot_df4, aes(x = share, y = l3_clean, fill = fill_group)) +
   geom_col(position = position_dodge(width = 0.7), width = 0.6,
            colour = "black", linewidth = 0.15) +
-  scale_fill_manual(values = c("Qwen3" = "grey30", "Gemma" = "grey70"), name = NULL) +
+  scale_fill_manual(
+    values = c("Qwen3 Gaining post-2023"    = "grey15",
+               "Qwen3 Declining post-2023"  = "grey50",
+               "Gemma Gaining post-2023"    = "grey55",
+               "Gemma Declining post-2023"  = "grey85"),
+    labels = c("Qwen3 Gaining post-2023"    = "Qwen3 (gaining)",
+               "Qwen3 Declining post-2023"  = "Qwen3 (declining)",
+               "Gemma Gaining post-2023"    = "Gemma (gaining)",
+               "Gemma Declining post-2023"  = "Gemma (declining)"),
+    name = NULL
+  ) +
   scale_x_continuous(labels = scales::percent_format(accuracy = 0.1)) +
   labs(x = "Share of total recommendations", y = NULL,
        title = "Top recommended L3 methods: Qwen3 vs. Gemma",
-       caption = "Union of each model’s top 10. Share of total recommendations.") +
+       caption = "Union of each model’s top 10. Shading: post-2023 trajectory (γ) direction.") +
   theme_paper +
   theme(axis.text.y = element_text(size = 7.5))
 
-ggsave(file.path(OUT_DIR, "fig5_top10_qwen_vs_gemma.png"), fig5,
+ggsave(file.path(OUT_DIR, "fig4_top10_qwen_vs_gemma_gamma.png"), fig4,
        width = 8, height = 5.5, dpi = 300, bg = "white")
-cat("Fig. 5 saved.\n")
+cat("Fig. 4 saved.\n")
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Fig. 6 — Concentration posteriors (inv Simpson)
+# Fig. 5 — Concentration posteriors (inv Simpson)
 # ═══════════════════════════════════════════════════════════════════════════
 
 conc_draws <- read.csv(here("data/output/concentration_inv_simpson_draws.csv"),
@@ -302,7 +289,7 @@ source_medians <- conc_long |>
 
 conc_long$source <- factor(conc_long$source, levels = source_medians$source)
 
-fig6 <- ggplot(conc_long, aes(x = inv_simpson, y = source)) +
+fig5 <- ggplot(conc_long, aes(x = inv_simpson, y = source)) +
   stat_halfeye(
     .width         = c(0.50, 0.90),
     point_interval = "median_qi",
@@ -319,12 +306,12 @@ fig6 <- ggplot(conc_long, aes(x = inv_simpson, y = source)) +
   theme_paper +
   theme(axis.text.y = element_text(size = 8))
 
-ggsave(file.path(OUT_DIR, "fig6_concentration_posteriors.png"), fig6,
+ggsave(file.path(OUT_DIR, "fig5_concentration_posteriors.png"), fig5,
        width = 8, height = 5, dpi = 300, bg = "white")
-cat("Fig. 6 saved.\n")
+cat("Fig. 5 saved.\n")
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Fig. 7 — b_pre vs b_gamma posteriors (overall, both models)
+# Fig. 6 — b_pre vs b_gamma posteriors (overall, both models)
 # ═══════════════════════════════════════════════════════════════════════════
 
 prev_draws <- read.csv(here("data/output/prevalence_gamma_draws.csv"),
@@ -341,7 +328,7 @@ plot_df7 <- bind_rows(
              parameter = "(B) b[pre] (corpus prevalence)", model = "Gemma")
 )
 
-fig7 <- ggplot(plot_df7, aes(x = value, y = model, fill = model)) +
+fig6 <- ggplot(plot_df7, aes(x = value, y = model, fill = model)) +
   stat_halfeye(
     .width         = c(0.50, 0.90),
     point_interval = "mean_qi",
@@ -358,12 +345,12 @@ fig7 <- ggplot(plot_df7, aes(x = value, y = model, fill = model)) +
   theme_paper +
   theme(legend.position = "none")
 
-ggsave(file.path(OUT_DIR, "fig7_bpre_bgamma_posteriors.png"), fig7,
+ggsave(file.path(OUT_DIR, "fig6_bpre_bgamma_posteriors.png"), fig6,
        width = 7, height = 5, dpi = 300, bg = "white")
-cat("Fig. 7 saved.\n")
+cat("Fig. 6 saved.\n")
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Fig. 8 — b_gamma by profile and model
+# Fig. 7 — b_gamma by profile and model
 # ═══════════════════════════════════════════════════════════════════════════
 
 prev_summary <- read.csv(here("data/output/prevalence_gamma_summary.csv"),
@@ -378,7 +365,7 @@ prev_summary$profile <- factor(prev_summary$profile,
                                 levels = c("overall", "novice", "intermediate", "expert"),
                                 labels = c("(A) overall", "(B) novice", "(C) intermediate", "(D) expert"))
 
-fig8 <- ggplot(prev_summary, aes(y = model)) +
+fig7 <- ggplot(prev_summary, aes(y = model)) +
   geom_vline(xintercept = 0, linetype = "dashed", linewidth = 0.3) +
   geom_linerange(aes(xmin = b_gamma_lo90, xmax = b_gamma_hi90),
                  linewidth = 0.6, colour = "grey40") +
@@ -391,8 +378,8 @@ fig8 <- ggplot(prev_summary, aes(y = model)) +
        caption = "Point: posterior mean. Horizontal bar: 90% credible interval.") +
   theme_paper
 
-ggsave(file.path(OUT_DIR, "fig8_bgamma_by_profile.png"), fig8,
+ggsave(file.path(OUT_DIR, "fig7_bgamma_by_profile.png"), fig7,
        width = 7, height = 5.5, dpi = 300, bg = "white")
-cat("Fig. 8 saved.\n")
+cat("Fig. 7 saved.\n")
 
 cat("\nAll main-text figures saved to:", OUT_DIR, "\n")
