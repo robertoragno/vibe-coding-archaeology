@@ -106,12 +106,12 @@ sigma_df <- data.frame(
                   each = nrow(draws))
 )
 
-fig2 <- ggplot(sigma_df, aes(x = value)) +
-  geom_density(fill = "grey60", colour = "black", linewidth = 0.4, alpha = 0.7,
-               bounds = c(0, Inf)) +
+fig2 <- ggplot(sigma_df, aes(x = value, y = after_stat(density))) +
+  geom_histogram(fill = "grey60", colour = "black", linewidth = 0.2,
+                 bins = 50, boundary = 0) +
   geom_vline(xintercept = 0, linetype = "dashed", linewidth = 0.3) +
   facet_wrap(~ parameter, scales = "free", ncol = 2) +
-  scale_x_continuous(expand = expansion(mult = c(0.05, 0.05))) +
+  scale_x_continuous(expand = expansion(mult = c(0.02, 0.05))) +
   labs(x = "Posterior value", y = "Density",
        title = "Hierarchical scale posteriors: baseline trend vs. post-LLM shift",
        caption = expression(sigma[gamma] > 0 ~ "indicates uneven post-2023 divergence across methods.")) +
@@ -212,7 +212,7 @@ ggsave(file.path(OUT_DIR, "fig3_l2_triple_bar.png"), fig3,
 cat("Fig. 3 saved.\n")
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Fig. 4 — Top 10 L3: Qwen3 vs Gemma, shaded by gamma direction
+# Fig. 4 — Top 10 L3: Qwen3 vs Gemma
 # ═══════════════════════════════════════════════════════════════════════════
 
 qwen_all <- qwen_con |>
@@ -229,45 +229,30 @@ top10_q <- qwen_all |> slice_max(qwen, n = 10) |> pull(l3)
 top10_g <- gemma_all |> slice_max(gemma, n = 10) |> pull(l3)
 top10_union <- union(top10_q, top10_g)
 
-gamma_lookup <- setNames(gamma_df$mean_gamma, gamma_df$l3)
-
 cmp <- full_join(qwen_all, gemma_all, by = "l3") |>
   filter(l3 %in% top10_union) |>
   mutate(across(c(qwen_share, gemma_share), ~ replace_na(.x, 0)),
-         l3_clean = sub("^L3-[0-9]+: ", "", l3),
-         gamma = gamma_lookup[l3],
-         direction = ifelse(gamma >= 0, "Gaining post-2023", "Declining post-2023"))
+         l3_clean = sub("^L3-[0-9]+: ", "", l3))
 
 order4 <- cmp |> arrange(qwen_share) |> pull(l3_clean)
 
 plot_df4 <- cmp |>
-  select(l3_clean, direction, Qwen3 = qwen_share, Gemma = gemma_share) |>
-  pivot_longer(c(Qwen3, Gemma), names_to = "model", values_to = "share") |>
-  mutate(l3_clean = factor(l3_clean, levels = order4),
-         fill_group = paste(model, direction))
+  select(l3_clean, Qwen3 = qwen_share, Gemma = gemma_share) |>
+  pivot_longer(-l3_clean, names_to = "model", values_to = "share") |>
+  mutate(l3_clean = factor(l3_clean, levels = order4))
 
-fig4 <- ggplot(plot_df4, aes(x = share, y = l3_clean, fill = fill_group)) +
+fig4 <- ggplot(plot_df4, aes(x = share, y = l3_clean, fill = model)) +
   geom_col(position = position_dodge(width = 0.7), width = 0.6,
            colour = "black", linewidth = 0.15) +
-  scale_fill_manual(
-    values = c("Qwen3 Gaining post-2023"    = "grey15",
-               "Qwen3 Declining post-2023"  = "grey50",
-               "Gemma Gaining post-2023"    = "grey55",
-               "Gemma Declining post-2023"  = "grey85"),
-    labels = c("Qwen3 Gaining post-2023"    = "Qwen3 (gaining)",
-               "Qwen3 Declining post-2023"  = "Qwen3 (declining)",
-               "Gemma Gaining post-2023"    = "Gemma (gaining)",
-               "Gemma Declining post-2023"  = "Gemma (declining)"),
-    name = NULL
-  ) +
+  scale_fill_manual(values = c("Qwen3" = "grey30", "Gemma" = "grey70"), name = NULL) +
   scale_x_continuous(labels = scales::percent_format(accuracy = 0.1)) +
   labs(x = "Share of total recommendations", y = NULL,
        title = "Top recommended L3 methods: Qwen3 vs. Gemma",
-       caption = "Union of each model’s top 10. Shading: post-2023 trajectory (γ) direction.") +
+       caption = "Union of each model’s top 10. Share of total recommendations.") +
   theme_paper +
   theme(axis.text.y = element_text(size = 7.5))
 
-ggsave(file.path(OUT_DIR, "fig4_top10_qwen_vs_gemma_gamma.png"), fig4,
+ggsave(file.path(OUT_DIR, "fig4_top10_qwen_vs_gemma.png"), fig4,
        width = 8, height = 5.5, dpi = 300, bg = "white")
 cat("Fig. 4 saved.\n")
 

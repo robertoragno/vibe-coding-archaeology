@@ -65,25 +65,22 @@ model-specific artefact.
 
 ---
 
-## Fig. 4 — Top 10 L3 methods: Qwen3 vs Gemma, shaded by post-2023 trajectory
+## Fig. 4 — Top 10 L3 methods: Qwen3 vs Gemma
 
 **Section:** Results (cross-model comparison, 4.2)
 
 **What it shows:** Union of each model's top 10 recommended L3 methods, compared
-as share of total recommendations. Bars are shaded by the sign of gamma
-(dark = gaining share post-2023, light = declining), linking the cross-model
-comparison to the bibliometric trajectory from Section 4.1.
+as share of total recommendations.
 
 **Results:** High structural agreement between the two LLMs. Network Analysis and
 Modeling dominates both (~10% share each). The rank ordering is largely preserved
 across architectures, though Gemma allocates slightly more to GIS Modeling and
 Multivariate Statistical & Machine Learning, while Qwen3 favours Discrete and
-Agent-Based Simulation more strongly. Most of the top-recommended methods are
-shaded as gaining post-2023, visually foreshadowing the question tested in
-Figs. 6–7: is the concentration collapse driven by post-2023 momentum, or
-simply by training-corpus prevalence?
+Agent-Based Simulation more strongly. This convergence across independently
+trained models strengthens the claim that the recommendation patterns are
+structural, not model-specific artefacts.
 
-![Fig. 4](../data/output/figures/main_text/fig4_top10_qwen_vs_gemma_gamma.png)
+![Fig. 4](../data/output/figures/main_text/fig4_top10_qwen_vs_gemma.png)
 
 ---
 
