@@ -107,9 +107,11 @@ sigma_df <- data.frame(
 )
 
 fig2 <- ggplot(sigma_df, aes(x = value)) +
-  geom_density(fill = "grey60", colour = "black", linewidth = 0.4, alpha = 0.7) +
+  geom_density(fill = "grey60", colour = "black", linewidth = 0.4, alpha = 0.7,
+               bounds = c(0, Inf)) +
   geom_vline(xintercept = 0, linetype = "dashed", linewidth = 0.3) +
   facet_wrap(~ parameter, scales = "free", ncol = 2) +
+  scale_x_continuous(expand = expansion(mult = c(0.05, 0.05))) +
   labs(x = "Posterior value", y = "Density",
        title = "Hierarchical scale posteriors: baseline trend vs. post-LLM shift",
        caption = expression(sigma[gamma] > 0 ~ "indicates uneven post-2023 divergence across methods.")) +
