@@ -229,26 +229,44 @@ top10_q <- qwen_all |> slice_max(qwen, n = 10) |> pull(l3)
 top10_g <- gemma_all |> slice_max(gemma, n = 10) |> pull(l3)
 top10_union <- union(top10_q, top10_g)
 
+gamma_df <- read.csv(if (file.exists(here("data/output/gamma_results.csv")))
+                       here("data/output/gamma_results.csv") else
+                       here("data/output/phi_free/gamma_results.csv"),
+                     stringsAsFactors = FALSE)
+gamma_lookup <- setNames(gamma_df$mean_gamma, gamma_df$l3)
+
 cmp <- full_join(qwen_all, gemma_all, by = "l3") |>
   filter(l3 %in% top10_union) |>
   mutate(across(c(qwen_share, gemma_share), ~ replace_na(.x, 0)),
-         l3_clean = sub("^L3-[0-9]+: ", "", l3))
+         l3_clean = sub("^L3-[0-9]+: ", "", l3),
+         gamma = gamma_lookup[l3])
 
 order4 <- cmp |> arrange(qwen_share) |> pull(l3_clean)
 
 plot_df4 <- cmp |>
-  select(l3_clean, Qwen3 = qwen_share, Gemma = gemma_share) |>
-  pivot_longer(-l3_clean, names_to = "model", values_to = "share") |>
+  select(l3_clean, Qwen3 = qwen_share, Gemma = gemma_share, gamma) |>
+  pivot_longer(c(Qwen3, Gemma), names_to = "model", values_to = "share") |>
   mutate(l3_clean = factor(l3_clean, levels = order4))
+
+gamma_labels <- cmp |>
+  mutate(l3_clean = factor(l3_clean, levels = order4),
+         max_share = pmax(qwen_share, gemma_share),
+         gamma_lab = ifelse(gamma >= 0,
+                            paste0("+", formatC(gamma, format = "f", digits = 2)),
+                            formatC(gamma, format = "f", digits = 2)))
 
 fig4 <- ggplot(plot_df4, aes(x = share, y = l3_clean, fill = model)) +
   geom_col(position = position_dodge(width = 0.7), width = 0.6,
            colour = "black", linewidth = 0.15) +
+  geom_text(data = gamma_labels,
+            aes(x = max_share, y = l3_clean, label = gamma_lab),
+            inherit.aes = FALSE, hjust = -0.15, size = 2.8, family = "mono") +
   scale_fill_manual(values = c("Qwen3" = "grey30", "Gemma" = "grey70"), name = NULL) +
-  scale_x_continuous(labels = scales::percent_format(accuracy = 0.1)) +
+  scale_x_continuous(labels = scales::percent_format(accuracy = 0.1),
+                     expand = expansion(mult = c(0.01, 0.12))) +
   labs(x = "Share of total recommendations", y = NULL,
        title = "Top recommended L3 methods: Qwen3 vs. Gemma",
-       caption = "Union of each model’s top 10. Share of total recommendations.") +
+       caption = "Union of each model’s top 10. Annotations show post-2023 literature trajectory (γ).") +
   theme_paper +
   theme(axis.text.y = element_text(size = 7.5))
 
