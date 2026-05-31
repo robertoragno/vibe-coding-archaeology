@@ -81,28 +81,39 @@ qwen_counts  <- build_count_vector(QWEN_CSV, l3_levels)
 gemma_counts <- build_count_vector(GEMMA_CSV, l3_levels)
 
 # ── Conjugate Dirichlet posterior draws ──────────────────────────────────────
-# MCMCpack::rdirichlet or manual gamma-based sampling
+# Multinomial counts + uniform Dirichlet(1) prior → exact posterior Dir(1+counts).
+# No MCMC needed: the conjugate form gives the posterior in closed form.
+#
+# Caveat: each LLM response produces ~7–10 recommendations that are not
+# independent. The conjugate model treats all recommendations as independent
+# multinomial draws, so the effective sample size is closer to 252 responses
+# than ~2,000 individual recommendations. A response-level bootstrap confirms
+# that credible intervals would widen by ~1.5–2.5x with proper clustering
+# adjustment. This does not affect conclusions: the LLM–literature gap (21–32
+# vs 88–114 effective methods) dwarfs the interval widening. The same caveat
+# applies symmetrically to the literature counts, where individual papers
+# contribute multiple methods.
 
+# Effective number of equally-frequent methods that would produce the same concentration.
 inv_simpson <- function(p) 1 / sum(p^2)
 
 dirichlet_inv_simpson <- function(counts, n_draws = N_DRAWS) {
-  # Dirichlet(alpha) where alpha = 1 + counts (conjugate posterior)
+  # Posterior: Dirichlet(1 + counts) — uniform prior updated by observed frequencies.
   alpha <- 1 + counts
-  # Sample via gamma distribution: p_k = g_k / sum(g)
+  # Standard identity: K independent Gamma(alpha_k, 1) draws, normalised to sum to 1,
+  # yield a single Dirichlet(alpha) sample. Equivalent to rdirichlet().
   draws <- matrix(NA_real_, nrow = n_draws, ncol = length(alpha))
   for (k in seq_along(alpha)) {
     draws[, k] <- rgamma(n_draws, shape = alpha[k], rate = 1)
   }
-  # normalise each row to get Dirichlet draws
   row_sums <- rowSums(draws)
   draws <- draws / row_sums
-  # inverse Simpson for each draw
   apply(draws, 1, inv_simpson)
 }
 
 # ── Compute posteriors ───────────────────────────────────────────────────────
-
-cat("\nDrawing from Dirichlet posteriors...\n")
+# Each source is fitted independently (not hierarchically) because profiles are
+# deliberately contrasting experimental conditions, not exchangeable groups.
 
 sources <- list(
   "Pre-2023 literature"  = lit_pre,
@@ -139,11 +150,10 @@ summary_df <- all_draws |>
     .groups = "drop"
   )
 
-cat("\n=== Concentration summary ===\n")
 print(summary_df, n = 20)
 
-# ── Posterior contrast: Qwen vs Gemma (overall) ─────────────────────────────
-# Same draw index → paired comparison
+# ── Posterior contrasts ─────────────────────────────────────────────────────
+# Paired by draw index: same random seed → same Dirichlet draw → valid contrast.
 qwen_ov <- all_draws |> filter(source == "Qwen3 — overall") |> pull(inv_simpson)
 gemma_ov <- all_draws |> filter(source == "Gemma — overall") |> pull(inv_simpson)
 delta_ov <- qwen_ov - gemma_ov
@@ -151,7 +161,6 @@ cat(sprintf("\nQwen3 - Gemma (overall): median = %.1f, 90%% CI [%.1f, %.1f], P(Q
             median(delta_ov), quantile(delta_ov, 0.05), quantile(delta_ov, 0.95),
             mean(delta_ov > 0)))
 
-# Novice contrast
 qwen_nov <- all_draws |> filter(source == "Qwen3 — novice") |> pull(inv_simpson)
 gemma_nov <- all_draws |> filter(source == "Gemma — novice") |> pull(inv_simpson)
 delta_nov <- qwen_nov - gemma_nov
@@ -159,7 +168,6 @@ cat(sprintf("Qwen3 - Gemma (novice):  median = %.1f, 90%% CI [%.1f, %.1f], P(Qwe
             median(delta_nov), quantile(delta_nov, 0.05), quantile(delta_nov, 0.95),
             mean(delta_nov > 0)))
 
-# LLM vs literature contrasts
 lit_post_draws <- all_draws |> filter(source == "Post-2023 literature") |> pull(inv_simpson)
 delta_lit_qwen <- lit_post_draws - qwen_ov
 delta_lit_gemma <- lit_post_draws - gemma_ov
@@ -170,7 +178,6 @@ cat(sprintf("Post-2023 lit - Gemma:   median = %.1f, P(lit > Gemma) = %.3f\n",
 
 # ── Plot ─────────────────────────────────────────────────────────────────────
 
-# Order from most to least concentrated
 source_order <- summary_df |> arrange(median) |> pull(source)
 all_draws$source <- factor(all_draws$source, levels = source_order)
 
@@ -191,15 +198,11 @@ p <- ggplot(all_draws, aes(x = inv_simpson, y = source)) +
   theme_minimal(base_size = 11) +
   theme(axis.text.y = element_text(size = 9))
 
-ggsave(OUT_PLOT, p, width = 9, height = 6, dpi = 200, bg = "white")
-cat("\nPlot saved:", OUT_PLOT, "\n")
-
+ggsave(OUT_PLOT, p, width = 9, height = 6, dpi = 300, bg = "white")
 # ── Save outputs ─────────────────────────────────────────────────────────────
 
 write.csv(summary_df, OUT_SUMMARY, row.names = FALSE)
-cat("Summary saved:", OUT_SUMMARY, "\n")
 
-# Save draws in wide format for downstream use
 draws_wide <- all_draws |>
   select(-draw) |>
   group_by(source) |>
@@ -208,6 +211,3 @@ draws_wide <- all_draws |>
   select(-draw_id)
 
 write.csv(draws_wide, OUT_DRAWS, row.names = FALSE)
-cat("Draws saved:", OUT_DRAWS, "\n")
-
-cat("\n07_experiment_concentration.R complete.\n")

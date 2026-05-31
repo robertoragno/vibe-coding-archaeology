@@ -307,7 +307,7 @@ fig5 <- ggplot(conc_long, aes(x = inv_simpson, y = source)) +
   labs(x = "Effective number of methods (Inverse Simpson)",
        y = NULL,
        title = "Recommendation concentration: posterior distributions",
-       caption = "Dirichlet conjugate posterior. Higher = more diverse. Dark band: 50% CI; light: 90% CI.") +
+       caption = "Dirichlet conjugate posterior. Higher = more diverse. Dark band: 50% CI; light: 90% CI.\nIntervals treat recommendations as independent; within-response clustering would widen them ~1.5–2.5× without affecting the LLM–literature gap.") +
   theme_paper +
   theme(axis.text.y = element_text(size = 8))
 

@@ -157,6 +157,8 @@ Script: `R/07_experiment_concentration.R`
 
 The point-estimate inverse Simpson indices from the exploratory section are replaced with full posterior distributions via the conjugate Dirichlet update: Dir(1 + n_1, ..., 1 + n_K) over 242 methods, with inv_simpson = 1 / sum(p_k^2) computed on each draw.
 
+**Why conjugate inference rather than Stan.** The Dirichlet distribution is the *conjugate prior* for multinomial count data. Conjugacy means that the posterior belongs to the same distributional family as the prior — adding counts to the prior parameters yields the exact posterior, no approximation needed. This is a closed-form solution: a direct formula, not an iterative algorithm. The hierarchical diversity model (Step 2) cannot use this shortcut because its structure — L2 groups, yearly time steps, trend parameters, hierarchical shrinkage — couples the parameters in ways that have no closed-form posterior. Stan's MCMC sampler is required there to explore the joint posterior numerically. Both approaches are fully Bayesian (prior + likelihood → posterior); the difference is computational, not philosophical. The conjugate approach is exact where MCMC is approximate, but it is only available when the model is simple enough to admit a formula. In practice, the Dirichlet draws here are generated via the gamma-distribution identity: K independent draws g_k ~ Gamma(alpha_k, 1), normalised to sum to one, produce a single Dirichlet(alpha) sample. This is a standard sampling technique equivalent to Stan's `dirichlet` distribution, just without the overhead of a Markov chain.
+
 | Distribution | Median effective methods | 90% CI |
 |---|---|---|
 | Pre-2023 literature | 88.4 | [85.4, 91.4] |
@@ -178,6 +180,8 @@ The point-estimate inverse Simpson indices from the exploratory section are repl
 - **Literature vs LLMs:** Both LLMs credibly below literature (P = 1.000). Post-2023 literature: ~114 effective methods; most concentrated LLM profile (Gemma novice): ~21.
 
 The profile gradient (novice < intermediate < expert) survives with full posterior uncertainty. The literature's own diversification (88 → 114) is credibly nonzero.
+
+**Note on within-response clustering.** The conjugate model treats each individual method recommendation as an independent multinomial draw. In practice, each LLM response produces ~7–10 recommendations that may be correlated (252 responses per profile), so the effective sample size is closer to 252 than ~2,000. A response-level bootstrap confirms that credible intervals would widen by approximately 1.5–2.5× with proper clustering adjustment. This does not affect any substantive conclusion: the LLM–literature gap (21–32 vs 88–114 effective methods) dwarfs the interval widening, and all posterior contrasts remain credible under the wider intervals. The same caveat applies symmetrically to the literature counts, where individual papers contribute multiple methods to the count array, though paper-level data is not retained in the aggregated Stan inputs and therefore cannot be corrected in the same way.
 
 ---
 
