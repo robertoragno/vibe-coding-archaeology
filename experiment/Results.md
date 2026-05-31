@@ -114,9 +114,9 @@ Both LLMs produce recommendation distributions dramatically narrower than the li
 
 ## Single-predictor negative-binomial regression: n_rec ~ gamma
 
-Scripts: `R/archive/06_step3_llm_comparison.R (archived, superseded by 08)`, `R/archive/06b_step3_llm_comparison_gemma.R (archived, superseded by 08)`
+Scripts: `R/archive/06_step3_llm_comparison.R`, `R/archive/06b_step3_llm_comparison_gemma.R`
 
-> **Note:** This regression conflates training-corpus prevalence with post-2023 trajectory. The [two-predictor model below](#two-predictor-nb2-regression-prevalence-vs-trajectory) separates them and resolves the apparent negative direction.
+> **Note:** This single-predictor regression conflates training-corpus prevalence with post-2023 trajectory. The [two-predictor model below](#two-predictor-nb2-regression-prevalence-vs-trajectory) separates them and resolves the apparent negative direction.
 
 The model is a negative-binomial regression (NB2 parameterisation). The negative-binomial is a generalisation of the Poisson for count data that adds an overdispersion parameter (phi) to handle the fact that recommendation counts are more variable than a Poisson would predict — some methods get recommended far more often than others for reasons beyond their gamma alone (e.g. fame, training-corpus prominence). The NB2 form means the variance scales quadratically with the mean: Var = mu + mu²/phi.
 

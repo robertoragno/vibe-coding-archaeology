@@ -91,6 +91,9 @@ model {
   }
 }
 
+// Inference targets the compositional shares (per-method gamma) to preserve
+// technique-level resolution. inv_simpson and eff_N_shannon are derived
+// summaries for interpretation and for the diversity-trajectory sensitivity (D).
 generated quantities {
   matrix[N_groups, N_years] inv_simpson;
   matrix[N_groups, N_years] eff_N_shannon;

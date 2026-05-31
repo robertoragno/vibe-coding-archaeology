@@ -124,14 +124,20 @@ Models inv_simpson directly at L2 group level with the same two-slope structure.
 | Prevalence vs trajectory | Two-predictor NB separating corpus prevalence from post-2023 shifts | [View](experiment/Results.md) |
 | Cross-model comparison | Qwen3 vs Gemma recommendation patterns and divergences | [View](experiment/Results.md) |
 
+**Figures**
+
+| Document | Description |
+|---|---|
+| Main text figures | [View](docs/main_text_figures.md) |
+
 **Sensitivity analyses**
 
 | Analysis | Description | Results |
 |---|---|---|
-| A: Count threshold | Step 3 restricted to methods with ≥50 papers | [View](R/sensitivity/README.md) |
-| B: Taxonomy remapping | Step 3 with v2→v3 fuzzy matching (85% coverage) | [View](docs/step3_remapped_results.md) |
-| C: Distributional test | LLM vs pre/post-2023 literature (cosine similarity) | [View](docs/distributional_test_results.md) |
-| D: Diversity trajectory | Direct inv_simpson model at L2 group level | [View](R/sensitivity/README.md) |
+| A: Count threshold | Step 3 restricted to methods with ≥50 papers | [View](docs/sensitivity_results.md#sensitivity-a--count-threshold) |
+| B: Taxonomy remapping | Step 3 with v2→v3 fuzzy matching (85% coverage) | [View](docs/sensitivity_results.md#sensitivity-b--v2-to-v3-taxonomy-remapping) |
+| C: Distributional test | LLM vs pre/post-2023 literature (cosine similarity) | [View](docs/sensitivity_results.md#sensitivity-c--distributional-test) |
+| D: Diversity trajectory | Direct inv_simpson model at L2 group level | [View](docs/sensitivity_results.md#sensitivity-d--direct-diversity-trajectory) |
 
 ## Future directions
 
