@@ -47,9 +47,10 @@ stan_data_2022 <- stan_data
 stan_data_2022$post_llm <- as.integer(years_vec >= 2022)
 cat("Modified post_llm:", stan_data_2022$post_llm, "\n")
 
-# Sanity check: years 2022-2026 should be post_llm = 1 (5 years)
-stopifnot(sum(stan_data_2022$post_llm) == 5L)
-cat("post_llm sum = 5 (2022, 2023, 2024, 2025, 2026) — OK\n")
+expected_post <- sum(years_vec >= 2022)
+stopifnot(sum(stan_data_2022$post_llm) == expected_post)
+cat("post_llm sum =", expected_post, "(years",
+    min(years_vec[years_vec >= 2022]), "to", max(years_vec), ") — OK\n")
 
 # ── 3. Re-fit (guarded by DONE_FLAG) ──────────────────────────────────────────
 
