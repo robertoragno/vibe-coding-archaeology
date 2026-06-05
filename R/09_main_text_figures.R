@@ -99,8 +99,8 @@ draws <- fit$draws(format = "draws_matrix")
 sigma_df <- data.frame(
   value = c(as.numeric(draws[, "sigma_beta"]),
             as.numeric(draws[, "sigma_gamma"])),
-  parameter = rep(c("σβ: pre-LLM baseline",
-                    "σγ: post-2023 shift spread"),
+  parameter = rep(c("sigma[beta]~'pre-LLM baseline'",
+                    "sigma[gamma]~'post-2023 shift spread'"),
                   each = nrow(draws))
 )
 
@@ -108,7 +108,7 @@ fig2 <- ggplot(sigma_df, aes(x = value, y = after_stat(density))) +
   geom_histogram(fill = "grey60", colour = "black", linewidth = 0.2,
                  bins = 50, boundary = 0) +
   geom_vline(xintercept = 0, linetype = "dashed", linewidth = 0.3) +
-  facet_wrap(~ parameter, scales = "free", ncol = 2) +
+  facet_wrap(~ parameter, scales = "free", ncol = 2, labeller = label_parsed) +
   scale_x_continuous(expand = expansion(mult = c(0.02, 0.05))) +
   labs(x = "Posterior value", y = "Density",
        title = "Method-level variation before and after 2023",
@@ -319,14 +319,14 @@ prev_draws <- read.csv(here("data/output/prevalence_gamma_draws.csv"),
                        stringsAsFactors = FALSE)
 
 plot_df7 <- bind_rows(
-  data.frame(value = prev_draws$qwen_b_gamma,
-             parameter = "(A) b[gamma] (post-2023 excess)", model = "Qwen3"),
-  data.frame(value = prev_draws$gemma_b_gamma,
-             parameter = "(A) b[gamma] (post-2023 excess)", model = "Gemma"),
   data.frame(value = prev_draws$qwen_b_pre,
-             parameter = "(B) b[pre] (corpus prevalence)", model = "Qwen3"),
+             parameter = "(A)~beta[pre]~'(corpus prevalence)'", model = "Qwen3"),
   data.frame(value = prev_draws$gemma_b_pre,
-             parameter = "(B) b[pre] (corpus prevalence)", model = "Gemma")
+             parameter = "(A)~beta[pre]~'(corpus prevalence)'", model = "Gemma"),
+  data.frame(value = prev_draws$qwen_b_gamma,
+             parameter = "(B)~beta[gamma]~'(post-2023 momentum)'", model = "Qwen3"),
+  data.frame(value = prev_draws$gemma_b_gamma,
+             parameter = "(B)~beta[gamma]~'(post-2023 momentum)'", model = "Gemma")
 )
 
 fig6 <- ggplot(plot_df7, aes(x = value, y = model, fill = model)) +
@@ -338,11 +338,11 @@ fig6 <- ggplot(plot_df7, aes(x = value, y = model, fill = model)) +
     point_size     = 1.5
   ) +
   geom_vline(xintercept = 0, linetype = "dashed", linewidth = 0.3) +
-  facet_wrap(~ parameter, scales = "free_x", ncol = 1) +
+  facet_wrap(~ parameter, scales = "free_x", ncol = 2, labeller = label_parsed) +
   scale_fill_manual(values = c("Qwen3" = "grey35", "Gemma" = "grey70")) +
   labs(x = "Posterior coefficient", y = NULL,
-       title = "Prevalence echo, not recent momentum",
-       caption = "Coefficients from a two-predictor count regression: b_pre (how often a method appeared in pre-2023 literature) and b_gamma (whether it gained momentum post-2023). Overall profile. Bands: 50%/90% CI.") +
+       title = "Echo, not momentum",
+       caption = expression(beta[pre]*": pre-LLM corpus prevalence; "*beta[gamma]*": post-2023 momentum. Overall profile. Bands: 50%/90% CI.")) +
   theme_paper +
   theme(legend.position = "none")
 
