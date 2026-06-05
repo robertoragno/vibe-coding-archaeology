@@ -18,12 +18,12 @@ R.Rproj
 # Compiled Stan binaries
 stan/diversity_model
 stan/diversity_model.rds
-stan/diversity_model_phi_free
+stan/bibliometric_dirichlet_multinomial
 stan/diversity_trajectory
 stan/l1_l2_diversity_model
 stan/l1_l2_diversity_model_phi_free
 stan/poisson_gamma_regression
-stan/nb2_prevalence_gamma
+stan/experiment_prevalence_nb
 
 # Logs and scratch
 logs/
@@ -38,6 +38,9 @@ data/output/figure*.png
 
 # Mining (separate pipeline)
 Mining_Script/
+
+# Local project context (not for the public repo)
+CONTEXT.md
 
 # Misc
 *.pdf

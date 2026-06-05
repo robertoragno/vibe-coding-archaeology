@@ -20,7 +20,7 @@ taxonomy <- read.csv(TAXONOMY_FILE) |>
 
 scopus_processed <- scopus_raw |>
   inner_join(taxonomy, by = "eid") |>
-  filter(Year >= 2010, Year <= 2026)
+  filter(Year >= 2010, Year <= 2025)  # 2026 dropped: partial year (mid-2026 + indexing lag)
 cat("Rows loaded:", nrow(scopus_processed), "\n")
 
 df_clean <- scopus_processed |>
@@ -83,15 +83,15 @@ for (i in seq_len(nrow(counts_long))) {
     counts_long$n_papers[i]
 }
 
-years_vec <- 2010:2026
-year_std  <- as.numeric(scale(year_levels))
+year_std <- as.numeric(scale(year_levels))
 
-# Two-slope temporal predictors:
-#   year_std  = standardised linear trend (full 2010-2025)
+# Two-slope temporal predictors, built from the observed year index so they
+# stay aligned with the data even if a year is ever missing from the corpus:
+#   year_std  = standardised linear trend
 #   post_llm  = indicator for >= 2023 (post-ChatGPT academic adoption)
-post_llm <- as.integer(years_vec >= 2023)
+post_llm  <- as.integer(year_levels >= 2023)
 
-cat("post_llm vector (2010-2025):", post_llm, "\n")
+cat("post_llm (1 = year >= 2023):", post_llm, "\n")
 
 stan_data <- list(
   N_groups  = N_groups,
@@ -99,10 +99,9 @@ stan_data <- list(
   K_max     = K_max,
   K_g       = K_g,
   counts    = counts_array,
-  phi     = 10.0,
   year_std  = year_std,
   post_llm  = post_llm,
-  years_vec = years_vec
+  years_vec = year_levels
 )
 
 vocab <- list(

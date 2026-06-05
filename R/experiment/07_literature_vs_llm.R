@@ -1,4 +1,4 @@
-# 08_literature_vs_llm.R
+# 07_literature_vs_llm.R
 # Two-predictor NB2: n_rec ~ log1p(n_pre) + gamma, separating corpus
 # prevalence from post-2023 trajectory. 8 fits: 2 models x 4 profiles.
 
@@ -11,6 +11,8 @@ suppressPackageStartupMessages({
   library(ggdist)
 })
 
+source(here("R/helpers.R"))  # build_rec_vectors
+
 # ── Paths ────────────────────────────────────────────────────────────────────
 
 gamma_csv_primary  <- here("data/output/gamma_results.csv")
@@ -18,7 +20,7 @@ gamma_csv_fallback <- here("data/output/phi_free/gamma_results.csv")
 GAMMA_CSV  <- if (file.exists(gamma_csv_primary)) gamma_csv_primary else gamma_csv_fallback
 VOCAB_RDS  <- here("data/output/vocab.rds")
 STAN_DATA  <- here("data/output/stan_data.rds")
-STAN_FILE  <- here("stan/nb2_prevalence_gamma.stan")
+STAN_FILE  <- here("stan/experiment_prevalence_nb.stan")
 QWEN_CSV   <- here("experiment/analysis/experiment_results_QWEN.csv")
 GEMMA_CSV  <- here("experiment/analysis/experiment_results_GEMMA.csv")
 
@@ -56,22 +58,6 @@ names(n_pre_vec) <- l3_vocab$l3
 gamma_vec <- setNames(gamma_df$mean_gamma, gamma_df$l3)
 
 # ── Build recommendation count vectors ───────────────────────────────────────
-
-build_rec_vectors <- function(csv_path, l3_levels) {
-  raw <- read.csv(csv_path, stringsAsFactors = FALSE)
-  con <- raw |> filter(toupper(as.character(l3_mapping_consistent)) == "TRUE")
-  profiles <- c("novice", "intermediate", "expert")
-  result <- list()
-  for (prof in profiles) {
-    df <- con |> filter(profile == prof) |> count(l3 = l3_mapping, name = "n")
-    vec <- setNames(rep(0L, length(l3_levels)), l3_levels)
-    matched <- df$l3[df$l3 %in% l3_levels]
-    vec[matched] <- df$n[match(matched, df$l3)]
-    result[[prof]] <- vec
-  }
-  result[["overall"]] <- result[["novice"]] + result[["intermediate"]] + result[["expert"]]
-  result
-}
 
 qwen_rec  <- build_rec_vectors(QWEN_CSV, l3_vocab$l3)
 gemma_rec <- build_rec_vectors(GEMMA_CSV, l3_vocab$l3)

@@ -18,7 +18,7 @@ options(mc.cores = parallel::detectCores())
 
 # ── 1. Paths ───────────────────────────────────────────────────────────────────
 
-STAN_FILE   <- here("stan/diversity_model_phi_free.stan")
+STAN_FILE   <- here("stan/bibliometric_dirichlet_multinomial.stan")
 SD_PATH     <- here("data/output/stan_data.rds")
 VOCAB_PATH  <- here("data/output/vocab.rds")
 FIT_2022    <- here("data/output/fit_phi_free_2022.rds")

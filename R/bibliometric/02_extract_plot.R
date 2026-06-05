@@ -5,7 +5,6 @@ library(posterior)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
-library(httr)
 
 FIT_RDS        <- "data/output/fit_phi_free.rds"
 VOCAB_RDS      <- "data/output/vocab.rds"
@@ -16,9 +15,6 @@ PLOT_SIGMA     <- "data/output/figures/l2_l3/plot_sigma_posteriors.png"
 PLOT_GAMMA_DOT <- "data/output/figures/l2_l3/plot_gamma_dotplot.png"
 PLOT_RAW       <- "data/output/figures/l2_l3/plot_raw_counts.png"
 DRAWS_RDS      <- "data/output/inv_simpson_draws.rds"
-
-token   <- "TELEGRAM_BOT_TOKEN_REDACTED"
-chat_id <- Sys.getenv("TELEGRAM_CHAT_ID")
 
 dir.create("data/output/l3", recursive = TRUE, showWarnings = FALSE)
 dir.create("data/output/figures/l2_l3", recursive = TRUE, showWarnings = FALSE)
@@ -256,37 +252,6 @@ gamma_df <- bind_rows(gamma_list) |>
 cat("Methods with 90% CI excluding zero (credible post-LLM shift):",
     sum(gamma_df$sig, na.rm = TRUE), "\n")
 
-# ── Telegram: send diagnostics text ──────────────────────────────────────────
-tryCatch({
-  n_sig_methods <- sum(gamma_df$sig, na.rm = TRUE)
-  div_flag    <- if (n_divergences == 0) "Divergences: 0 [OK]" else paste0("Divergences: ", n_divergences, " [!!!]")
-  rhat_sb_flag <- if (rhat_sigma_beta  > 1.01) paste0("sigma_beta Rhat = ",  round(rhat_sigma_beta,  3), " [BAD]") else paste0("sigma_beta Rhat = ",  round(rhat_sigma_beta,  3), " [OK]")
-  rhat_sg_flag <- if (rhat_sigma_gamma > 1.01) paste0("sigma_gamma Rhat = ", round(rhat_sigma_gamma, 3), " [BAD]") else paste0("sigma_gamma Rhat = ", round(rhat_sigma_gamma, 3), " [OK]")
-  ess_sb_flag  <- if (ess_sigma_beta   < 400)  paste0("sigma_beta ESS = ",   round(ess_sigma_beta),        " [BAD]") else paste0("sigma_beta ESS = ",  round(ess_sigma_beta),        " [OK]")
-  ess_sg_flag  <- if (ess_sigma_gamma  < 400)  paste0("sigma_gamma ESS = ",  round(ess_sigma_gamma),       " [BAD]") else paste0("sigma_gamma ESS = ", round(ess_sigma_gamma),       " [OK]")
-  sg_line <- paste0("sigma_gamma (post-LLM shift): mean = ", round(sigma_gamma_mean, 4),
-                    ", 95% CI ", sigma_gamma_ci_str)
-  sb_line <- paste0("sigma_beta  (baseline trend): mean = ", round(sigma_beta_mean,  4),
-                    ", 95% CI ", sigma_beta_ci_str)
-
-  msg <- paste(
-    "L3 Stan diagnostics (diversity_model)",
-    div_flag, rhat_sb_flag, rhat_sg_flag, ess_sb_flag, ess_sg_flag,
-    sg_line, sb_line,
-    paste0("Methods with credible post-LLM shift: ", n_sig_methods),
-    sep = "\n"
-  )
-
-  httr::POST(
-    url    = paste0("https://api.telegram.org/bot", token, "/sendMessage"),
-    body   = list(chat_id = chat_id, text = msg),
-    encode = "form"
-  )
-  cat("Telegram diagnostics sent.\n")
-}, error = function(e) {
-  cat("WARNING: Telegram diagnostics failed:", conditionMessage(e), "\n")
-})
-
 # ── Plot 3: gamma dotplot ─────────────────────────────────────────────────────
 cat("Plotting gamma dotplot...\n")
 
@@ -387,33 +352,6 @@ p5 <- ggplot(raw_all, aes(x = year, y = n_papers)) +
 ggsave(PLOT_RAW, p5, width = 18, height = 12, units = "in", dpi = 150)
 cat("Plot saved to:", PLOT_RAW, "\n")
 
-# ── Telegram: send all plots ───────────────────────────────────────────────────
-all_plots <- c(PLOT_DIVERSITY, PLOT_SIGMA, PLOT_GAMMA_DOT, PLOT_RAW)
-
-cat("\nSending plots via Telegram...\n")
-for (plot_path in all_plots) {
-  cat("Sending:", basename(plot_path), "\n")
-  tryCatch({
-    resp <- httr::POST(
-      url  = paste0("https://api.telegram.org/bot", token, "/sendPhoto"),
-      body = list(
-        chat_id = chat_id,
-        photo   = httr::upload_file(plot_path),
-        caption = basename(plot_path)
-      ),
-      encode = "multipart"
-    )
-    status <- httr::status_code(resp)
-    cat("HTTP status:", status, "\n")
-    if (status != 200) {
-      cat("Response content:\n")
-      print(httr::content(resp, as = "text", encoding = "UTF-8"))
-    }
-  }, error = function(e) {
-    cat("WARNING: failed to send", basename(plot_path), ":", conditionMessage(e), "\n")
-  })
-}
-
 # ── Auto-update l2_l3_results.md diagnostics ─────────────────────────────────
 DOC_PATH <- "docs/l2_l3_results.md"
 if (file.exists(DOC_PATH)) {
@@ -445,9 +383,5 @@ if (file.exists(DOC_PATH)) {
 } else {
   cat("WARNING:", DOC_PATH, "not found; skipping auto-population.\n")
 }
-
-# ── Auto-push results to GitHub ──────────────────────────────────────────────
-message("Pushing L3 results to GitHub...")
-system("git -C ~/R_projects/Vibe_Coding_Paper add data/output/figures/l2_l3/*.png data/output/inv_simpson_summary.csv data/output/inv_simpson_draws.rds docs/l2_l3_results.md && git -C ~/R_projects/Vibe_Coding_Paper commit -m 'auto: L3 model results update' && git -C ~/R_projects/Vibe_Coding_Paper push")
 
 cat("=== 02_extract_plot.R DONE ===\n")

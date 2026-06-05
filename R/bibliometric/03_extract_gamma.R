@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
-# inspect_gamma.R  —  extract gamma_method posteriors from fit_phi_free.rds
-# Usage: Rscript R/inspect_gamma.R
+# 03_extract_gamma.R  —  extract gamma_method posteriors from fit_phi_free.rds
+# Usage: Rscript R/bibliometric/03_extract_gamma.R
 # Output: data/output/phi_free/gamma_results.csv
 
 library(dplyr, quietly = TRUE)

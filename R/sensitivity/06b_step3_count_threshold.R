@@ -23,7 +23,7 @@ GAMMA_CSV      <- if (file.exists(gamma_csv_primary)) gamma_csv_primary else gam
 VOCAB_PATH     <- here("data/output/vocab.rds")
 STAN_DATA_PATH <- here("data/output/stan_data.rds")
 STAN_FILE      <- here("stan/archive/poisson_gamma_regression.stan")
-EXPERIMENT_CSV <- here("experiment/analysis/experiment_results.csv")
+EXPERIMENT_CSV <- here("experiment/analysis/experiment_results_QWEN.csv")
 
 dir.create(here("data/output/sensitivity"), recursive = TRUE, showWarnings = FALSE)
 dir.create(here("data/output/figures/sensitivity"), recursive = TRUE, showWarnings = FALSE)

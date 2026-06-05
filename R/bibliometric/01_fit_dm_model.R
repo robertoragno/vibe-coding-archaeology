@@ -1,5 +1,5 @@
-# 01_fit_model.R
-# Fits diversity_model_phi_free.stan using cmdstanr.
+# 01_fit_dm_model.R
+# Fits bibliometric_dirichlet_multinomial.stan using cmdstanr.
 # Workflow: optimize → pathfinder → sample (full MCMC).
 # Optimize and pathfinder run in seconds for quick sanity checks.
 # phi (precision) estimated from data on log scale.
@@ -11,7 +11,7 @@ library(ggplot2)
 library(gridExtra)
 library(posterior)
 
-STAN_FILE  <- "stan/diversity_model_phi_free.stan"
+STAN_FILE  <- "stan/bibliometric_dirichlet_multinomial.stan"
 FIT_DIR    <- "data/output"
 FIT_RDS    <- file.path(FIT_DIR, "fit_phi_free.rds")
 DONE_FLAG  <- file.path(FIT_DIR, "fit_phi_free_v4.done")
@@ -512,4 +512,4 @@ if (!file.exists(DONE_FLAG)) {
 
 }
 
-cat("\n01_fit_model.R complete.\n")
+cat("\n01_fit_dm_model.R complete.\n")

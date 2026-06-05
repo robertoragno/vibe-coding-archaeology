@@ -2,7 +2,7 @@
 
 *Last updated: 2026-05-21*
 
-These checks implement a subset of the workflow from Gelman et al. (2020, arXiv:2011.01808), run from `R/04_workflow_checks.R` using the fitted phi-free model. No refitting is done except for the fake-data simulation (single group, fast).
+These checks implement a subset of the workflow from Gelman et al. (2020, arXiv:2011.01808), run from `R/bibliometric/04_workflow_checks.R` using the fitted Dirichlet-Multinomial model. No refitting is done except for the fake-data simulation (single group, fast).
 
 ### Coverage of Gelman et al. (2020)
 

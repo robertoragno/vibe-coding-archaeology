@@ -6,36 +6,18 @@ library(cmdstanr)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
-library(httr)
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 FIT_RDS       <- "data/output/fit_phi_free.rds"
 VOCAB_RDS     <- "data/output/vocab.rds"
 STAN_DATA_RDS <- "data/output/stan_data.rds"
-STAN_FILE     <- "stan/diversity_model_phi_free.stan"
+STAN_FILE     <- "stan/bibliometric_dirichlet_multinomial.stan"
 OUT_DIR       <- "data/output/figures/workflow"
-
-token   <- "TELEGRAM_BOT_TOKEN_REDACTED"
-chat_id <- Sys.getenv("TELEGRAM_CHAT_ID")
 
 dir.create(OUT_DIR, recursive = TRUE, showWarnings = FALSE)
 dir.create("logs",  recursive = TRUE, showWarnings = FALSE)
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
-softmax_r <- function(x) { ex <- exp(x - max(x)); ex / sum(ex) }
-
-tg_photo <- function(path, caption) {
-  tryCatch({
-    resp <- httr::POST(
-      url  = paste0("https://api.telegram.org/bot", token, "/sendPhoto"),
-      body = list(chat_id = chat_id,
-                  photo   = httr::upload_file(path),
-                  caption = caption),
-      encode = "multipart"
-    )
-    cat("Telegram sent:", basename(path), "(HTTP", httr::status_code(resp), ")\n")
-  }, error = function(e) cat("WARNING Telegram:", conditionMessage(e), "\n"))
-}
+source("R/helpers.R")  # softmax_r
 
 # Dirichlet-Multinomial sampler: draw p ~ Dir(alpha), then y ~ Multinom(N, p)
 rdm_sample <- function(N, alpha) {
@@ -183,8 +165,6 @@ ppc1_pass   <- prior_q05 <= obs_range[2] && prior_q95 >= obs_range[1]
 ppc1_status <- if (ppc1_pass) "PASS" else "WARN"
 cat(sprintf("Prior predictive: [%s]\n  prior 5th-95th = [%.2f, %.2f]; observed = [%.2f, %.2f]\n",
             ppc1_status, prior_q05, prior_q95, obs_range[1], obs_range[2]))
-
-tg_photo(PLOT_PRIOR, "Workflow check: Section 1 — Prior Predictive Check (inv_simpson)")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -351,9 +331,6 @@ PLOT_PPC_BPVAL <- file.path(OUT_DIR, "plot_ppc_pvalues.png")
 ggsave(PLOT_PPC_BPVAL, p_bpval, width = 10, height = 6, dpi = 150)
 cat("Saved:", PLOT_PPC_BPVAL, "\n")
 
-tg_photo(PLOT_PPC_DENS,  "Workflow check: Section 2 — PPC density (replicated vs observed)")
-tg_photo(PLOT_PPC_BPVAL, "Workflow check: Section 2b — PPC tail probabilities per group")
-
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SECTION 3 — Fake Data Simulation (Gelman et al. §4.1)
@@ -466,8 +443,6 @@ PLOT_FAKE <- file.path(OUT_DIR, "plot_fake_data_recovery.png")
 ggsave(PLOT_FAKE, p_fake, width = 8, height = 5, dpi = 150)
 cat("Saved:", PLOT_FAKE, "\n")
 
-tg_photo(PLOT_FAKE, "Workflow check: Section 3 — Fake data recovery (sigma_gamma)")
-
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SECTION 4 — Prior Sensitivity Analysis (Gelman et al. §6.3)
@@ -579,12 +554,3 @@ doc <- gsub("{{RECOMMENDATION}}",
 
 writeLines(doc, "docs/workflow_results.md")
 cat("docs/workflow_results.md written.\n")
-
-system(paste(
-  "git -C ~/R_projects/Vibe_Coding_Paper add",
-  "data/output/figures/workflow/*.png",
-  "docs/workflow_results.md &&",
-  "git -C ~/R_projects/Vibe_Coding_Paper commit -m 'auto: workflow checks results update' &&",
-  "git -C ~/R_projects/Vibe_Coding_Paper push"
-))
-cat("GitHub push done.\n")

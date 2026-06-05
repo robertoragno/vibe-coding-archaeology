@@ -1,4 +1,4 @@
-# 07_experiment_concentration.R
+# 06_concentration.R
 # Conjugate Dirichlet posterior on inv_simpson for each model x profile.
 # Reads: experiment CSVs, vocab.rds. Writes: concentration summary/draws CSVs, plot.
 
@@ -9,6 +9,8 @@ suppressPackageStartupMessages({
   library(ggplot2)
   library(ggdist)
 })
+
+source(here("R/helpers.R"))  # inv_simpson, build_rec_vectors
 
 set.seed(42)
 N_DRAWS <- 4000
@@ -54,31 +56,9 @@ for (g in seq_len(stan_data$N_groups)) {
 
 # ── Build count vectors for each model x profile ────────────────────────────
 
-build_count_vector <- function(csv_path, l3_levels) {
-  exp_raw <- read.csv(csv_path, stringsAsFactors = FALSE)
-  exp_con <- exp_raw |> filter(toupper(as.character(l3_mapping_consistent)) == "TRUE")
-
-  profiles <- c("novice", "intermediate", "expert")
-  result   <- list()
-
-  for (prof in profiles) {
-    counts_df <- exp_con |>
-      filter(profile == prof) |>
-      count(l3 = l3_mapping, name = "n")
-    vec <- setNames(rep(0L, length(l3_levels)), l3_levels)
-    matched <- counts_df$l3[counts_df$l3 %in% l3_levels]
-    vec[matched] <- counts_df$n[match(matched, counts_df$l3)]
-    result[[prof]] <- vec
-  }
-
-  # overall = sum of profiles
-  result[["overall"]] <- result[["novice"]] + result[["intermediate"]] + result[["expert"]]
-  result
-}
-
 l3_levels <- l3_vocab$l3
-qwen_counts  <- build_count_vector(QWEN_CSV, l3_levels)
-gemma_counts <- build_count_vector(GEMMA_CSV, l3_levels)
+qwen_counts  <- build_rec_vectors(QWEN_CSV, l3_levels)
+gemma_counts <- build_rec_vectors(GEMMA_CSV, l3_levels)
 
 # ── Conjugate Dirichlet posterior draws ──────────────────────────────────────
 # Multinomial counts + uniform Dirichlet(1) prior → exact posterior Dir(1+counts).
@@ -93,9 +73,6 @@ gemma_counts <- build_count_vector(GEMMA_CSV, l3_levels)
 # vs 88–114 effective methods) dwarfs the interval widening. The same caveat
 # applies symmetrically to the literature counts, where individual papers
 # contribute multiple methods.
-
-# Effective number of equally-frequent methods that would produce the same concentration.
-inv_simpson <- function(p) 1 / sum(p^2)
 
 dirichlet_inv_simpson <- function(counts, n_draws = N_DRAWS) {
   # Posterior: Dirichlet(1 + counts) — uniform prior updated by observed frequencies.
@@ -153,7 +130,9 @@ summary_df <- all_draws |>
 print(summary_df, n = 20)
 
 # ── Posterior contrasts ─────────────────────────────────────────────────────
-# Paired by draw index: same random seed → same Dirichlet draw → valid contrast.
+# Each source has an independent posterior, so its draws are mutually
+# independent. Differencing them elementwise therefore yields valid draws from
+# the posterior of the difference (the index pairing is arbitrary, not paired).
 qwen_ov <- all_draws |> filter(source == "Qwen3 — overall") |> pull(inv_simpson)
 gemma_ov <- all_draws |> filter(source == "Gemma — overall") |> pull(inv_simpson)
 delta_ov <- qwen_ov - gemma_ov

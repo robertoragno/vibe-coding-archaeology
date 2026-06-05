@@ -184,35 +184,31 @@ Model files (`.gguf`) are not tracked in git. Place them in `Python/` or set `GG
 
 ### Phase 2 — R analysis
 
+Scripts form a single numbered pipeline that runs in order, `00` through `07`. The numbers are continuous across the two stream folders: the bibliometric stream is `00`–`05` (`R/bibliometric/`) and the experiment stream picks up at `06`–`07` (`R/experiment/`).
+
 ```
-# Core bibliometric pipeline
-00_data_prep.R            → stan_data.rds, vocab.rds
-01_fit_model.R            → MCMC fit (phi-free Dirichlet-Multinomial)
-02_extract_plot.R         → L2→L3 posteriors, diversity plots
-inspect_gamma.R           → gamma_results.csv (used by 05, 06, 07, 08)
-04_workflow_checks.R      → Bayesian workflow validation
-05_robustness_2022.R      → 2022-break robustness check
+# Bibliometric stream (R/bibliometric/)
+00_data_prep.R          → stan_data.rds, vocab.rds
+01_fit_dm_model.R       → MCMC fit (Dirichlet-Multinomial, phi estimated)
+02_extract_plot.R       → L2→L3 posteriors, diversity plots
+03_extract_gamma.R      → gamma_results.csv (consumed by 05 and the experiment stream)
+04_workflow_checks.R    → Bayesian workflow validation
+05_robustness_2022.R    → 2022-break robustness check
 
-# Experiment: exploratory descriptive analysis
-06_exploratory_graphs.R         → Qwen3 exploratory graphs
-06b_exploratory_gemma.R         → Gemma exploratory + cross-model comparison
+# Experiment stream (R/experiment/)
+06_concentration.R      → Dirichlet-conjugate inv_simpson posteriors
+07_literature_vs_llm.R  → Two-predictor NB: corpus prevalence vs post-2023 trajectory
 
-# Experiment: Bayesian concentration posteriors
-07_experiment_concentration.R   → Dirichlet-conjugate inv_simpson posteriors
-
-# Experiment: two-predictor regression (n_rec ~ n_pre + gamma)
-08_literature_vs_llm.R          → Separates corpus prevalence from post-2023 trajectory
-
-# Sensitivity (standalone, run after main pipeline)
-R/sensitivity/06b_step3_count_threshold.R → Count-threshold variant of Step 3
-R/sensitivity/07_diversity_trajectory.R   → Direct diversity trajectory model
-R/sensitivity/08_step3_v2_remapped.R      → v2→v3 taxonomy remapping
-R/sensitivity/09_distributional_test.R    → Distributional cosine test
+# Sensitivity (R/sensitivity/, standalone, run after the main pipeline)
+06b_step3_count_threshold.R → Count-threshold variant of Step 3
+07_diversity_trajectory.R   → Direct diversity trajectory model
+08_step3_v2_remapped.R      → v2→v3 taxonomy remapping
+09_distributional_test.R    → Distributional cosine test
 ```
 
-Scripts 04 and 05–06 can run in parallel. `inspect_gamma.R` sits between 02 and the downstream scripts because it produces `data/output/phi_free/gamma_results.csv`. The experiment scripts (06–08) require gamma_results.csv and the experiment CSVs in `experiment/analysis/`.
+Run each script with `Rscript` from the project root, e.g. `Rscript R/bibliometric/01_fit_dm_model.R`. `03_extract_gamma.R` produces `data/output/phi_free/gamma_results.csv`, which the experiment scripts require alongside the experiment CSVs in `experiment/analysis/`. Functions shared across scripts live in `R/helpers.R`.
 
-**Archived scripts** (in `R/archive/`): `06_step3_llm_comparison.R` and `06b_step3_llm_comparison_gemma.R` — single-predictor NB regressions on gamma alone, superseded by the two-predictor model in `08_literature_vs_llm.R`.
+**Archived scripts** (in `R/archive/`): the earlier exploratory graphs (`06_exploratory_graphs.R`, `06b_exploratory_gemma.R`) and the single-predictor NB regressions (`06_step3_llm_comparison.R`, `06b_step3_llm_comparison_gemma.R`), superseded by the two-predictor model in `R/experiment/07_literature_vs_llm.R`.
 
 ## Repository structure
 
@@ -231,23 +227,25 @@ Scripts 04 and 05–06 can run in parallel. `inspect_gamma.R` sits between 02 an
 │       ├── experiment.md                 # Experiment design documentation
 │       ├── Expert.md / Intermediate.md / Novice.md  # Prompt templates
 │       └── archive/                      # Deprecated prototypes
-├── R/
-│   ├── 00_data_prep.R                     # Data loading & Stan data preparation
-│   ├── 01_fit_model.R                     # L2→L3 primary model (cmdstanr, phi-free)
-│   ├── 02_extract_plot.R                  # Extract posteriors & generate L2→L3 plots
-│   ├── 04_workflow_checks.R              # Bayesian workflow validation
-│   ├── 05_robustness_2022.R              # 2022-break robustness check
-│   ├── 06_exploratory_graphs.R           # Qwen3 descriptive exploratory analysis
-│   ├── 06b_exploratory_gemma.R           # Gemma exploratory + cross-model comparison
-│   ├── 07_experiment_concentration.R     # Dirichlet-conjugate concentration posteriors
-│   ├── 08_literature_vs_llm.R            # Two-predictor NB: prevalence vs trajectory
-│   ├── inspect_gamma.R                   # Gamma posterior extraction
-│   ├── sensitivity/                      # Sensitivity and robustness analyses
-│   └── archive/                          # Deprecated scripts
+├── R/                                     # Scripts are numbered as one continuous
+│   │                                      # pipeline (00→07) split across two streams
+│   ├── helpers.R                          # Shared functions (sourced by 04, 06, 07)
+│   ├── bibliometric/                      # Steps 00–05: corpus model
+│   │   ├── 00_data_prep.R                 # Data loading & Stan data preparation
+│   │   ├── 01_fit_dm_model.R              # L2→L3 Dirichlet-Multinomial fit (cmdstanr)
+│   │   ├── 02_extract_plot.R              # Extract posteriors & generate L2→L3 plots
+│   │   ├── 03_extract_gamma.R             # Gamma posterior extraction → gamma_results.csv
+│   │   ├── 04_workflow_checks.R           # Bayesian workflow validation
+│   │   └── 05_robustness_2022.R           # 2022-break robustness check
+│   ├── experiment/                        # Steps 06–07: LLM recommendation experiment
+│   │   ├── 06_concentration.R             # Dirichlet-conjugate concentration posteriors
+│   │   └── 07_literature_vs_llm.R         # Two-predictor NB: prevalence vs trajectory
+│   ├── sensitivity/                       # Sensitivity analyses (A–D)
+│   └── archive/                           # Deprecated scripts
 ├── stan/
-│   ├── diversity_model_phi_free.stan     # Primary L2→L3 Dirichlet-Multinomial
+│   ├── bibliometric_dirichlet_multinomial.stan  # Primary L2→L3 Dirichlet-Multinomial
 │   ├── poisson_gamma_regression.stan     # Single-predictor NB regression
-│   ├── nb2_prevalence_gamma.stan         # Two-predictor NB regression
+│   ├── experiment_prevalence_nb.stan     # Two-predictor NB regression
 │   ├── diversity_trajectory.stan         # Direct diversity trajectory model
 │   └── archive/                          # Deprecated models (l1_l2)
 ├── data/
