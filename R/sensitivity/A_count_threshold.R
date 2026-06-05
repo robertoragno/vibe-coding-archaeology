@@ -1,4 +1,4 @@
-# 06b_step3_count_threshold.R
+# A_count_threshold.R
 # Sensitivity variant of R/archive/06_step3_llm_comparison.R.
 # Restricts to L3 methods with >= MIN_COUNT papers in 2023-2025
 # (from the raw count data) before running the Bayesian NB regression.
@@ -411,4 +411,4 @@ cat("\nTop 5 most-recommended L3 methods:\n")
 print(out_table |> arrange(desc(n_recommended_total)) |> slice_head(n = 5) |>
         select(l3, mean_gamma, sig90, n_recommended_total))
 
-cat("\n06b_step3_count_threshold.R complete.\n")
+cat("\nA_count_threshold.R complete.\n")

@@ -200,10 +200,10 @@ Scripts form a single numbered pipeline that runs in order, `00` through `07`. T
 07_literature_vs_llm.R  → Two-predictor NB: corpus prevalence vs post-2023 trajectory
 
 # Sensitivity (R/sensitivity/, standalone, run after the main pipeline)
-06b_step3_count_threshold.R → Count-threshold variant of Step 3
-07_diversity_trajectory.R   → Direct diversity trajectory model
-08_step3_v2_remapped.R      → v2→v3 taxonomy remapping
-09_distributional_test.R    → Distributional cosine test
+A_count_threshold.R → Count-threshold variant of Step 3
+D_diversity_trajectory.R   → Direct diversity trajectory model
+B_v2_taxonomy_remap.R      → v2→v3 taxonomy remapping
+C_distributional_test.R    → Distributional cosine test
 ```
 
 Run each script with `Rscript` from the project root, e.g. `Rscript R/bibliometric/01_fit_dm_model.R`. `03_extract_gamma.R` produces `data/output/phi_free/gamma_results.csv`, which the experiment scripts require alongside the experiment CSVs in `experiment/analysis/`. Functions shared across scripts live in `R/helpers.R`.

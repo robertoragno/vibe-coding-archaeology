@@ -1,4 +1,4 @@
-# 08_step3_v2_remapped.R
+# B_v2_taxonomy_remap.R
 # Remap experiment results (classified under v2 taxonomy) to v3 L3 labels
 # using fuzzy string matching, then re-run the Step 3 NB regression.
 #
@@ -346,7 +346,7 @@ match_types <- table(mapping$match_type)
 md <- c(
   "# Step 3 Remapped — v2 Experiment → v3 Taxonomy",
   "",
-  sprintf("Script: `R/sensitivity/08_step3_v2_remapped.R`  "),
+  sprintf("Script: `R/sensitivity/B_v2_taxonomy_remap.R`  "),
   sprintf("Run date: %s", Sys.Date()),
   "",
   "---",
@@ -434,4 +434,4 @@ cat(sprintf("Novice    beta: mean = %.3f, P(beta>0) = %.3f\n", mean(beta_novice)
 cat(sprintf("Intermed. beta: mean = %.3f, P(beta>0) = %.3f\n", mean(beta_inter), p_pos(beta_inter)))
 cat(sprintf("Expert    beta: mean = %.3f, P(beta>0) = %.3f\n", mean(beta_expert), p_pos(beta_expert)))
 
-cat("\n08_step3_v2_remapped.R complete.\n")
+cat("\nB_v2_taxonomy_remap.R complete.\n")

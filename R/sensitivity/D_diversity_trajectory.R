@@ -1,4 +1,4 @@
-# 07_diversity_trajectory.R
+# D_diversity_trajectory.R
 # Second-level model: regress posterior inv_simpson on year + post_llm
 # with measurement-error likelihood. Estimates group-level gamma (post-LLM
 # shift in diversity) and sigma_gamma (hierarchical SD of that shift).
@@ -141,4 +141,4 @@ p <- ggplot(plot_df, aes(x = mean, y = label)) +
 ggsave(OUT_PLOT, p, width = 8, height = 10, units = "in", dpi = 150)
 cat("Plot saved to:", OUT_PLOT, "\n")
 
-cat("\n07_diversity_trajectory.R complete.\n")
+cat("\nD_diversity_trajectory.R complete.\n")

@@ -19,7 +19,7 @@ Four sensitivity analyses test the robustness of the main findings. Results are 
 
 ## Sensitivity A — Count threshold
 
-Script: `R/sensitivity/06b_step3_count_threshold.R`
+Script: `R/sensitivity/A_count_threshold.R`
 
 The Step 3 NB regression is re-run after restricting to L3 methods with at least 50 papers in 2023--2025. This tests whether the null result is driven by rarely used methods with noisy gamma estimates: if noisy gammas attenuate the coefficient toward zero, removing them should sharpen the signal.
 
@@ -29,7 +29,7 @@ The Step 3 NB regression is re-run after restricting to L3 methods with at least
 
 ## Sensitivity B — v2-to-v3 taxonomy remapping
 
-Script: `R/sensitivity/08_step3_v2_remapped.R` | [Full results](step3_remapped_results.md)
+Script: `R/sensitivity/B_v2_taxonomy_remap.R` | [Full results](step3_remapped_results.md)
 
 The L3 taxonomy was revised during the project (v2: 225 methods to v3: 242 methods), with many labels renamed or reorganised. An earlier experiment run was classified under v2; only 53 of 242 v3 methods matched exactly. This sensitivity uses fuzzy string matching to remap the v2 labels onto v3, raising coverage to 205 of 242 (85%). The results are unchanged: overall beta = -0.339, P(beta > 0) = 0.368. All profiles remain negative.
 
@@ -39,7 +39,7 @@ Note: the current experiment data was reclassified directly against v3, so this 
 
 ## Sensitivity C — Distributional test
 
-Script: `R/sensitivity/09_distributional_test.R` | [Full results](distributional_test_results.md)
+Script: `R/sensitivity/C_distributional_test.R` | [Full results](distributional_test_results.md)
 
 Instead of regressing on noisy individual gammas, this test compares the whole LLM recommendation distribution to the pre- versus post-2023 literature frequency vectors using cosine similarity, Hellinger distance, and KL divergence.
 
@@ -55,7 +55,7 @@ Caveats: this establishes distributional similarity, not causation. The LLM's re
 
 ## Sensitivity D — Direct diversity trajectory
 
-Script: `R/sensitivity/07_diversity_trajectory.R` | Stan model: `stan/sensitivity/diversity_trajectory.stan`
+Script: `R/sensitivity/D_diversity_trajectory.R` | Stan model: `stan/sensitivity/diversity_trajectory.stan`
 
 ### Rationale
 
