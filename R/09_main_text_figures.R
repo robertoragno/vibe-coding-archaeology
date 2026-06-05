@@ -13,18 +13,17 @@ OUT_DIR <- here("data/output/figures/main_text")
 dir.create(OUT_DIR, recursive = TRUE, showWarnings = FALSE)
 
 # ── Shared theme ────────────────────────────────────────────────────────────
-theme_paper <- theme_minimal(base_size = 10, base_family = "serif") +
+theme_paper <- theme_classic(base_size = 11, base_family = "serif") +
   theme(
-    panel.grid.minor  = element_blank(),
-    panel.grid.major  = element_line(colour = "grey90", linewidth = 0.3),
     axis.line         = element_line(colour = "black", linewidth = 0.3),
     axis.ticks        = element_line(colour = "black", linewidth = 0.3),
     axis.text         = element_text(colour = "black"),
+    strip.background  = element_blank(),
     strip.text        = element_text(face = "bold", size = 9),
     plot.title        = element_text(face = "bold", size = 11),
     plot.subtitle     = element_text(size = 9, colour = "grey30"),
     plot.caption      = element_text(size = 8, colour = "grey30", hjust = 0),
-    legend.position   = "bottom",
+    legend.position   = "top",
     legend.key.size   = unit(0.4, "cm"),
     plot.margin       = margin(8, 8, 8, 8)
   )
@@ -76,14 +75,13 @@ plot_df1 <- counts_long |>
          l3_clean = factor(l3_clean, levels = stringr::str_wrap(clean_l3(top15), width = 30)))
 
 fig1 <- ggplot(plot_df1, aes(x = year, y = n)) +
-  geom_point(size = 0.6, colour = "grey30") +
-  geom_smooth(method = "loess", span = 0.6, se = TRUE,
-              colour = "black", fill = "grey70", linewidth = 0.5) +
+  geom_line(colour = "grey30", linewidth = 0.5) +
+  geom_point(size = 0.8, colour = "grey30") +
   geom_vline(xintercept = 2023, linetype = "dashed", linewidth = 0.3) +
   facet_wrap(~ l3_clean, scales = "free_y", ncol = 3) +
-  labs(x = "Year", y = "Observed paper count",
-       title = "Raw observed paper counts for top 15 L3 methods (2010–2025)",
-       caption = "Dashed line: 2023 LLM adoption boundary. Ribbon: loess ± 1 SE.") +
+  labs(x = "Year", y = "Paper count",
+       title = "Top 15 L3 methods: observed counts (2010–2025)",
+       caption = "Dashed line: 2023 LLM adoption boundary.") +
   theme_paper +
   theme(strip.text = element_text(size = 6.5))
 
@@ -101,8 +99,8 @@ draws <- fit$draws(format = "draws_matrix")
 sigma_df <- data.frame(
   value = c(as.numeric(draws[, "sigma_beta"]),
             as.numeric(draws[, "sigma_gamma"])),
-  parameter = rep(c("σ[beta] (baseline trend)",
-                    "σ[gamma] (post-LLM shift)"),
+  parameter = rep(c("σβ: pre-LLM baseline",
+                    "σγ: post-2023 shift spread"),
                   each = nrow(draws))
 )
 
@@ -113,8 +111,8 @@ fig2 <- ggplot(sigma_df, aes(x = value, y = after_stat(density))) +
   facet_wrap(~ parameter, scales = "free", ncol = 2) +
   scale_x_continuous(expand = expansion(mult = c(0.02, 0.05))) +
   labs(x = "Posterior value", y = "Density",
-       title = "Hierarchical scale posteriors: baseline trend vs. post-LLM shift",
-       caption = expression(sigma[gamma] > 0 ~ "indicates uneven post-2023 divergence across methods.")) +
+       title = "Method-level variation before and after 2023",
+       caption = "Posterior entirely above zero for σγ indicates uneven post-2023 divergence across methods.") +
   theme_paper
 
 ggsave(file.path(OUT_DIR, "fig2_sigma_posteriors.png"), fig2,
@@ -202,8 +200,7 @@ fig3 <- ggplot(plot_df3, aes(x = share, y = l2_clean, fill = source)) +
                     name = NULL) +
   scale_x_continuous(labels = scales::percent_format(accuracy = 1)) +
   labs(x = "Share of total", y = NULL,
-       title = "Method share by L2 sub-discipline",
-       caption = "LLM recommendations (Qwen3 and Gemma) vs. pre/post-2023 published literature.") +
+       title = "Method share by L2 sub-discipline") +
   theme_paper +
   theme(axis.text.y = element_text(size = 7.5))
 
@@ -265,8 +262,7 @@ fig4 <- ggplot(plot_df4, aes(x = share, y = l3_clean, fill = model)) +
   scale_x_continuous(labels = scales::percent_format(accuracy = 0.1),
                      expand = expansion(mult = c(0.01, 0.12))) +
   labs(x = "Share of total recommendations", y = NULL,
-       title = "Top recommended L3 methods: Qwen3 vs. Gemma",
-       caption = "Union of each model’s top 10. Annotations show post-2023 literature trajectory (γ).") +
+       title = "Top recommended L3 methods: Qwen3 vs. Gemma") +
   theme_paper +
   theme(axis.text.y = element_text(size = 7.5))
 
@@ -345,8 +341,8 @@ fig6 <- ggplot(plot_df7, aes(x = value, y = model, fill = model)) +
   facet_wrap(~ parameter, scales = "free_x", ncol = 1) +
   scale_fill_manual(values = c("Qwen3" = "grey35", "Gemma" = "grey70")) +
   labs(x = "Posterior coefficient", y = NULL,
-       title = "Training-corpus prevalence vs. post-2023 trajectory",
-       caption = "Two-predictor NB2: n_rec ~ log1p(n_pre) + γ. Overall (all profiles pooled). Bands: 50%/90% CI.") +
+       title = "Prevalence echo, not recent momentum",
+       caption = "Coefficients from a two-predictor count regression: b_pre (how often a method appeared in pre-2023 literature) and b_gamma (whether it gained momentum post-2023). Overall profile. Bands: 50%/90% CI.") +
   theme_paper +
   theme(legend.position = "none")
 
@@ -377,10 +373,10 @@ fig7 <- ggplot(prev_summary, aes(y = model)) +
   geom_point(aes(x = b_gamma_mean), size = 2, shape = 21,
              fill = "grey50", colour = "black") +
   facet_wrap(~ profile, ncol = 1) +
-  labs(x = expression(b[gamma] ~ "(post-2023 excess coefficient)"),
+  labs(x = "Post-2023 momentum coefficient (b_gamma)",
        y = NULL,
-       title = expression(b[gamma] ~ "by profile and model"),
-       caption = "Point: posterior mean. Horizontal bar: 90% credible interval.") +
+       title = "No profile gradient in post-2023 momentum effect",
+       caption = "Point: posterior mean. Horizontal bar: 90% credible interval. Dashed line: zero.") +
   theme_paper
 
 ggsave(file.path(OUT_DIR, "fig7_bgamma_by_profile.png"), fig7,

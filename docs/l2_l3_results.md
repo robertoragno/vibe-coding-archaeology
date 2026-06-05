@@ -54,13 +54,13 @@ g indexes L2 sub-disciplines; k indexes L3 techniques within each sub-discipline
 
 | Parameter | Value |
 |---|---|
-| phi posterior mean | 1133 |
-| phi 90% CI | [605, 2088] |
-| sigma_gamma mean | 0.11 |
-| sigma_gamma 90% CI | [0.01, 0.222] |
-| sigma_beta mean | 0.288 |
-| Rhat (all params) | < 1.011 |
-| ESS (sigma_gamma) | 581 |
+| phi posterior mean | 1088 |
+| phi 90% CI | [573, 1990] |
+| sigma_gamma mean | 0.102 |
+| sigma_gamma 90% CI | [0.008, 0.214] |
+| sigma_beta mean | 0.265 |
+| Rhat (all params) | < 1.015 |
+| ESS (sigma_gamma) | 435 |
 | Divergences | 0 |
 
 Rhat < 1.01 and ESS > 400 are the thresholds for acceptable convergence. Zero divergences is required.

@@ -61,6 +61,8 @@ Qwen3 and Gemma show very similar concentration patterns, reinforcing that
 this is a structural property of LLM recommendations rather than a
 model-specific artefact.
 
+**Manuscript caption:** Method shares in the Qwen3 and Gemma recommendation profiles compared to pre- and post-2023 literature, aggregated across L2 sub-disciplines.
+
 ![Fig. 3](../data/output/figures/main_text/fig3_l2_triple_bar.png)
 
 ---
@@ -85,35 +87,45 @@ picks include both gaining and declining methods, foreshadowing the Fig. 6
 finding that LLM recommendations track training-corpus prevalence (b_pre) rather
 than post-2023 momentum (b_gamma ≈ 0).
 
+**Manuscript caption:** The most-recommended L3 methods by each model, ranked by share of total recommendations. The label beside each bar shows the method's estimated post-2023 trajectory in the literature: positive values indicate methods gaining share, negative values indicate methods declining relative to their pre-2023 trend.
+
 ![Fig. 4](../data/output/figures/main_text/fig4_top10_qwen_vs_gemma.png)
 
 ---
 
-## Fig. 5 — Concentration posteriors: literature vs LLM profiles
+## Table 1 — Effective number of methods: literature vs LLM profiles
 
 **Section:** Results (concentration analysis, 4.3 / 3.4.1)
 
-**What it shows:** Posterior distributions of the effective number of methods
-(inverse Simpson) for pre/post-2023 literature and each LLM x profile combination.
-Each distribution comes from a Dirichlet conjugate posterior: the observed method
-counts are combined with a uniform prior (all alpha = 1, i.e. one pseudocount
-per method), yielding a posterior Dirichlet(1 + counts). Draws from this
-posterior are transformed into inverse Simpson indices, giving a full uncertainty
-distribution over effective method diversity for each source.
+**Format:** Table (replaces figure — the key message is the size of the gap, not
+the shape of the distribution. A table makes the contrast readable at a glance
+and saves a figure slot.)
 
-**Results:** Literature is far more diverse than any LLM configuration: post-2023
-literature median = 113.6 [90% CI: 110.5, 116.9], pre-2023 = 88.4 [85.4, 91.4].
-All LLM profiles are dramatically more concentrated: Qwen3 overall = 32.0
-[30.5, 33.4], Gemma overall = 29.2 [28.0, 30.4]. The expected expertise gradient
-is clearly visible: novice profiles (~21 effective methods) are the most
-concentrated, intermediate (~30) in the middle, and expert profiles the most
-diverse (Qwen3 expert = 60.9 [57.0, 64.9]; Gemma expert = 47.2 [43.7, 50.6]).
-Even the most diverse LLM configuration (Qwen3 expert) covers roughly half
-as many effective methods as the pre-2023 literature. This establishes that
-method concentration collapse is real and large in LLM recommendations — the
-remaining question is what drives it.
+**What it shows:** Effective number of methods (inverse Simpson index) for each
+source, derived from a Dirichlet conjugate posterior. Each estimate is the
+posterior median with 90% credible interval.
 
-![Fig. 5](../data/output/figures/main_text/fig5_concentration_posteriors.png)
+> **CAUTION — numbers below are from the 2026 data run and will be updated
+> once the 2025 refit completes. Do not use in manuscript until refit finishes.**
+
+| Source | Profile | Median | 90% CI |
+|--------|---------|-------:|--------|
+| Literature pre-2023 | — | 88.4 | [85.4, 91.4] |
+| Literature post-2023 | — | 113.6 | [110.5, 116.9] |
+| Qwen3 | Novice | ~21 | [ADD after refit] |
+| Qwen3 | Intermediate | ~30 | [ADD after refit] |
+| Qwen3 | Expert | 60.9 | [57.0, 64.9] |
+| Qwen3 | Overall | 32.0 | [30.5, 33.4] |
+| Gemma | Novice | ~21 | [ADD after refit] |
+| Gemma | Intermediate | ~30 | [ADD after refit] |
+| Gemma | Expert | 47.2 | [43.7, 50.6] |
+| Gemma | Overall | 29.2 | [28.0, 30.4] |
+
+**Key contrasts for manuscript:** Even the most diverse LLM configuration
+(Qwen3 expert) covers roughly half as many effective methods as the pre-2023
+literature. The novice–expert gradient is consistent across both models.
+Post-2023 literature is *more* diverse than pre-2023 (no convergence in the
+published record so far).
 
 ---
 
@@ -154,17 +166,39 @@ which methods are currently trending.
 **What it shows:** b_gamma posteriors broken out by (A) overall, (B) novice,
 (C) intermediate, and (D) expert profiles for both Qwen3 and Gemma.
 
+**b_gamma in plain language:** the coefficient on whether a method has been
+gaining momentum in the literature *after* 2023. If b_gamma > 0, LLMs preferentially
+recommend methods that are currently trending. If b_gamma ≈ 0 (what we find),
+LLMs do not track recent momentum — their concentration is explained by what was
+prevalent in the training corpus (b_pre), not what is newly gaining ground.
+
+**Two gradients — do not confuse them:**
+
+1. **Concentration gradient (Table 1 / old Fig. 5)**: expert profiles ARE more
+   diverse than novice profiles (~61 vs ~21 effective methods for Qwen3). This
+   gradient is present and expected.
+
+2. **b_gamma gradient (this figure)**: tests whether the *post-2023 momentum
+   effect* varies by profile. The hypothesis: novice prompts are unconstrained,
+   so any echo of recent trends should be strongest there. Result: b_gamma ≈ 0
+   for all profiles. If anything, expert point estimates are marginally higher
+   (Qwen3 expert: 0.224 vs novice: 0.107) — the opposite of the hypothesis —
+   though all intervals span zero. This reversal may reflect that constraining
+   the output to one L2 category forces the model into a smaller vocabulary where
+   post-2023 patterns have proportionally more leverage.
+
+**Key writing note:** the b_gamma null is not surprising given what the
+bibliometric stream already showed. σ_γ is small (~0.11) — some methods moved
+after 2023, but modestly. The individual γ values fed into the NB2 regression
+are therefore mostly small. There was limited post-2023 momentum in the
+literature for the LLMs to amplify in the first place. Connect this explicitly
+in the manuscript: the gun is not loaded yet in the literature, and the LLMs
+are not trying to fire it either.
+
 **Results:** b_gamma remains centred near zero across all profile-model
 combinations: novice (Qwen3: 0.107; Gemma: 0.087), intermediate (Qwen3: 0.035;
 Gemma: 0.032), expert (Qwen3: 0.224; Gemma: 0.218). All 90% credible intervals
-comfortably span zero. The concentration collapse visible in Fig. 5 (LLMs
-spanning ~30 effective methods vs ~110 in the literature) is not driven by
-post-2023 momentum: LLMs do not preferentially recommend methods that are
-currently gaining share. The predicted novice > expert gradient in
-mean-collapse sensitivity is also absent — if anything, expert profiles show
-the largest (though still non-significant) b_gamma point estimates, contrary
-to hypothesis. The consistency across profiles and architectures reinforces
-that the null finding on b_gamma is robust rather than a power artefact.
+comfortably span zero.
 
 ![Fig. 7](../data/output/figures/main_text/fig7_bgamma_by_profile.png)
 
