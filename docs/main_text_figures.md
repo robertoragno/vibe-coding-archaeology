@@ -129,9 +129,11 @@ published record so far).
 
 ---
 
-## Fig. 5 — Training-corpus prevalence vs post-2023 trajectory (NegBin2 posteriors)
+## Fig. 5 — What predicts LLM method choices?
 
 **Section:** Results (mean-collapse test, 4.4 / 3.4.2)
+
+**Manuscript caption:** Posterior distributions from a two-predictor count regression testing what drives LLM method recommendations. β_pre (left panel) measures how strongly a method's pre-2023 prevalence in the literature predicts how often it is recommended; β_γ (right panel) measures whether methods that gained momentum after 2023 are recommended more often. Results shown for both Qwen3 and Gemma. Dashed line: zero. Bands: 50% and 90% credible intervals; point: posterior mean.
 
 **What it shows:** A two-predictor negative binomial regression that separates
 two possible drivers of LLM method concentration. The outcome is n_rec (how many
@@ -159,7 +161,7 @@ which methods are currently trending.
 
 ---
 
-## Fig. 6 — Post-2023 trajectory coefficient by profile and model
+## Fig. 6 — Post-2023 effect by expertise profile
 
 **Section:** Results (mean-collapse test, profile gradient, 4.4)
 

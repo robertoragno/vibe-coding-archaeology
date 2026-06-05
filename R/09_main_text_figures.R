@@ -341,8 +341,8 @@ fig6 <- ggplot(plot_df7, aes(x = value, y = model, fill = model)) +
   facet_wrap(~ parameter, scales = "free_x", ncol = 2, labeller = label_parsed) +
   scale_fill_manual(values = c("Qwen3" = "grey35", "Gemma" = "grey70")) +
   labs(x = "Posterior coefficient", y = NULL,
-       title = "Echo, not momentum",
-       caption = expression(beta[pre]*": pre-LLM corpus prevalence; "*beta[gamma]*": post-2023 momentum. Overall profile. Bands: 50%/90% CI.")) +
+       title = "What predicts LLM method choices?",
+       caption = expression(beta[pre]*" (left): how strongly a method's pre-2023 prevalence predicts how often it is recommended. "*beta[gamma]*" (right): whether methods that gained momentum after 2023 are recommended more. Dashed line: zero. Bands: 50% and 90% credible intervals; point: posterior mean.")) +
   theme_paper +
   theme(legend.position = "none")
 
@@ -373,9 +373,9 @@ fig7 <- ggplot(prev_summary, aes(y = model)) +
   geom_point(aes(x = b_gamma_mean), size = 2, shape = 21,
              fill = "grey50", colour = "black") +
   facet_wrap(~ profile, ncol = 1) +
-  labs(x = "Post-2023 momentum coefficient (b_gamma)",
+  labs(x = expression(beta[gamma]~"(post-2023 coefficient)"),
        y = NULL,
-       title = "No profile gradient in post-2023 momentum effect",
+       title = "Post-2023 effect by expertise profile",
        caption = "Point: posterior mean. Horizontal bar: 90% credible interval. Dashed line: zero.") +
   theme_paper
 
