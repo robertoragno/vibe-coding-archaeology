@@ -83,7 +83,7 @@ trajectory (γ = −0.08). The rank ordering is largely preserved across
 architectures, though Gemma allocates slightly more to GIS Modeling and
 Multivariate Statistical & Machine Learning, while Qwen3 favours Discrete and
 Agent-Based Simulation more strongly. The gamma annotations show that top LLM
-picks include both gaining and declining methods, foreshadowing the Fig. 6
+picks include both gaining and declining methods, foreshadowing the Fig. 5
 finding that LLM recommendations track training-corpus prevalence (b_pre) rather
 than post-2023 momentum (b_gamma ≈ 0).
 
@@ -129,7 +129,7 @@ published record so far).
 
 ---
 
-## Fig. 6 — Training-corpus prevalence vs post-2023 trajectory (NegBin2 posteriors)
+## Fig. 5 — Training-corpus prevalence vs post-2023 trajectory (NegBin2 posteriors)
 
 **Section:** Results (mean-collapse test, 4.4 / 3.4.2)
 
@@ -155,11 +155,11 @@ LLMs concentrate on popular methods because those methods dominated the
 pre-2023 literature they were trained on, not because they are tracking
 which methods are currently trending.
 
-![Fig. 6](../data/output/figures/main_text/fig6_bpre_bgamma_posteriors.png)
+![Fig. 5](../data/output/figures/main_text/fig5_bpre_bgamma_posteriors.png)
 
 ---
 
-## Fig. 7 — Post-2023 trajectory coefficient by profile and model
+## Fig. 6 — Post-2023 trajectory coefficient by profile and model
 
 **Section:** Results (mean-collapse test, profile gradient, 4.4)
 
@@ -200,7 +200,7 @@ combinations: novice (Qwen3: 0.107; Gemma: 0.087), intermediate (Qwen3: 0.035;
 Gemma: 0.032), expert (Qwen3: 0.224; Gemma: 0.218). All 90% credible intervals
 comfortably span zero.
 
-![Fig. 7](../data/output/figures/main_text/fig7_bgamma_by_profile.png)
+![Fig. 6](../data/output/figures/main_text/fig6_bgamma_by_profile.png)
 
 ---
 

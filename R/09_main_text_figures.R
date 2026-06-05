@@ -307,9 +307,9 @@ fig5 <- ggplot(conc_long, aes(x = inv_simpson, y = source)) +
   theme_paper +
   theme(axis.text.y = element_text(size = 8))
 
-ggsave(file.path(OUT_DIR, "fig5_concentration_posteriors.png"), fig5,
+ggsave(file.path(OUT_DIR, "esm_concentration_posteriors.png"), fig5,
        width = 8, height = 5, dpi = 300, bg = "white")
-cat("Fig. 5 saved.\n")
+cat("ESM concentration posteriors saved (main text uses Table 1).\n")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Fig. 6 — b_pre vs b_gamma posteriors (overall, both models)
@@ -346,9 +346,9 @@ fig6 <- ggplot(plot_df7, aes(x = value, y = model, fill = model)) +
   theme_paper +
   theme(legend.position = "none")
 
-ggsave(file.path(OUT_DIR, "fig6_bpre_bgamma_posteriors.png"), fig6,
+ggsave(file.path(OUT_DIR, "fig5_bpre_bgamma_posteriors.png"), fig6,
        width = 7, height = 5, dpi = 300, bg = "white")
-cat("Fig. 6 saved.\n")
+cat("Fig. 5 saved.\n")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Fig. 7 — b_gamma by profile and model
@@ -379,8 +379,8 @@ fig7 <- ggplot(prev_summary, aes(y = model)) +
        caption = "Point: posterior mean. Horizontal bar: 90% credible interval. Dashed line: zero.") +
   theme_paper
 
-ggsave(file.path(OUT_DIR, "fig7_bgamma_by_profile.png"), fig7,
+ggsave(file.path(OUT_DIR, "fig6_bgamma_by_profile.png"), fig7,
        width = 7, height = 5.5, dpi = 300, bg = "white")
-cat("Fig. 7 saved.\n")
+cat("Fig. 6 saved.\n")
 
 cat("\nAll main-text figures saved to:", OUT_DIR, "\n")
