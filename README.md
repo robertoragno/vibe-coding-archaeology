@@ -26,7 +26,7 @@ n_rec[i] ~ NB2(exp(alpha + b_pre * log1p(n_pre[i]) + b_gamma * gamma[i]), phi)
 
 where `n_pre[i]` is the pre-2023 literature count for method *i* (a proxy for training-corpus exposure) and `gamma[i]` is the signed post-2023 excess. If `b_pre` is positive and `b_gamma` is near zero, the LLM is reflecting its training data but not tracking post-2023 shifts. If both are positive, the LLM is doing both. This separation is critical because a single-predictor regression on gamma alone conflates the two mechanisms.
 
-The model is validated through a four-stage Bayesian workflow following Gelman et al. (2020): prior predictive checks confirm the priors generate plausible diversity values; posterior predictive checks show all 25 L2 groups are well-calibrated (see [workflow checks](docs/workflow_results.md)); fake-data simulation confirms sigma_gamma is identifiable through hierarchical aggregation across groups; and phi is estimated from data — the posterior concentrates at phi ≈ 1133, confirming the field is compositionally regular.
+The model is validated through a four-stage Bayesian workflow following Gelman et al. (2020): prior predictive checks confirm the priors generate plausible diversity values; posterior predictive checks show all 25 L2 groups are well-calibrated (see [workflow checks](docs/workflow_results.md)); fake-data simulation confirms sigma_gamma is identifiable through hierarchical aggregation across groups; and phi is estimated from data — the posterior concentrates at phi ≈ 1088, confirming the field is compositionally regular.
 
 ## Preliminary Results
 
@@ -82,7 +82,7 @@ The mean-collapse hypothesis has two parts: (1) the LLM recommends a narrow set 
 
 Both LLMs recommend methods in direct proportion to their pre-2023 corpus prevalence. The less guidance a researcher provides, the stronger this prevalence effect — producing a recommendation distribution roughly a third as diverse as the published literature. The mechanism for convergence is demonstrably present, structural across two model families, and quantified with full Bayesian uncertainty.
 
-But the literature has not converged. The Inverse Simpson index has risen from ~88 (pre-2023) to ~114 (post-2023), and this diversifying trend continued uninterrupted through the post-LLM period. sigma_gamma = 0.110 [0.010, 0.222] shows weak evidence of post-2023 reshuffling, but its magnitude is smaller than the pre-existing trend (sigma_gamma < sigma_beta, 0.110 vs 0.288), and no individual method shows a credible shift.
+But the literature has not converged. The Inverse Simpson index has risen from ~88 (pre-2023) to ~112 (post-2023), and this diversifying trend continued uninterrupted through the post-LLM period. sigma_gamma = 0.102 [0.008, 0.214] shows weak evidence of post-2023 reshuffling, but its magnitude is smaller than the pre-existing trend (sigma_gamma < sigma_beta, 0.102 vs 0.265), and no individual method shows a credible shift.
 
 The two-predictor regression resolves the key ambiguity in the earlier single-predictor analysis, which produced negative beta posteriors. That negative direction was a confound: the most prevalent pre-2023 methods (which the LLM favours) happen to have slightly negative gamma (they were already large and stable, not post-2023 gainers). Once prevalence is separated from gamma, the apparent negative relationship disappears — the LLM is simply indifferent to post-2023 trajectory.
 
@@ -104,7 +104,7 @@ Instead of regressing on noisy individual gammas, we compare the *whole* LLM rec
 
 **Sensitivity D — Direct diversity trajectory (07)**
 
-Models inv_simpson directly at L2 group level with the same two-slope structure. sigma_gamma = 0.064 [0.003, 0.174], effectively null. sigma_beta = 0.677 [0.510, 0.910] — pre-existing trend variation is 10× larger. All 25 group-level gamma CIs straddle zero. The field reorients internally but does not measurably homogenise at the sub-discipline level.
+Models inv_simpson directly at L2 group level with the same two-slope structure. sigma_gamma = 0.056 [0.004, 0.140], effectively null. sigma_beta = 0.652 [0.507, 0.828] — pre-existing trend variation is 10× larger. All 25 group-level gamma CIs straddle zero. The field reorients internally but does not measurably homogenise at the sub-discipline level.
 
 ## Analysis outputs
 
@@ -141,7 +141,7 @@ Models inv_simpson directly at L2 group level with the same two-slope structure.
 
 ## Future directions
 
-The analysis identifies a clear gap between the LLM's concentrated recommendations (29–32 effective methods) and the literature's continuing diversification (~114 effective methods). Two design improvements could determine whether this gap will close:
+The analysis identifies a clear gap between the LLM's concentrated recommendations (29–32 effective methods) and the literature's continuing diversification (~112 effective methods). Two design improvements could determine whether this gap will close:
 
 1. **More post-LLM years.** With only 3–4 post-LLM years, gamma is weakly identified by construction (0/242 methods reach sig90). Rerunning in 2028 with 5–6 post-LLM years would substantially sharpen the estimates and reveal whether the diversification trend has slowed, plateaued, or reversed.
 
