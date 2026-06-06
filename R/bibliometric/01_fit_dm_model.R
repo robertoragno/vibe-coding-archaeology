@@ -16,8 +16,7 @@ FIT_DIR    <- "data/output"
 FIT_RDS    <- file.path(FIT_DIR, "fit_phi_free.rds")
 DONE_FLAG  <- file.path(FIT_DIR, "fit_phi_free_v4.done")
 
-# ── Load data ─────────────────────────────────────────────────────────────────
-cat("Loading stan_data...\n")
+# Load data
 stan_data <- readRDS("data/output/stan_data.rds")
 stan_data$phi       <- NULL
 stan_data$years_vec <- NULL
@@ -27,12 +26,10 @@ cat("N_groups:", stan_data$N_groups, "\n")
 cat("N_years: ", stan_data$N_years,  "\n")
 cat("K_max:   ", stan_data$K_max,    "\n")
 
-# ── Compile model ─────────────────────────────────────────────────────────────
-cat("Compiling model...\n")
+# Compile model
 model <- cmdstan_model(STAN_FILE)
 
-# ── Step 1: Optimize (MAP) — seconds ─────────────────────────────────────────
-cat("\n=== OPTIMIZE (MAP point estimate) ===\n")
+# Step 1: Optimize (MAP) — seconds
 fit_opt <- model$optimize(data = stan_data, seed = 42, algorithm = "lbfgs")
 
 cat("\nMAP estimates for key parameters:\n")
@@ -46,8 +43,7 @@ for (par in c("sigma_beta", "sigma_gamma", "log_phi")) {
   }
 }
 
-# ── Step 2: Pathfinder — fast approximate posterior ──────────────────────────
-cat("\n=== PATHFINDER (approximate posterior) ===\n")
+# Step 2: Pathfinder — fast approximate posterior
 fit_pf <- model$pathfinder(data = stan_data, seed = 42, num_paths = 4, draws = 4000,
                            psis_resample = FALSE)
 
@@ -72,10 +68,8 @@ n_sig_pf <- sum(apply(gamma_mat, 2, function(x) {
 }))
 cat("  Pathfinder methods with 90% CI excl. zero:", n_sig_pf, "\n")
 
-# ── Step 3: Full MCMC ────────────────────────────────────────────────────────
+# Step 3: Full MCMC
 if (!file.exists(DONE_FLAG)) {
-  cat("\n=== FULL MCMC SAMPLING ===\n")
-  cat("Settings: warmup=2000, iter=4000, max_treedepth=14\n")
 
   t_start <- proc.time()
 
@@ -104,7 +98,7 @@ if (!file.exists(DONE_FLAG)) {
   cat("\nFit already complete; loading from", FIT_RDS, "\n")
 }
 
-# ── Post-processing ──────────────────────────────────────────────────────────
+# Post-processing
 {
   fit <- readRDS(FIT_RDS)
 
@@ -121,8 +115,7 @@ if (!file.exists(DONE_FLAG)) {
   key_summary <- fit$summary(variables = c("sigma_beta", "sigma_gamma", "phi"))
   print(key_summary)
 
-  # ── Plots ──────────────────────────────────────────────────────────────────
-  message("Producing phi-free plots...")
+  #  Plots
   dir.create("data/output/phi_free", recursive = TRUE, showWarnings = FALSE)
   dir.create("data/output/figures/l2_l3", recursive = TRUE, showWarnings = FALSE)
 
@@ -155,7 +148,7 @@ if (!file.exists(DONE_FLAG)) {
     draws[, vname]
   }
 
-  # ── Plot 1: sigma posteriors — 3 panels ───────────────────────────────────
+  #  Plot 1: sigma posteriors — 3 panels
   sigma_beta_draws  <- as.numeric(draws[, "sigma_beta"])
   sigma_gamma_draws <- as.numeric(draws[, "sigma_gamma"])
   phi_draws_kf      <- as.numeric(draws[, "phi"])
@@ -196,8 +189,7 @@ if (!file.exists(DONE_FLAG)) {
   ggsave(KF_PLOT_SIGMA, p2, width = 16, height = 5, units = "in", dpi = 150)
   cat("Plot saved:", KF_PLOT_SIGMA, "\n")
 
-  # ── Plot 2: diversity by group ────────────────────────────────────────────
-  cat("Extracting inv_simpson draws...\n")
+  #  Plot 2: diversity by group
   inv_simp_vars <- grep("^inv_simpson\\[", colnames(draws), value = TRUE)
 
   inv_simp_summary_kf <- do.call(rbind, lapply(seq_len(N_groups), function(g) {
@@ -268,8 +260,7 @@ if (!file.exists(DONE_FLAG)) {
   ggsave(KF_PLOT_DIVERSITY, p1, width = 20, height = 16, units = "in", dpi = 150)
   cat("Plot saved:", KF_PLOT_DIVERSITY, "\n")
 
-  # ── Extract gamma posteriors ──────────────────────────────────────────────
-  cat("Extracting gamma_method posteriors...\n")
+  #  Extract gamma posteriors
   gamma_list <- vector("list", N_groups)
   for (grp in seq_len(N_groups)) {
     K <- K_g_vec[grp]
@@ -304,7 +295,7 @@ if (!file.exists(DONE_FLAG)) {
 
   cat("Methods with 90% CI excluding zero:", sum(gamma_df$sig, na.rm = TRUE), "\n")
 
-  # ── Plot 3: gamma dotplot (two-panel) ────────────────────────────────────
+  #  Plot 3: gamma dotplot (two-panel)
   sig_gamma  <- gamma_df |> filter(sig)
   n_sig      <- nrow(sig_gamma)
 
@@ -401,7 +392,7 @@ if (!file.exists(DONE_FLAG)) {
   ggsave(KF_PLOT_GAMMA_DOT, p3, width = 14, height = 12, units = "in", dpi = 150)
   cat("Plot saved:", KF_PLOT_GAMMA_DOT, "\n")
 
-  # ── Top 15 methods by |gamma| ───────────────────────────────────────────
+  #  Top 15 methods by |gamma|
   top15 <- gamma_df |>
     mutate(abs_gamma = abs(mean_gamma)) |>
     arrange(desc(abs_gamma)) |>
@@ -410,8 +401,7 @@ if (!file.exists(DONE_FLAG)) {
   cat("\nTop 15 methods by |mean_gamma|:\n")
   print(top15 |> select(l2, l3, mean_gamma, lo90, hi90))
 
-  # ── Plot 4: fitted share trajectories for top 15 ───────────────────────
-  cat("Computing fitted share trajectories for top 15 methods...\n")
+  #  Plot 4: fitted share trajectories for top 15
   n_draws_traj <- min(200, S)
   draw_idx     <- sample(S, n_draws_traj)
 
@@ -472,7 +462,7 @@ if (!file.exists(DONE_FLAG)) {
   ggsave(KF_PLOT_TOP_GAMMA, p4, width = 18, height = 12, units = "in", dpi = 150)
   cat("Plot saved:", KF_PLOT_TOP_GAMMA, "\n")
 
-  # ── Plot 5: raw counts for top 15 ──────────────────────────────────────
+  #  Plot 5: raw counts for top 15
   raw_counts_list <- vector("list", nrow(top15))
   for (i in seq_len(nrow(top15))) {
     g_i <- top15$g[i]
@@ -512,4 +502,3 @@ if (!file.exists(DONE_FLAG)) {
 
 }
 
-cat("\n01_fit_dm_model.R complete.\n")

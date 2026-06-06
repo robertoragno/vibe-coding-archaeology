@@ -16,7 +16,7 @@ suppressPackageStartupMessages({
 
 options(mc.cores = parallel::detectCores())
 
-# ── 1. Paths ───────────────────────────────────────────────────────────────────
+# 1. Paths
 
 STAN_FILE   <- here("stan/bibliometric_dirichlet_multinomial.stan")
 SD_PATH     <- here("data/output/stan_data.rds")
@@ -33,9 +33,8 @@ dir.create(here("data/output/figures/robustness"), recursive = TRUE, showWarning
 if (!file.exists(GAMMA_2023_CSV))
   stop("gamma_results.csv (2023 break) not found at:\n  ", GAMMA_2023_CSV)
 
-# ── 2. Load stan_data and modify post_llm ──────────────────────────────────────
+# 2. Load stan_data and modify post_llm
 
-cat("Loading stan_data...\n")
 stan_data <- readRDS(SD_PATH)
 
 years_vec <- stan_data$years_vec
@@ -52,14 +51,12 @@ stopifnot(sum(stan_data_2022$post_llm) == expected_post)
 cat("post_llm sum =", expected_post, "(years",
     min(years_vec[years_vec >= 2022]), "to", max(years_vec), ") — OK\n")
 
-# ── 3. Re-fit (guarded by DONE_FLAG) ──────────────────────────────────────────
+# 3. Re-fit (guarded by DONE_FLAG)
 
 # phi is estimated (not data) in phi_free model; remove if present
 stan_data_2022$phi <- NULL
 
 if (!file.exists(DONE_FLAG)) {
-  cat("\nCompiling and sampling (break=2022)...\n")
-  cat("Settings: chains=4, iter_sampling=2000, iter_warmup=2000, adapt_delta=0.95, max_treedepth=14\n")
   t_start <- proc.time()
 
   mod <- cmdstan_model(STAN_FILE)
@@ -86,7 +83,7 @@ if (!file.exists(DONE_FLAG)) {
   fit_2022 <- readRDS(FIT_2022)
 }
 
-# ── 4. HMC diagnostics ─────────────────────────────────────────────────────────
+# 4. HMC diagnostics
 
 cat("\n--- HMC diagnostics (2022 break) ---\n")
 diag <- fit_2022$diagnostic_summary()
@@ -96,9 +93,8 @@ cat("\n--- sigma_beta ---\n"); print(fit_2022$summary(variables = "sigma_beta"))
 cat("\n--- sigma_gamma ---\n"); print(fit_2022$summary(variables = "sigma_gamma"))
 cat("\n--- phi ---\n");         print(fit_2022$summary(variables = "phi"))
 
-# ── 5. Extract gamma_method posteriors ─────────────────────────────────────────
+# 5. Extract gamma_method posteriors
 
-cat("\nExtracting gamma_method draws...\n")
 vocab     <- readRDS(VOCAB_PATH)
 l2_levels <- vocab$l2_levels
 K_g_vec   <- vocab$K_g
@@ -147,14 +143,13 @@ gamma_2022 <- bind_rows(gamma_list) |>
 cat("Methods with 90% CI excluding zero (2022 break):",
     sum(gamma_2022$sig90, na.rm = TRUE), "\n")
 
-# ── 6. Save gamma_results_2022.csv ─────────────────────────────────────────────
+# 6. Save gamma_results_2022.csv
 
 write.csv(gamma_2022, OUT_CSV, row.names = FALSE)
 cat("Saved:", OUT_CSV, "\n")
 
-# ── 7. Comparison plot ─────────────────────────────────────────────────────────
+# 7. Comparison plot
 
-cat("\nBuilding comparison plot...\n")
 gamma_2023 <- read.csv(GAMMA_2023_CSV, stringsAsFactors = FALSE)
 
 # Join on l3; check uniqueness first
@@ -224,7 +219,7 @@ p <- ggplot(comp, aes(x = mean_gamma_2023, y = mean_gamma_2022, colour = sig_sta
 ggsave(OUT_PLOT, p, width = 8, height = 7, units = "in")
 cat("Saved:", OUT_PLOT, "\n")
 
-# ── 8. Summary statistics ──────────────────────────────────────────────────────
+# 8. Summary statistics
 
 cat("\n=== Robustness summary ===\n")
 
@@ -242,4 +237,3 @@ cat("Methods losing   sig90 under 2022 break:", lose_sig, "\n")
 cat("\nSignificance breakdown:\n")
 print(table(comp$sig_status))
 
-cat("\n05_robustness_2022.R complete.\n")

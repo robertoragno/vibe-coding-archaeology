@@ -1,4 +1,3 @@
-cat("=== 00_data_prep.R ===\n")
 
 library(readxl)
 library(dplyr)
@@ -11,7 +10,6 @@ VOCAB_RDS     <- "data/output/vocab.rds"
 
 dir.create("data/output", recursive = TRUE, showWarnings = FALSE)
 
-cat("Loading data...\n")
 scopus_raw <- read_excel(SCOPUS_FILE) |>
   select(eid, Year = year)
 
@@ -116,4 +114,3 @@ saveRDS(vocab,     VOCAB_RDS)
 
 cat("Saved stan_data to:", OUTPUT_RDS, "\n")
 cat("Saved vocab to:    ", VOCAB_RDS,  "\n")
-cat("=== 00_data_prep.R DONE ===\n")

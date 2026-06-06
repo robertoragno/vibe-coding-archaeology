@@ -19,9 +19,8 @@ STAN_FILE     <- here("stan/sensitivity/diversity_trajectory.stan")
 OUT_FIT  <- here("data/output/fit_diversity_trajectory.rds")
 OUT_PLOT <- here("R/sensitivity/diversity_gamma_by_group.png")
 
-# ── 1. Load phi-free fit and extract inv_simpson posterior ────────────────────
+# 1. Load phi-free fit and extract inv_simpson posterior
 
-cat("Loading fit_phi_free.rds...\n")
 fit       <- readRDS(FIT_RDS)
 vocab     <- readRDS(VOCAB_RDS)
 stan_data <- readRDS(STAN_DATA_RDS)
@@ -67,7 +66,7 @@ cat(sprintf("Non-zero cells: %d / %d (%.0f%%)\n",
             n_observed, N_groups * N_years,
             100 * n_observed / (N_groups * N_years)))
 
-# ── 2. Fit diversity trajectory model ─────────────────────────────────────────
+# 2. Fit diversity trajectory model
 
 cat("\n** This model samples 4 chains x 2000 iterations. **\n")
 cat("** Run in tmux if you are on a remote machine.     **\n\n")
@@ -94,12 +93,12 @@ fit_traj <- mod$sample(
   refresh         = 200
 )
 
-# ── 3. Save fit ──────────────────────────────────────────────────────────────
+# 3. Save fit
 
 fit_traj$save_object(OUT_FIT)
 cat("Fit saved to:", OUT_FIT, "\n")
 
-# ── 4. Posterior summaries ────────────────────────────────────────────────────
+# 4. Posterior summaries
 
 hyperparams <- fit_traj$summary(
   variables = c("sigma_gamma", "sigma_beta", "sigma_resid"),
@@ -119,7 +118,7 @@ gamma_summary$label <- sub("^L2-\\d+: ", "", l2_levels)
 cat("\n=== gamma[g] posteriors (post-LLM diversity shift by L2 group) ===\n")
 print(gamma_summary |> select(label, mean, `2.5%`, `97.5%`), n = N_groups)
 
-# ── 5. Plot: gamma[g] with 95% CIs, ordered by mean ─────────────────────────
+# 5. Plot: gamma[g] with 95% CIs, ordered by mean
 
 plot_df <- gamma_summary |>
   arrange(mean) |>
@@ -141,4 +140,3 @@ p <- ggplot(plot_df, aes(x = mean, y = label)) +
 ggsave(OUT_PLOT, p, width = 8, height = 10, units = "in", dpi = 150)
 cat("Plot saved to:", OUT_PLOT, "\n")
 
-cat("\nD_diversity_trajectory.R complete.\n")

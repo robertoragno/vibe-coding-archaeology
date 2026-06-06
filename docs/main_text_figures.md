@@ -105,21 +105,20 @@ and saves a figure slot.)
 source, derived from a Dirichlet conjugate posterior. Each estimate is the
 posterior median with 90% credible interval.
 
-> **CAUTION — numbers below are from the 2026 data run and will be updated
-> once the 2025 refit completes. Do not use in manuscript until refit finishes.**
+> Numbers from the 2025 refit (2010–2025 window). Final.
 
 | Source | Profile | Median | 90% CI |
 |--------|---------|-------:|--------|
 | Literature pre-2023 | — | 88.4 | [85.4, 91.4] |
-| Literature post-2023 | — | 113.6 | [110.5, 116.9] |
-| Qwen3 | Novice | ~21 | [ADD after refit] |
-| Qwen3 | Intermediate | ~30 | [ADD after refit] |
-| Qwen3 | Expert | 60.9 | [57.0, 64.9] |
-| Qwen3 | Overall | 32.0 | [30.5, 33.4] |
-| Gemma | Novice | ~21 | [ADD after refit] |
-| Gemma | Intermediate | ~30 | [ADD after refit] |
-| Gemma | Expert | 47.2 | [43.7, 50.6] |
-| Gemma | Overall | 29.2 | [28.0, 30.4] |
+| Literature post-2023 | — | 112.2 | [108.7, 115.7] |
+| Qwen3 | Novice | 21.4 | [20.0, 22.9] |
+| Qwen3 | Intermediate | 30.9 | [28.7, 33.3] |
+| Qwen3 | Expert | 60.9 | [56.8, 65.0] |
+| Qwen3 | Overall | 31.9 | [30.5, 33.4] |
+| Gemma | Novice | 20.8 | [19.5, 22.4] |
+| Gemma | Intermediate | 29.8 | [27.6, 32.1] |
+| Gemma | Expert | 47.2 | [43.8, 50.5] |
+| Gemma | Overall | 29.2 | [27.9, 30.5] |
 
 **Key contrasts for manuscript:** Even the most diverse LLM configuration
 (Qwen3 expert) covers roughly half as many effective methods as the pre-2023

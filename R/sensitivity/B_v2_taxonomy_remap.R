@@ -18,7 +18,7 @@ suppressPackageStartupMessages({
   library(ggrepel)
 })
 
-# ── 1. Paths ─────────────────────────────────────────────────────────────────
+# 1. Paths
 
 gamma_csv_primary  <- here("data/output/gamma_results.csv")
 gamma_csv_fallback <- here("data/output/phi_free/gamma_results.csv")
@@ -42,7 +42,7 @@ OUT_BETA_PROFILE <- file.path(OUT_DIR, "plot_beta_posterior_by_profile.png")
 OUT_SCATTER      <- file.path(OUT_DIR, "plot_gamma_vs_recommendations.png")
 OUT_DIRECTION    <- file.path(OUT_DIR, "plot_top_recommended_direction.png")
 
-# ── 2. Load data ─────────────────────────────────────────────────────────────
+# 2. Load data
 
 cat("Loading gamma_results from:", GAMMA_CSV, "\n")
 gamma_df <- read.csv(GAMMA_CSV, stringsAsFactors = FALSE)
@@ -60,7 +60,7 @@ v2_labels <- sort(unique(exp_consistent$l3_mapping))
 cat("v2 unique L3 labels:", length(v2_labels), "\n")
 cat("v3 unique L3 labels:", length(v3_labels), "\n")
 
-# ── 3. Build v2 → v3 mapping ────────────────────────────────────────────────
+# 3. Build v2 → v3 mapping
 
 strip_prefix <- function(x) sub("^L3-\\d+:\\s*", "", x)
 extract_prefix <- function(x) sub(":.*", "", x)
@@ -131,7 +131,7 @@ write.csv(mapping |> select(v2_label, final_v3, match_type, best_v3_dist),
           OUT_MAPPING, row.names = FALSE)
 cat("\nMapping saved to:", OUT_MAPPING, "\n")
 
-# ── 4. Remap experiment data ─────────────────────────────────────────────────
+# 4. Remap experiment data
 
 lookup <- setNames(mapping$final_v3, mapping$v2_label)
 exp_remapped <- exp_consistent |>
@@ -162,7 +162,7 @@ for (prof in c("novice", "intermediate", "expert")) {
 
 cat("Unique v3 L3 methods with recommendations:", length(unique(exp_remapped$l3_v3)), "\n")
 
-# ── 5. Join to gamma estimates ───────────────────────────────────────────────
+# 5. Join to gamma estimates
 
 all_l3 <- l3_vocab |> select(l3) |> distinct()
 
@@ -184,12 +184,11 @@ write.csv(
   OUT_TABLE, row.names = FALSE
 )
 
-# ── 6. Bayesian NB regression ────────────────────────────────────────────────
+# 6. Bayesian NB regression
 
 mod <- cmdstan_model(STAN_FILE)
 
 run_bayesian_nb <- function(mod, gamma_signed, n_rec, label = "") {
-  cat("\nFitting NB model", if (nchar(label) > 0) paste0("(", label, ")"), "...\n")
   stan_data <- list(
     M            = length(n_rec),
     gamma_signed = gamma_signed,
@@ -225,7 +224,7 @@ beta_novice  <- fit_novice$draws
 beta_inter   <- fit_inter$draws
 beta_expert  <- fit_expert$draws
 
-# ── 7. Plots ─────────────────────────────────────────────────────────────────
+# 7. Plots
 
 p_pos <- function(betas) round(mean(betas > 0, na.rm = TRUE), 3)
 
@@ -305,7 +304,7 @@ ggsave(OUT_DIRECTION, pD, width = 8, height = 7, units = "in", dpi = 150)
 
 cat("\nAll plots saved to:", OUT_DIR, "\n")
 
-# ── 8. Save outputs ──────────────────────────────────────────────────────────
+# 8. Save outputs
 
 draws_df <- data.frame(
   beta_overall = beta_overall, beta_novice = beta_novice,
@@ -333,7 +332,7 @@ beta_summary <- data.frame(
 )
 write.csv(beta_summary, OUT_BETA_SUMMARY, row.names = FALSE)
 
-# ── 9. Generate results markdown ─────────────────────────────────────────────
+# 9. Generate results markdown
 
 ci90 <- function(draws) {
   sprintf("[%.3f, %.3f]", quantile(draws, 0.05), quantile(draws, 0.95))
@@ -425,7 +424,7 @@ md <- c(
 writeLines(md, OUT_RESULTS_MD)
 cat("\nResults markdown saved to:", OUT_RESULTS_MD, "\n")
 
-# ── 10. Console summary ─────────────────────────────────────────────────────
+# 10. Console summary
 
 cat("\n=== Step 3 remapped summary ===\n")
 cat(sprintf("Match rate: %d/%d (%.0f%%)\n", n_matched, n_total, 100 * n_matched / n_total))
@@ -434,4 +433,3 @@ cat(sprintf("Novice    beta: mean = %.3f, P(beta>0) = %.3f\n", mean(beta_novice)
 cat(sprintf("Intermed. beta: mean = %.3f, P(beta>0) = %.3f\n", mean(beta_inter), p_pos(beta_inter)))
 cat(sprintf("Expert    beta: mean = %.3f, P(beta>0) = %.3f\n", mean(beta_expert), p_pos(beta_expert)))
 
-cat("\nB_v2_taxonomy_remap.R complete.\n")

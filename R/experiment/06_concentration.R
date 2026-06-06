@@ -15,7 +15,7 @@ source(here("R/helpers.R"))  # inv_simpson, build_rec_vectors
 set.seed(42)
 N_DRAWS <- 4000
 
-# ── Paths ────────────────────────────────────────────────────────────────────
+# Paths
 
 QWEN_CSV  <- here("experiment/analysis/experiment_results_QWEN.csv")
 GEMMA_CSV <- here("experiment/analysis/experiment_results_GEMMA.csv")
@@ -29,7 +29,7 @@ OUT_DRAWS   <- here("data/output/concentration_inv_simpson_draws.csv")
 OUT_SUMMARY <- here("data/output/concentration_inv_simpson_summary.csv")
 OUT_PLOT    <- file.path(OUT_DIR, "plot_concentration_posteriors.png")
 
-# ── Load vocab and literature counts ─────────────────────────────────────────
+# Load vocab and literature counts
 
 vocab     <- readRDS(VOCAB_RDS)
 stan_data <- readRDS(STAN_DATA)
@@ -54,13 +54,13 @@ for (g in seq_len(stan_data$N_groups)) {
   }
 }
 
-# ── Build count vectors for each model x profile ────────────────────────────
+# Build count vectors for each model x profile
 
 l3_levels <- l3_vocab$l3
 qwen_counts  <- build_rec_vectors(QWEN_CSV, l3_levels)
 gemma_counts <- build_rec_vectors(GEMMA_CSV, l3_levels)
 
-# ── Conjugate Dirichlet posterior draws ──────────────────────────────────────
+# Conjugate Dirichlet posterior draws
 # Multinomial counts + uniform Dirichlet(1) prior → exact posterior Dir(1+counts).
 # No MCMC needed: the conjugate form gives the posterior in closed form.
 #
@@ -88,7 +88,7 @@ dirichlet_inv_simpson <- function(counts, n_draws = N_DRAWS) {
   apply(draws, 1, inv_simpson)
 }
 
-# ── Compute posteriors ───────────────────────────────────────────────────────
+# Compute posteriors
 # Each source is fitted independently (not hierarchically) because profiles are
 # deliberately contrasting experimental conditions, not exchangeable groups.
 
@@ -114,7 +114,7 @@ draws_list <- lapply(names(sources), function(nm) {
 
 all_draws <- bind_rows(draws_list)
 
-# ── Summary table ────────────────────────────────────────────────────────────
+# Summary table
 
 summary_df <- all_draws |>
   group_by(source) |>
@@ -129,7 +129,7 @@ summary_df <- all_draws |>
 
 print(summary_df, n = 20)
 
-# ── Posterior contrasts ─────────────────────────────────────────────────────
+# Posterior contrasts
 # Each source has an independent posterior, so its draws are mutually
 # independent. Differencing them elementwise therefore yields valid draws from
 # the posterior of the difference (the index pairing is arbitrary, not paired).
@@ -155,7 +155,7 @@ cat(sprintf("\nPost-2023 lit - Qwen3:   median = %.1f, P(lit > Qwen) = %.3f\n",
 cat(sprintf("Post-2023 lit - Gemma:   median = %.1f, P(lit > Gemma) = %.3f\n",
             median(delta_lit_gemma), mean(delta_lit_gemma > 0)))
 
-# ── Plot ─────────────────────────────────────────────────────────────────────
+# Plot
 
 source_order <- summary_df |> arrange(median) |> pull(source)
 all_draws$source <- factor(all_draws$source, levels = source_order)
@@ -178,7 +178,7 @@ p <- ggplot(all_draws, aes(x = inv_simpson, y = source)) +
   theme(axis.text.y = element_text(size = 9))
 
 ggsave(OUT_PLOT, p, width = 9, height = 6, dpi = 300, bg = "white")
-# ── Save outputs ─────────────────────────────────────────────────────────────
+# Save outputs
 
 write.csv(summary_df, OUT_SUMMARY, row.names = FALSE)
 

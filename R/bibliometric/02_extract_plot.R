@@ -1,4 +1,3 @@
-cat("=== 02_extract_plot.R ===\n")
 
 library(cmdstanr)
 library(posterior)
@@ -19,7 +18,6 @@ DRAWS_RDS      <- "data/output/inv_simpson_draws.rds"
 dir.create("data/output/l3", recursive = TRUE, showWarnings = FALSE)
 dir.create("data/output/figures/l2_l3", recursive = TRUE, showWarnings = FALSE)
 
-cat("Loading fit, vocab, stan_data...\n")
 fit       <- readRDS(FIT_RDS)
 vocab     <- readRDS(VOCAB_RDS)
 stan_data <- readRDS(STAN_DATA_RDS)
@@ -44,7 +42,7 @@ draws_to_array <- function(draws, prefix, d1, d2) {
   arr
 }
 
-# ── Diagnostic: print array shapes immediately ────────────────────────────────
+# Diagnostic: print array shapes immediately
 cat("\n--- Array shape diagnostics ---\n")
 mu_raw_arr       <- draws_to_array(draws, "mu_raw", N_groups, K_max)
 beta_method_arr  <- draws_to_array(draws, "beta_method", N_groups, K_max)
@@ -62,12 +60,10 @@ if (length(zero_K) > 0) {
 
 cat("Posterior draws S =", S, ", K_max =", K_max, "\n")
 
-# ── Plot 1: Diversity by group (inv_simpson) ──────────────────────────────────
-cat("\nExtracting inv_simpson draws...\n")
+# Plot 1: Diversity by group (inv_simpson)
 inv_simp_arr <- draws_to_array(draws, "inv_simpson", N_groups, N_years)
 cat("inv_simpson dims:", paste(dim(inv_simp_arr), collapse = " x "), "\n")
 
-cat("Reshaping to tidy format...\n")
 inv_simp_tidy <- expand.grid(
     draw = seq_len(S),
     g    = seq_len(N_groups),
@@ -82,7 +78,6 @@ inv_simp_tidy <- expand.grid(
 saveRDS(inv_simp_tidy, DRAWS_RDS)
 cat("Raw draws saved to:", DRAWS_RDS, "\n")
 
-cat("Summarising...\n")
 inv_simp_summary <- inv_simp_tidy |>
   group_by(l2, year) |>
   summarise(
@@ -97,9 +92,8 @@ inv_simp_summary <- inv_simp_tidy |>
 write.csv(inv_simp_summary, SUMMARY_CSV, row.names = FALSE)
 cat("Summary CSV saved to:", SUMMARY_CSV, "\n")
 
-cat("Plotting diversity by group...\n")
 
-# ── Empirical inv_simpson from raw counts (no model) ─────────────────────────
+# Empirical inv_simpson from raw counts (no model)
 emp_diversity <- do.call(rbind, lapply(seq_len(N_groups), function(g) {
   K <- K_g_vec[g]
   do.call(rbind, lapply(seq_len(N_years), function(t) {
@@ -118,7 +112,7 @@ emp_diversity <- do.call(rbind, lapply(seq_len(N_groups), function(g) {
 })) |>
   mutate(label = sub("^L2-\\d+: ", "", l2))
 
-# ── Conjugate-posterior ribbon: use stored inv_simpson draws from fit ─────────
+# Conjugate-posterior ribbon: use stored inv_simpson draws from fit
 conj_summary <- inv_simp_summary |>
   mutate(label = sub("^L2-\\d+: ", "", l2))
 
@@ -153,8 +147,7 @@ p1 <- ggplot(conj_summary, aes(x = year)) +
 ggsave(PLOT_DIVERSITY, p1, width = 20, height = 16, units = "in", dpi = 150)
 cat("Plot saved to:", PLOT_DIVERSITY, "\n")
 
-# ── Plot 2: sigma_beta and sigma_gamma side-by-side ───────────────────────────
-cat("Plotting sigma posteriors (sigma_beta and sigma_gamma)...\n")
+# Plot 2: sigma_beta and sigma_gamma side-by-side
 sigma_beta_draws  <- as.numeric(draws[, "sigma_beta"])
 sigma_gamma_draws <- as.numeric(draws[, "sigma_gamma"])
 
@@ -189,7 +182,7 @@ print(fit$summary("sigma_beta"))
 cat("\n--- sigma_gamma summary (KEY SCIENTIFIC QUANTITY) ---\n")
 print(fit$summary("sigma_gamma"))
 
-# ── Extract diagnostic values for doc auto-fill ───────────────────────────────
+# Extract diagnostic values for doc auto-fill
 n_divergences <- sum(fit$diagnostic_summary()$num_divergent)
 sm_diag <- fit$summary(c("sigma_beta", "sigma_gamma", "phi"))
 
@@ -213,10 +206,9 @@ sigma_gamma_ci_str <- paste0("[", round(sigma_gamma_ci[1], 4), ", ", round(sigma
 phi_draws <- as.numeric(draws[, "phi"])
 phi_90ci  <- quantile(phi_draws, c(0.05, 0.95))
 
-# ── Extract gamma_method posteriors ───────────────────────────────────────────
+# Extract gamma_method posteriors
 # gamma_method_arr shape: [S, N_groups, K_max]
 # Use matrix(..., nrow=S, ncol=K) to guard against K==1 dimension drop.
-cat("\nExtracting gamma_method posteriors per method...\n")
 
 gamma_list <- vector("list", N_groups)
 
@@ -252,8 +244,7 @@ gamma_df <- bind_rows(gamma_list) |>
 cat("Methods with 90% CI excluding zero (credible post-LLM shift):",
     sum(gamma_df$sig, na.rm = TRUE), "\n")
 
-# ── Plot 3: gamma dotplot ─────────────────────────────────────────────────────
-cat("Plotting gamma dotplot...\n")
+# Plot 3: gamma dotplot
 
 sig_gamma <- gamma_df |> filter(sig)
 
@@ -292,7 +283,7 @@ plot_h <- max(8, 0.15 * nrow(sig_gamma))
 ggsave(PLOT_GAMMA_DOT, p3, width = 14, height = plot_h, units = "in", dpi = 150, limitsize = FALSE)
 cat("Plot saved to:", PLOT_GAMMA_DOT, "\n")
 
-# ── Top 15 methods by |gamma| ─────────────────────────────────────────────────
+# Top 15 methods by |gamma|
 top15 <- gamma_df |>
   mutate(abs_gamma = abs(mean_gamma)) |>
   arrange(desc(abs_gamma)) |>
@@ -301,8 +292,7 @@ top15 <- gamma_df |>
 cat("\nTop 15 methods by |mean_gamma|:\n")
 print(top15 |> select(l2, l3, mean_gamma, lo90, hi90))
 
-# ── Plot 4: raw observed counts for top 15 ────────────────────────────────────
-cat("Plotting raw counts for top 15 methods...\n")
+# Plot 4: raw observed counts for top 15
 
 raw_counts_list <- vector("list", nrow(top15))
 
@@ -343,7 +333,7 @@ p5 <- ggplot(raw_all, aes(x = year, y = n_papers)) +
   facet_wrap(~ method_id, scales = "free_y", ncol = 3) +
   labs(
     x = "Year", y = "Observed paper count",
-    title    = "Top 15 methods: raw observed paper counts 2010-2026",
+    title    = "Top 15 methods: raw observed paper counts 2010-2025",
     subtitle = "Orange = non-parametric loess smoother (NOT the Bayesian model); dashed = 2023 LLM adoption boundary"
   ) +
   theme_minimal(base_size = 7) +
@@ -352,10 +342,9 @@ p5 <- ggplot(raw_all, aes(x = year, y = n_papers)) +
 ggsave(PLOT_RAW, p5, width = 18, height = 12, units = "in", dpi = 150)
 cat("Plot saved to:", PLOT_RAW, "\n")
 
-# ── Auto-update l2_l3_results.md diagnostics ─────────────────────────────────
+# Auto-update l2_l3_results.md diagnostics
 DOC_PATH <- "docs/l2_l3_results.md"
 if (file.exists(DOC_PATH)) {
-  message("Updating ", DOC_PATH, " with current diagnostics...")
   doc <- readLines(DOC_PATH)
   txt <- paste(doc, collapse = "\n")
 
@@ -384,4 +373,3 @@ if (file.exists(DOC_PATH)) {
   cat("WARNING:", DOC_PATH, "not found; skipping auto-population.\n")
 }
 
-cat("=== 02_extract_plot.R DONE ===\n")

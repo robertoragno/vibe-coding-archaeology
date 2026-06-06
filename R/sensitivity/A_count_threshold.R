@@ -15,7 +15,7 @@ suppressPackageStartupMessages({
 
 MIN_COUNT <- 50
 
-# ── 1. Paths ───────────────────────────────────────────────────────────────────
+# 1. Paths
 
 gamma_csv_primary  <- here("data/output/gamma_results.csv")
 gamma_csv_fallback <- here("data/output/phi_free/gamma_results.csv")
@@ -35,7 +35,7 @@ OUT_DIRECTION    <- here("data/output/figures/sensitivity/plot_top_recommended_d
 OUT_TABLE        <- here("data/output/sensitivity/step3_joined_table.csv")
 OUT_BETA_SUMMARY <- here("data/output/sensitivity/step3_beta_summary.csv")
 
-# ── 2. Check for experiment CSV (graceful exit if absent) ──────────────────────
+# 2. Check for experiment CSV (graceful exit if absent)
 
 if (!file.exists(EXPERIMENT_CSV)) {
   message(
@@ -46,7 +46,7 @@ if (!file.exists(EXPERIMENT_CSV)) {
   quit(save = "no", status = 0)
 }
 
-# ── 3. Load gamma_results, vocab, and stan_data ───────────────────────────────
+# 3. Load gamma_results, vocab, and stan_data
 
 cat("Loading gamma_results from:", GAMMA_CSV, "\n")
 if (!file.exists(GAMMA_CSV))
@@ -56,17 +56,15 @@ if (!file.exists(GAMMA_CSV))
 gamma_df <- read.csv(GAMMA_CSV, stringsAsFactors = FALSE)
 cat("gamma_df rows:", nrow(gamma_df), "\n")
 
-cat("Loading vocab...\n")
 vocab    <- readRDS(VOCAB_PATH)
 l3_vocab <- vocab$l3_vocab
 
-cat("Loading stan_data for paper counts...\n")
 stan_data   <- readRDS(STAN_DATA_PATH)
 year_levels <- vocab$year_levels
 
 cat("L3 methods in vocab:", nrow(l3_vocab), "\n")
 
-# ── 3b. Compute total papers per L3 method in 2023-2025 ──────────────────────
+# 3b. Compute total papers per L3 method in 2023-2025
 # Paper counts come from the raw count array in stan_data.rds, not from
 # gamma_results.csv (which only has posterior summaries).
 
@@ -97,9 +95,8 @@ cat(sprintf(
 
 surviving_l3 <- methods_surviving$l3
 
-# ── 4. Load and process experiment results ─────────────────────────────────────
+# 4. Load and process experiment results
 
-cat("Loading experiment results...\n")
 experiment_raw <- read.csv(EXPERIMENT_CSV, stringsAsFactors = FALSE)
 cat("Experiment rows (raw):", nrow(experiment_raw), "\n")
 
@@ -137,7 +134,7 @@ n_by_question <- exp_consistent |>
 cat("Unique L3 methods recommended (consistent):",
     length(unique(exp_consistent$l3_mapping)), "\n")
 
-# ── 5. Join and apply count threshold ─────────────────────────────────────────
+# 5. Join and apply count threshold
 
 all_l3 <- l3_vocab |> select(l3) |> distinct()
 
@@ -161,12 +158,11 @@ cat(sprintf(
 cat("Methods with n_recommended_total > 0:",
     sum(joined$n_recommended_total > 0, na.rm = TRUE), "\n")
 
-# ── 6. Bayesian negative-binomial regression ──────────────────────────────────
+# 6. Bayesian negative-binomial regression
 
 mod <- cmdstan_model(STAN_FILE)
 
 run_bayesian_nb <- function(mod, gamma_signed, n_rec, label = "") {
-  cat("\nFitting Bayesian NB model", if (nchar(label) > 0) paste0("(", label, ")"), "...\n")
   stan_data <- list(
     M            = length(n_rec),
     gamma_signed = gamma_signed,
@@ -207,7 +203,7 @@ beta_novice  <- fit_novice$draws
 beta_inter   <- fit_inter$draws
 beta_expert  <- fit_expert$draws
 
-# ── 7. Plots ───────────────────────────────────────────────────────────────────
+# 7. Plots
 
 p_pos <- function(betas) round(mean(betas > 0, na.rm = TRUE), 3)
 
@@ -343,7 +339,7 @@ pD <- ggplot(top20_rec, aes(x = n_recommended_total, y = l3_label, fill = direct
 ggsave(OUT_DIRECTION, pD, width = 8, height = 7, units = "in", dpi = 150)
 cat("Saved:", OUT_DIRECTION, "\n")
 
-# ── 8. Save beta draws ────────────────────────────────────────────────────────
+# 8. Save beta draws
 
 OUT_BETA_DRAWS  <- here("data/output/sensitivity/step3_beta_draws.csv")
 OUT_CONVERGENCE <- here("data/output/sensitivity/step3_convergence.csv")
@@ -367,7 +363,7 @@ convergence_df <- data.frame(
 write.csv(convergence_df, OUT_CONVERGENCE, row.names = FALSE)
 cat("Saved:", OUT_CONVERGENCE, "\n")
 
-# ── 9. Save joined table ──────────────────────────────────────────────────────
+# 9. Save joined table
 
 out_table <- joined |>
   select(
@@ -384,7 +380,7 @@ out_table <- joined |>
 write.csv(out_table, OUT_TABLE, row.names = FALSE)
 cat("Saved:", OUT_TABLE, "\n")
 
-# ── 10. Console summary ──────────────────────────────────────────────────────
+# 10. Console summary
 
 beta_summary <- data.frame(
   profile   = c("overall", "novice", "intermediate", "expert"),
@@ -411,4 +407,3 @@ cat("\nTop 5 most-recommended L3 methods:\n")
 print(out_table |> arrange(desc(n_recommended_total)) |> slice_head(n = 5) |>
         select(l3, mean_gamma, sig90, n_recommended_total))
 
-cat("\nA_count_threshold.R complete.\n")

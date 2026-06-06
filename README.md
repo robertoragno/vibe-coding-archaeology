@@ -30,9 +30,7 @@ The model is validated through a four-stage Bayesian workflow following Gelman e
 
 ## Preliminary Results
 
-> **Note:** These are preliminary results. All three analysis steps are complete but the evidence in Step 3 remains uncertain.
->
-> **Being updated:** the figures in this section (sigma_gamma, the 88→114 diversity numbers, the gamma/b_gamma estimates) were produced on the 2010–2026 run and are currently being recomputed on the 2010–2025 window (2026 dropped as a partial year). The sample counts above (7,360 papers; 14,244 observations) are already updated.
+> **Note:** These are preliminary results from the 2010–2025 analytic window. All three analysis steps are complete but the evidence in Step 3 remains uncertain.
 
 The analysis proceeds in three steps:
 
@@ -40,9 +38,9 @@ The analysis proceeds in three steps:
 
 Weakly yes, but with wide uncertainty. The global scale of post-2023 method-level change (sigma_gamma) is above zero, though the lower bound of the 90% CI is near zero.
 
-The model estimates phi from data using a weakly informative lognormal prior. In the primary L2→L3 analysis (25 L2 groups, 242 L3 methods), phi ≈ 1133 [605, 2088], confirming the field is compositionally regular — observed proportions track the structural trend closely year to year. sigma_gamma = 0.110 [0.010, 0.222].
+The model estimates phi from data using a weakly informative lognormal prior. In the primary L2→L3 analysis (25 L2 groups, 242 L3 methods), phi ≈ 1088 [573, 1990], confirming the field is compositionally regular — observed proportions track the structural trend closely year to year. sigma_gamma = 0.102 [0.008, 0.214].
 
-The fit converged cleanly (Rhat ≤ 1.01, ESS (sigma_gamma) = 581, zero divergences). sigma_gamma < sigma_beta (0.110 vs 0.288): the post-LLM reshuffling is smaller in magnitude than the long-run baseline trend.
+The fit converged cleanly (Rhat ≤ 1.015, ESS (sigma_gamma) = 435, zero divergences). sigma_gamma < sigma_beta (0.102 vs 0.265): the post-LLM reshuffling is smaller in magnitude than the long-run baseline trend.
 
 Note: sigma_gamma measures the *magnitude* of reshuffling, not its direction. A sigma_gamma credibly above zero is necessary but not sufficient evidence for convergence toward generic methods.
 
@@ -72,7 +70,7 @@ The prompting experiment queries Qwen3 and Gemma at 3 expertise levels with 28 a
 
 *Two-predictor regression (primary test).* A Bayesian negative-binomial regression separates training-corpus prevalence (`b_pre`) from post-2023 trajectory (`b_gamma`). The result is unambiguous: `b_pre` is credibly positive in all 8 conditions (2 models × 4 profiles, P > 0 = 1.000) — both LLMs recommend methods in proportion to their pre-2023 corpus presence. `b_gamma` is indistinguishable from zero in every condition (P ranges 0.518–0.594) — after controlling for prevalence, neither LLM shows any sensitivity to post-2023 trajectory. The LLMs reflect their training data, not recent shifts.
 
-*Concentration analysis (with Bayesian uncertainty).* The Inverse Simpson index, computed with full Dirichlet-conjugate posterior uncertainty, confirms that both LLMs are dramatically more concentrated than the literature. Posterior medians: literature 88–114 effective methods; Qwen3 overall 32 [30.5, 33.4]; Gemma overall 29 [28.0, 30.4]. The gap is credible (P = 1.000). The profile gradient (novice < intermediate < expert) survives with full uncertainty, and the novice b_pre is the largest (Qwen3 novice: +1.048 vs expert: +0.417), explaining the concentration gradient mechanistically: less-constrained prompts allow the LLM to default more heavily to corpus frequency. Note: the conjugate model treats individual recommendations as independent, while each LLM response produces ~7–10 correlated recommendations. A response-level bootstrap confirms intervals would widen ~1.5–2.5× with clustering adjustment, but the LLM–literature gap dwarfs this correction.
+*Concentration analysis (with Bayesian uncertainty).* The Inverse Simpson index, computed with full Dirichlet-conjugate posterior uncertainty, confirms that both LLMs are dramatically more concentrated than the literature. Posterior medians: literature 88.4–112.2 effective methods; Qwen3 overall 31.9 [30.5, 33.4]; Gemma overall 29.2 [27.9, 30.5]. The gap is credible (P = 1.000). The profile gradient (novice < intermediate < expert) survives with full uncertainty, and the novice b_pre is the largest (Qwen3 novice: +1.048 vs expert: +0.417), explaining the concentration gradient mechanistically: less-constrained prompts allow the LLM to default more heavily to corpus frequency. Note: the conjugate model treats individual recommendations as independent, while each LLM response produces ~7–10 correlated recommendations. A response-level bootstrap confirms intervals would widen ~1.5–2.5× with clustering adjustment, but the LLM–literature gap dwarfs this correction.
 
 *Cross-model replication.* Qwen3 and Gemma agree moderately on which methods to recommend (Spearman rho = 0.595) but produce the same structural concentration pattern. Gemma is credibly more concentrated than Qwen3 overall (P = 0.992 for the difference). The concentration mechanism is model-independent; the specific recommendations are not.
 

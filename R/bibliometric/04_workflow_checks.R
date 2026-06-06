@@ -1,4 +1,3 @@
-cat("=== 04_workflow_checks.R ===\n")
 cat("Gelman et al. (arXiv:2011.01808) Bayesian Workflow checks\n")
 cat("Sections: (1) Prior Predictive, (2) PPC, (3) Fake Data, (4) Sensitivity, (5) Summary\n\n")
 
@@ -7,7 +6,7 @@ library(dplyr)
 library(tidyr)
 library(ggplot2)
 
-# ── Paths ─────────────────────────────────────────────────────────────────────
+# Paths
 FIT_RDS       <- "data/output/fit_phi_free.rds"
 VOCAB_RDS     <- "data/output/vocab.rds"
 STAN_DATA_RDS <- "data/output/stan_data.rds"
@@ -27,8 +26,7 @@ rdm_sample <- function(N, alpha) {
   as.integer(rmultinom(1L, N, p))
 }
 
-# ── Load data objects ─────────────────────────────────────────────────────────
-cat("Loading vocab and stan_data...\n")
+# Load data objects
 vocab     <- readRDS(VOCAB_RDS)
 stan_data <- readRDS(STAN_DATA_RDS)
 
@@ -46,7 +44,6 @@ total_papers <- sapply(seq_len(N_groups),
                        function(g) sum(counts_arr[g, , ]))
 
 # Observed empirical inv_simpson per (g, t) — no model, just raw counts
-cat("Computing observed empirical inv_simpson...\n")
 obs_inv_simp <- matrix(NA_real_, nrow = N_groups, ncol = N_years)
 for (g in seq_len(N_groups)) {
   K <- K_g_vec[g]
@@ -61,11 +58,9 @@ for (g in seq_len(N_groups)) {
   }
 }
 
-# ── Load fit.rds and extract posterior arrays ─────────────────────────────────
-cat("Loading fit_phi_free.rds...\n")
+# Load fit.rds and extract posterior arrays
 fit <- readRDS(FIT_RDS)
 
-cat("Extracting posterior arrays...\n")
 draws <- fit$draws(format = "draws_matrix")
 S     <- nrow(draws)
 K_max <- stan_data$K_max
@@ -258,7 +253,7 @@ cat("\nPPC tail probabilities per group:\n")
 print(bpval_grp |> select(label, bpval_group, status), n = Inf)
 cat(sprintf("\nGroups passing (0.05-0.95): %d / %d\n", n_pass_ppc, n_total_ppc))
 
-# ── Plot: PPC density panels ──────────────────────────────────────────────────
+# Plot: PPC density panels
 # Observed group mean (pooled over years) as red line.
 # The grey density is pooled over ALL years × posterior draws — so temporal
 # heterogeneity within a group will spread the density, and the red line
@@ -290,7 +285,7 @@ PLOT_PPC_DENS <- file.path(OUT_DIR, "plot_ppc_density.png")
 ggsave(PLOT_PPC_DENS, p_dens, width = 12, height = 10, dpi = 150)
 cat("Saved:", PLOT_PPC_DENS, "\n")
 
-# ── Plot: PPC tail probabilities dot plot ────────────────────────────────────
+# Plot: PPC tail probabilities dot plot
 bpval_plot <- bpval_grp |>
   arrange(bpval_group) |>
   mutate(label = factor(label, levels = unique(label)))
@@ -374,10 +369,8 @@ stan_data_fake <- list(
 )
 # NOTE: No phi field — the phi-free model estimates it
 
-cat("Compiling Stan model (or loading cached)...\n")
 mod <- cmdstan_model(STAN_FILE)
 
-cat("Fitting single-group model to fake data (2 chains × 500 samples)...\n")
 fit_fake <- mod$sample(
   data            = stan_data_fake,
   chains          = 2,
@@ -404,7 +397,7 @@ cat(sprintf(
   toupper(as.character(inside_ci))
 ))
 
-# ── Fake-data recovery plot ───────────────────────────────────────────────────
+# Fake-data recovery plot
 sg_prior_viz <- rexp(5000L, rate = 4)
 
 p_fake <- ggplot() +
@@ -505,10 +498,8 @@ if (core_pass) {
 }
 cat("=================================\n")
 
-cat("\n04_workflow_checks.R complete.\n")
 
-# ── Auto-fill workflow_results.md and push to GitHub ─────────────────────────
-cat("\nFilling docs/workflow_results.md and pushing to GitHub...\n")
+# Auto-fill workflow_results.md and push to GitHub
 
 sensitivity_body <- if (sensitivity_done) {
   rho_line <- sprintf("Spearman ρ = %.4f (threshold 0.95) — gamma rankings are %s.",

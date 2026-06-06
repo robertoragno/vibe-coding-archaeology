@@ -13,7 +13,7 @@ suppressPackageStartupMessages({
 
 source(here("R/helpers.R"))  # build_rec_vectors
 
-# ── Paths ────────────────────────────────────────────────────────────────────
+# Paths
 
 gamma_csv_primary  <- here("data/output/gamma_results.csv")
 gamma_csv_fallback <- here("data/output/phi_free/gamma_results.csv")
@@ -32,7 +32,7 @@ OUT_DRAWS   <- here("data/output/prevalence_gamma_draws.csv")
 OUT_PLOT_A  <- file.path(OUT_DIR, "plot_bpre_bgamma_posteriors.png")
 OUT_PLOT_B  <- file.path(OUT_DIR, "plot_bpre_bgamma_by_profile.png")
 
-# ── Load data ────────────────────────────────────────────────────────────────
+# Load data
 
 gamma_df  <- read.csv(GAMMA_CSV, stringsAsFactors = FALSE)
 vocab     <- readRDS(VOCAB_RDS)
@@ -57,17 +57,16 @@ names(n_pre_vec) <- l3_vocab$l3
 # Signed gamma per L3
 gamma_vec <- setNames(gamma_df$mean_gamma, gamma_df$l3)
 
-# ── Build recommendation count vectors ───────────────────────────────────────
+# Build recommendation count vectors
 
 qwen_rec  <- build_rec_vectors(QWEN_CSV, l3_vocab$l3)
 gemma_rec <- build_rec_vectors(GEMMA_CSV, l3_vocab$l3)
 
-# ── Compile Stan model ───────────────────────────────────────────────────────
+# Compile Stan model
 
-cat("Compiling Stan model...\n")
 mod <- cmdstan_model(STAN_FILE)
 
-# ── Fit function ─────────────────────────────────────────────────────────────
+# Fit function
 
 fit_nb2 <- function(mod, n_rec, x_pre, gamma_signed, label = "") {
   cat(sprintf("\nFitting: %s (M = %d, sum(n_rec) = %d)\n", label, length(n_rec), sum(n_rec)))
@@ -102,12 +101,12 @@ fit_nb2 <- function(mod, n_rec, x_pre, gamma_signed, label = "") {
   )
 }
 
-# ── Prepare predictors (same for all fits) ───────────────────────────────────
+# Prepare predictors (same for all fits)
 
 x_pre <- log1p(n_pre_vec[l3_vocab$l3])
 gamma_signed <- gamma_vec[l3_vocab$l3]
 
-# ── Run all 8 fits ───────────────────────────────────────────────────────────
+# Run all 8 fits
 
 profiles <- c("overall", "novice", "intermediate", "expert")
 results <- list()
@@ -120,7 +119,7 @@ for (model_name in c("Qwen3", "Gemma")) {
   }
 }
 
-# ── Summary table ────────────────────────────────────────────────────────────
+# Summary table
 
 p_pos <- function(x) round(mean(x > 0, na.rm = TRUE), 3)
 
@@ -155,7 +154,7 @@ print(summary_df, row.names = FALSE, right = FALSE)
 write.csv(summary_df, OUT_SUMMARY, row.names = FALSE)
 cat("\nSummary saved:", OUT_SUMMARY, "\n")
 
-# ── Save draws (wide format, overall only for compactness) ───────────────────
+# Save draws (wide format, overall only for compactness)
 
 draws_df <- data.frame(
   qwen_b_pre    = results[["Qwen3 — overall"]]$b_pre,
@@ -166,7 +165,7 @@ draws_df <- data.frame(
 write.csv(draws_df, OUT_DRAWS, row.names = FALSE)
 cat("Draws saved:", OUT_DRAWS, "\n")
 
-# ── Plot A: b_pre vs b_gamma posteriors (overall, both models) ───────────────
+# Plot A: b_pre vs b_gamma posteriors (overall, both models)
 
 plot_df_a <- bind_rows(
   data.frame(value = results[["Qwen3 — overall"]]$b_pre,
@@ -201,7 +200,7 @@ pA <- ggplot(plot_df_a, aes(x = value, y = model, fill = model)) +
 ggsave(OUT_PLOT_A, pA, width = 8, height = 5, dpi = 200, bg = "white")
 cat("Plot A saved:", OUT_PLOT_A, "\n")
 
-# ── Plot B: by-profile comparison (b_gamma only, key parameter) ──────────────
+# Plot B: by-profile comparison (b_gamma only, key parameter)
 
 profile_rows <- lapply(names(results), function(nm) {
   r <- results[[nm]]
@@ -237,7 +236,7 @@ pB <- ggplot(plot_df_b, aes(x = value, y = model, fill = model)) +
 ggsave(OUT_PLOT_B, pB, width = 8, height = 7, dpi = 200, bg = "white")
 cat("Plot B saved:", OUT_PLOT_B, "\n")
 
-# ── Print key findings ───────────────────────────────────────────────────────
+# Print key findings
 
 cat("\n=== Key findings ===\n")
 for (model_name in c("Qwen3", "Gemma")) {
@@ -249,4 +248,3 @@ for (model_name in c("Qwen3", "Gemma")) {
               mean(r$b_gamma), quantile(r$b_gamma, 0.05), quantile(r$b_gamma, 0.95), mean(r$b_gamma > 0)))
 }
 
-cat("\n08_literature_vs_llm.R complete.\n")

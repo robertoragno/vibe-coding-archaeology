@@ -15,7 +15,6 @@ for (p in c(FIT_PATH, VOCAB_PATH, SD_PATH)) {
   if (!file.exists(p)) stop("Missing file: ", p)
 }
 
-cat("Loading fit, vocab, stan_data...\n")
 fit       <- readRDS(FIT_PATH)
 vocab     <- readRDS(VOCAB_PATH)
 stan_data <- readRDS(SD_PATH)
@@ -44,8 +43,7 @@ get_gamma_matrix <- function(grp, K) {
 
 cat("Draws S =", S, ", N_groups =", N_groups, "\n")
 
-# ── Extract gamma_method draws ─────────────────────────────────────────────────
-cat("\nExtracting gamma_method draws...\n")
+# Extract gamma_method draws
 
 gamma_list <- vector("list", N_groups)
 for (grp in seq_len(N_groups)) {
@@ -83,7 +81,7 @@ gamma_df <- bind_rows(gamma_list) |>
 cat("\nMethods with 90% CI excluding zero:", sum(gamma_df$sig90, na.rm = TRUE), "\n")
 cat("Methods with 95% CI excluding zero:", sum(gamma_df$sig95, na.rm = TRUE), "\n")
 
-# ── Top 20 by |mean_gamma| ────────────────────────────────────────────────────
+# Top 20 by |mean_gamma|
 top20 <- gamma_df |>
   mutate(abs_gamma = abs(mean_gamma)) |>
   arrange(desc(abs_gamma)) |>
@@ -92,7 +90,7 @@ top20 <- gamma_df |>
 cat("\nTop 20 methods by |mean_gamma|:\n")
 print(top20 |> select(l2, l3, mean_gamma, sd_gamma, lo90, hi90, sig90))
 
-# ── Save full results ─────────────────────────────────────────────────────────
+# Save full results
 dir.create(dirname(OUT_CSV), recursive = TRUE, showWarnings = FALSE)
 write.csv(gamma_df, OUT_CSV, row.names = FALSE)
 cat("\nFull gamma results saved to:", OUT_CSV, "\n")

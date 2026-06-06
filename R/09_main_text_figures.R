@@ -12,7 +12,7 @@ suppressPackageStartupMessages({
 OUT_DIR <- here("data/output/figures/main_text")
 dir.create(OUT_DIR, recursive = TRUE, showWarnings = FALSE)
 
-# ── Shared theme ────────────────────────────────────────────────────────────
+# Shared theme
 theme_paper <- theme_classic(base_size = 11, base_family = "serif") +
   theme(
     axis.line         = element_line(colour = "black", linewidth = 0.3),
@@ -30,7 +30,7 @@ theme_paper <- theme_classic(base_size = 11, base_family = "serif") +
 
 grey_fills <- c("grey20", "grey50", "grey80")
 
-# ── Load shared data ────────────────────────────────────────────────────────
+# Load shared data
 vocab     <- readRDS(here("data/output/vocab.rds"))
 stan_data <- readRDS(here("data/output/stan_data.rds"))
 l3_vocab  <- vocab$l3_vocab |> arrange(g, k_local)
@@ -369,14 +369,16 @@ prev_summary$profile <- factor(prev_summary$profile,
 fig7 <- ggplot(prev_summary, aes(y = model)) +
   geom_vline(xintercept = 0, linetype = "dashed", linewidth = 0.3) +
   geom_linerange(aes(xmin = b_gamma_lo90, xmax = b_gamma_hi90),
-                 linewidth = 0.6, colour = "grey40") +
+                 linewidth = 0.5, colour = "grey60") +
+  geom_linerange(aes(xmin = b_gamma_lo50, xmax = b_gamma_hi50),
+                 linewidth = 1.5, colour = "grey30") +
   geom_point(aes(x = b_gamma_mean), size = 2, shape = 21,
-             fill = "grey50", colour = "black") +
+             fill = "white", colour = "black") +
   facet_wrap(~ profile, ncol = 1) +
   labs(x = expression(beta[gamma]~"(post-2023 coefficient)"),
        y = NULL,
        title = "Post-2023 effect by expertise profile",
-       caption = "Point: posterior mean. Horizontal bar: 90% credible interval. Dashed line: zero.") +
+       caption = "Point: posterior mean. Thick bar: 50% CI; thin bar: 90% CI. Dashed line: zero.") +
   theme_paper
 
 ggsave(file.path(OUT_DIR, "fig6_bgamma_by_profile.png"), fig7,

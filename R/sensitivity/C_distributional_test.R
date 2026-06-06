@@ -20,7 +20,7 @@ suppressPackageStartupMessages({
   library(ggplot2)
 })
 
-# ── 1. Paths ─────────────────────────────────────────────────────────────────
+# 1. Paths
 
 STAN_DATA_RDS  <- here("data/output/stan_data.rds")
 VOCAB_RDS      <- here("data/output/vocab.rds")
@@ -31,7 +31,7 @@ OUT_DIR <- here("data/output/figures/distributional")
 dir.create(OUT_DIR, recursive = TRUE, showWarnings = FALSE)
 OUT_RESULTS_MD <- here("docs/distributional_test_results.md")
 
-# ── 2. Build frequency vectors ──────────────────────────────────────────────
+# 2. Build frequency vectors
 
 stan_data <- readRDS(STAN_DATA_RDS)
 vocab     <- readRDS(VOCAB_RDS)
@@ -82,7 +82,7 @@ cat("\nFrequency vector lengths:", length(freq_pre), length(freq_post), length(f
 cat("Total papers pre:", sum(freq_pre), "  post:", sum(freq_post), "\n")
 cat("Total LLM recs:", sum(freq_llm), "\n")
 
-# ── 3. Similarity metrics ───────────────────────────────────────────────────
+# 3. Similarity metrics
 
 # Normalise to proportions
 to_prop <- function(x) {
@@ -143,7 +143,7 @@ cat(sprintf("\nDelta cosine (post - pre):     %+.4f  [positive = LLM closer to p
 cat(sprintf("Delta KL (pre - post):         %+.4f  [positive = LLM closer to post]\n", delta_kl))
 cat(sprintf("Delta Hellinger (pre - post):  %+.4f  [positive = LLM closer to post]\n", delta_hel))
 
-# ── 4. By-profile comparison ────────────────────────────────────────────────
+# 4. By-profile comparison
 
 profile_results <- data.frame(
   profile = character(),
@@ -179,7 +179,7 @@ for (pname in c("overall", "novice", "intermediate", "expert")) {
 cat("\n=== By-profile results ===\n")
 print(profile_results |> select(profile, cos_pre, cos_post, delta_cos, hel_pre, hel_post, delta_hel))
 
-# ── 5a. Bayesian posterior predictive test (PRIMARY) ─────────────────────────
+# 5a. Bayesian posterior predictive test (PRIMARY)
 #
 # For each posterior draw from the main model, reconstruct predicted method
 # proportions for each group-year cell, aggregate to pre/post frequency
@@ -188,7 +188,6 @@ print(profile_results |> select(profile, cos_pre, cos_post, delta_cos, hel_pre, 
 # full parameter uncertainty from the main model.
 
 cat("\n=== Bayesian posterior predictive test ===\n")
-cat("Loading fit_phi_free.rds...\n")
 fit <- readRDS(FIT_RDS)
 draws <- fit$draws(format = "draws_matrix")
 S_total <- nrow(draws)
@@ -214,7 +213,6 @@ softmax <- function(x) {
   e / sum(e)
 }
 
-cat("Computing posterior predictive delta cosine...\n")
 for (s_idx in seq_along(draw_idx)) {
   s <- draw_idx[s_idx]
 
@@ -274,7 +272,7 @@ cat(sprintf("  90%% CI:  [%+.4f, %+.4f]\n", pp_ci_hel[1], pp_ci_hel[2]))
 rm(fit, draws)
 gc(verbose = FALSE)
 
-# ── 5b. Frequentist permutation test (BACKUP) ───────────────────────────────
+# 5b. Frequentist permutation test (BACKUP)
 
 N_PERM <- 10000
 
@@ -315,7 +313,7 @@ cat(sprintf("\nPermutation test (N=%d):\n", N_PERM))
 cat(sprintf("  Observed delta cosine: %+.4f, p = %.4f\n", delta_cos, p_cos))
 cat(sprintf("  Observed delta Hellinger: %+.4f, p = %.4f\n", delta_hel, p_hel))
 
-# ── 6. Plots ─────────────────────────────────────────────────────────────────
+# 6. Plots
 
 suppressPackageStartupMessages(library(ggdist))
 
@@ -407,7 +405,7 @@ ggsave(file.path(OUT_DIR, "plot_cosine_by_profile.png"), pC,
 
 cat("\nPlots saved to:", OUT_DIR, "\n")
 
-# ── 7. Generate results markdown ─────────────────────────────────────────────
+# 7. Generate results markdown
 
 direction_cos <- ifelse(delta_cos > 0, "post-2023 (supports mean-collapse)",
                         "pre-2023 (does not support mean-collapse)")
@@ -428,7 +426,7 @@ md <- c(
   "we compute three vectors:",
   "",
   sprintf("- **Pre-2023 literature** — total paper counts 2010–2022 (%d papers)", sum(freq_pre)),
-  sprintf("- **Post-2023 literature** — total paper counts 2023–2026 (%d papers)", sum(freq_post)),
+  sprintf("- **Post-2023 literature** — total paper counts 2023–2025 (%d papers)", sum(freq_post)),
   sprintf("- **LLM recommendations** — Qwen3 recommendation counts from the prompting experiment (%d recommendations, remapped to v3 taxonomy)", sum(freq_llm)),
   "",
   "If LLMs are driving convergence, their recommendation distribution should resemble",
@@ -524,4 +522,3 @@ md <- c(
 writeLines(md, OUT_RESULTS_MD)
 cat("Results saved to:", OUT_RESULTS_MD, "\n")
 
-cat("\nC_distributional_test.R complete.\n")
