@@ -34,9 +34,9 @@ effect on the literature side is too subtle to detect without modelling.
 and sigma_gamma (post-LLM shift variation). sigma_gamma credibly above zero is
 the global-level answer to "did methods diverge unevenly after 2023?"
 
-**Results:** sigma_beta = 0.288 [90% CI: 0.248, 0.330] — substantial heterogeneity
-in baseline growth rates across L3 methods. sigma_gamma = 0.110 [90% CI: 0.010,
-0.222] — the entire posterior mass lies above zero, confirming that
+**Results:** sigma_beta = 0.265 [90% CI: 0.227, 0.306] — substantial heterogeneity
+in baseline growth rates across L3 methods. sigma_gamma = 0.102 [90% CI: 0.008,
+0.214] — the entire posterior mass lies above zero, confirming that
 post-2023 shifts are unevenly distributed across methods. The effect is roughly
 one-third the magnitude of baseline trend variation.
 

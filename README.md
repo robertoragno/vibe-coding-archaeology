@@ -6,7 +6,7 @@ Imagine that every graduate student in a department suddenly started asking the 
 
 We retrieved archaeology papers published between 2010 and 2025 from Scopus and retained the computational subset — papers whose abstracts describe a quantitative or computational methodology — yielding 7,360 papers for analysis. Each retained paper's methodology was classified into a two-level taxonomy: sub-disciplines (L2) and specific techniques (L3). Classification was performed with Qwen, a large language model, applied consistently to all abstracts, yielding 25 L2 sub-disciplines and 242 L3 techniques. This gives us a record of how the methodological menu of the discipline has changed, year by year, at fine granularity.
 
-The core question is whether that menu got more generic after 2023, the year ChatGPT entered serious academic use. Think of it like watching a restaurant's menu evolve over a decade, and then asking whether the dishes got blander — more convergent on a safe average — once the chef started relying on recipe apps rather than creative intuition.
+The core question is whether that menu got more generic after 2023, the year ChatGPT entered serious academic use — whether the discipline began converging on a safe average.
 
 We measure diversity within each L2 sub-discipline using the Inverse Simpson index, which counts the effective number of distinct L3 methods in use. A score of 1 means one technique dominates completely; higher scores mean methods are more evenly spread. We model how this effective count changes over time using a Bayesian Dirichlet-Multinomial regression fit with Stan. Because each paper can be tagged with multiple L3 methods, the 7,360 unique papers expand to 14,244 paper–method observations that are aggregated into the count array passed to Stan (counts of papers per L3 method, per L2 sub-discipline, per year).
 
@@ -70,7 +70,7 @@ The prompting experiment queries Qwen3 and Gemma at 3 expertise levels with 28 a
 
 *Two-predictor regression (primary test).* A Bayesian negative-binomial regression separates training-corpus prevalence (`b_pre`) from post-2023 trajectory (`b_gamma`). The result is unambiguous: `b_pre` is credibly positive in all 8 conditions (2 models × 4 profiles, P > 0 = 1.000) — both LLMs recommend methods in proportion to their pre-2023 corpus presence. `b_gamma` is indistinguishable from zero in every condition (P ranges 0.518–0.594) — after controlling for prevalence, neither LLM shows any sensitivity to post-2023 trajectory. The LLMs reflect their training data, not recent shifts.
 
-*Concentration analysis (with Bayesian uncertainty).* The Inverse Simpson index, computed with full Dirichlet-conjugate posterior uncertainty, confirms that both LLMs are dramatically more concentrated than the literature. Posterior medians: literature 88.4–112.2 effective methods; Qwen3 overall 31.9 [30.5, 33.4]; Gemma overall 29.2 [27.9, 30.5]. The gap is credible (P = 1.000). The profile gradient (novice < intermediate < expert) survives with full uncertainty, and the novice b_pre is the largest (Qwen3 novice: +1.048 vs expert: +0.417), explaining the concentration gradient mechanistically: less-constrained prompts allow the LLM to default more heavily to corpus frequency. Note: the conjugate model treats individual recommendations as independent, while each LLM response produces ~7–10 correlated recommendations. A response-level bootstrap confirms intervals would widen ~1.5–2.5× with clustering adjustment, but the LLM–literature gap dwarfs this correction.
+*Concentration analysis (with Bayesian uncertainty).* The Inverse Simpson index, computed with full Dirichlet-conjugate posterior uncertainty, confirms that both LLMs are dramatically more concentrated than the literature. Posterior medians: literature 88.4–112.2 effective methods; Qwen3 overall 31.9 [30.5, 33.4]; Gemma overall 29.2 [27.9, 30.5]. The gap is credible (P = 1.000). The profile gradient (novice < intermediate < expert) survives with full uncertainty, and the novice b_pre is the largest (Qwen3 novice: +1.048 vs expert: +0.417), explaining the concentration gradient mechanistically: less-constrained prompts allow the LLM to default more heavily to corpus frequency. Note: the conjugate model treats individual recommendations as independent, while each LLM response lists ~7–10 at once. The cluster bootstrap (`R/sensitivity/concentration_cluster_bootstrap.R`) widens these intervals by up to ~2.9× for Qwen3 under low guidance, but only ~1× for Gemma and the literature, where each cluster contributes few methods; the LLM–literature gap survives in every case.
 
 *Cross-model replication.* Qwen3 and Gemma agree moderately on which methods to recommend (Spearman rho = 0.595) but produce the same structural concentration pattern. Gemma is credibly more concentrated than Qwen3 overall (P = 0.992 for the difference). The concentration mechanism is model-independent; the specific recommendations are not.
 
@@ -88,23 +88,21 @@ The two-predictor regression resolves the key ambiguity in the earlier single-pr
 
 The honest summary: LLMs recommend from training-corpus prominence (the gun is loaded), but 3–4 years after widespread adoption, the field continues to diversify (it has not fired). Whether this reflects low adoption rates, researcher selectivity in which LLM advice they follow, or countervailing forces toward specialisation — the current data cannot distinguish.
 
-## Sensitivity Analyses
+## Sensitivity and supplementary analyses
 
-**Sensitivity A — Minimum-count threshold (06b)**
+These live in `R/sensitivity/` (see its README): one robustness check on the concentration intervals, and two complementary routes to the convergence question. Two earlier Step 3 robustness checks (rare-method threshold; v2→v3 taxonomy remap) were retired to `R/archive/` because they ran on the superseded single-predictor regression.
 
-33/242 L3 methods survive a >=50 paper filter in 2023–2025. Under this restriction, overall β = −0.138, P(β > 0) = 0.438 — still negative and consistent with the main analysis. The null Step 3 result is robust to restricting to well-represented methods.
+**Cluster bootstrap on the concentration intervals** (`concentration_cluster_bootstrap.R`)
 
-**Sensitivity B — Step 3 with v2→v3 taxonomy remapping (08)**
+The concentration analysis treats each count as independent, but LLM responses and papers deliver methods in bundles, so the intervals are too narrow. Resampling whole responses/papers instead of individual methods widens them by up to ~2.9× (Qwen3, low guidance) and ~1× for Gemma and the literature. Even the widest LLM interval stays far below the literature's ~110 effective methods.
 
-The L3 taxonomy was revised during the project (v2: 225 methods → v3: 242 methods), with many labels renamed or reorganised. The early experiment run was classified under v2; only 53/242 v3 methods matched exactly. This sensitivity uses fuzzy string matching to remap the v2 labels onto v3, raising coverage to 205/242 (85%). The results are unchanged: overall β = −0.339, P(β > 0) = 0.368. All profiles remain negative. Note: the current experiment data was reclassified directly against v3, so this sensitivity applies only to the earlier v2-classified run.
+**Distributional similarity** (`distributional_similarity.R`)
 
-**Sensitivity C — Distributional test (09)**
+Compares the *whole* LLM recommendation distribution to the pre- vs post-2023 frequency vectors. The LLM is credibly closer to post-2023: posterior-predictive delta cosine = +0.071, 90% CI [+0.058, +0.085], with a novice (+0.080) > intermediate (+0.069) > expert (+0.013) gradient — recovering a signal the regression could not localise. See [full results](docs/distributional_test_results.md).
 
-Instead of regressing on noisy individual gammas, we compare the *whole* LLM recommendation distribution to the pre- vs. post-2023 method frequency vectors. The LLM is credibly closer to the post-2023 literature: posterior predictive delta cosine = +0.071, 90% CI [+0.058, +0.085], P(delta > 0) = 1.000. The profile gradient matches the mean-collapse prediction: novice delta (+0.080) > intermediate (+0.069) > expert (+0.013). This recovers the positive signal that the regression could not detect — the LLM's recommendations align with the post-2023 method mix, especially under novice guidance. See [full results](docs/distributional_test_results.md).
+**Direct diversity trajectory** (`diversity_trajectory_model.R`)
 
-**Sensitivity D — Direct diversity trajectory (07)**
-
-Models inv_simpson directly at L2 group level with the same two-slope structure. sigma_gamma = 0.056 [0.004, 0.140], effectively null. sigma_beta = 0.652 [0.507, 0.828] — pre-existing trend variation is 10× larger. All 25 group-level gamma CIs straddle zero. The field reorients internally but does not measurably homogenise at the sub-discipline level.
+Models inv_simpson directly at L2 group level. sigma_gamma = 0.056 [0.004, 0.140], effectively null; sigma_beta = 0.652 [0.507, 0.828] — pre-existing variation is ~10× larger. All 25 group-level gamma CIs straddle zero: the field reorients internally but does not measurably homogenise at the sub-discipline level.
 
 ## Analysis outputs
 
@@ -134,10 +132,9 @@ Models inv_simpson directly at L2 group level with the same two-slope structure.
 
 | Analysis | Description | Results |
 |---|---|---|
-| A: Count threshold | Step 3 restricted to methods with ≥50 papers | [View](docs/sensitivity_results.md#sensitivity-a--count-threshold) |
-| B: Taxonomy remapping | Step 3 with v2→v3 fuzzy matching (85% coverage) | [View](docs/sensitivity_results.md#sensitivity-b--v2-to-v3-taxonomy-remapping) |
-| C: Distributional test | LLM vs pre/post-2023 literature (cosine similarity) | [View](docs/sensitivity_results.md#sensitivity-c--distributional-test) |
-| D: Diversity trajectory | Direct inv_simpson model at L2 group level | [View](docs/sensitivity_results.md#sensitivity-d--direct-diversity-trajectory) |
+| Cluster bootstrap | Concentration intervals under response/paper clustering | `data/output/sensitivity/concentration_cluster_bootstrap.csv` |
+| Distributional similarity | LLM vs pre/post-2023 literature (cosine similarity) | [View](docs/sensitivity_results.md#sensitivity-c--distributional-test) |
+| Diversity trajectory | Direct inv_simpson model at L2 group level | [View](docs/sensitivity_results.md#sensitivity-d--direct-diversity-trajectory) |
 
 ## Future directions
 
@@ -200,10 +197,9 @@ Scripts form a single numbered pipeline that runs in order, `00` through `07`. T
 07_literature_vs_llm.R  → Two-predictor NB: corpus prevalence vs post-2023 trajectory
 
 # Sensitivity (R/sensitivity/, standalone, run after the main pipeline)
-A_count_threshold.R → Count-threshold variant of Step 3
-D_diversity_trajectory.R   → Direct diversity trajectory model
-B_v2_taxonomy_remap.R      → v2→v3 taxonomy remapping
-C_distributional_test.R    → Distributional cosine test
+concentration_cluster_bootstrap.R → Concentration intervals under clustering
+distributional_similarity.R       → Distributional cosine test
+diversity_trajectory_model.R      → Direct diversity trajectory model
 ```
 
 Run each script with `Rscript` from the project root, e.g. `Rscript R/bibliometric/01_fit_dm_model.R`. `03_extract_gamma.R` produces `data/output/phi_free/gamma_results.csv`, which the experiment scripts require alongside the experiment CSVs in `experiment/analysis/`. Functions shared across scripts live in `R/helpers.R`.
@@ -240,14 +236,14 @@ Run each script with `Rscript` from the project root, e.g. `Rscript R/bibliometr
 │   ├── experiment/                        # Steps 06–07: LLM recommendation experiment
 │   │   ├── 06_concentration.R             # Dirichlet-conjugate concentration posteriors
 │   │   └── 07_literature_vs_llm.R         # Two-predictor NB: prevalence vs trajectory
-│   ├── sensitivity/                       # Sensitivity analyses (A–D)
+│   ├── sensitivity/                       # Robustness + complementary checks (see its README)
 │   └── archive/                           # Deprecated scripts
 ├── stan/
 │   ├── bibliometric_dirichlet_multinomial.stan  # Primary L2→L3 Dirichlet-Multinomial
-│   ├── poisson_gamma_regression.stan     # Single-predictor NB regression
 │   ├── experiment_prevalence_nb.stan     # Two-predictor NB regression
-│   ├── diversity_trajectory.stan         # Direct diversity trajectory model
-│   └── archive/                          # Deprecated models (l1_l2)
+│   ├── sensitivity/
+│   │   └── diversity_trajectory.stan     # Direct diversity trajectory model
+│   └── archive/                          # Deprecated models (single-predictor NB, l1_l2)
 ├── data/
 │   ├── input/                            # Taxonomy and raw corpus data (gitignored)
 │   └── output/

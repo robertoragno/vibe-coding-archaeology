@@ -14,7 +14,7 @@ library(posterior)
 STAN_FILE  <- "stan/bibliometric_dirichlet_multinomial.stan"
 FIT_DIR    <- "data/output"
 FIT_RDS    <- file.path(FIT_DIR, "fit_phi_free.rds")
-DONE_FLAG  <- file.path(FIT_DIR, "fit_phi_free_v4.done")
+DONE_FLAG  <- file.path(FIT_DIR, "fit_phi_free_v5.done")
 
 # Load data
 stan_data <- readRDS("data/output/stan_data.rds")
@@ -78,9 +78,9 @@ if (!file.exists(DONE_FLAG)) {
     seed            = 42,
     chains          = 4,
     parallel_chains = 4,
-    iter_warmup     = 2000,
-    iter_sampling   = 2000,
-    adapt_delta     = 0.95,
+    iter_warmup     = 3000,
+    iter_sampling   = 4000,
+    adapt_delta     = 0.99,
     max_treedepth   = 14,
     refresh         = 200,
     init            = fit_pf

@@ -1,6 +1,6 @@
 # Distributional Test — LLM Recommendations vs. Pre/Post-2023 Literature
 
-Script: `R/sensitivity/C_distributional_test.R`  
+Script: `R/sensitivity/distributional_similarity.R`  
 Run date: 2026-06-06
 
 ---

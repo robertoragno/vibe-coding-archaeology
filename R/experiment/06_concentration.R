@@ -64,15 +64,15 @@ gemma_counts <- build_rec_vectors(GEMMA_CSV, l3_levels)
 # Multinomial counts + uniform Dirichlet(1) prior → exact posterior Dir(1+counts).
 # No MCMC needed: the conjugate form gives the posterior in closed form.
 #
-# Caveat: each LLM response produces ~7–10 recommendations that are not
-# independent. The conjugate model treats all recommendations as independent
-# multinomial draws, so the effective sample size is closer to 252 responses
-# than ~2,000 individual recommendations. A response-level bootstrap confirms
-# that credible intervals would widen by ~1.5–2.5x with proper clustering
-# adjustment. This does not affect conclusions: the LLM–literature gap (21–32
-# vs 88–114 effective methods) dwarfs the interval widening. The same caveat
-# applies symmetrically to the literature counts, where individual papers
-# contribute multiple methods.
+# Caveat: each LLM response lists ~7-10 methods at once and each paper
+# contributes several, so the counts are not independent and these intervals
+# are too narrow. The cluster bootstrap in
+# R/sensitivity/concentration_cluster_bootstrap.R quantifies the effect:
+# resampling whole responses (rather than individual recommendations) widens
+# the intervals by up to ~2.9x for Qwen3 under low guidance, but barely at all
+# (~1x) for Gemma and the literature, where each cluster carries few methods.
+# Even at the largest widening the LLM-literature gap (21-32 vs 88-114
+# effective methods) is untouched.
 
 dirichlet_inv_simpson <- function(counts, n_draws = N_DRAWS) {
   # Posterior: Dirichlet(1 + counts) — uniform prior updated by observed frequencies.

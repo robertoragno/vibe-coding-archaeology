@@ -63,11 +63,11 @@ if (!file.exists(DONE_FLAG)) {
   fit_2022 <- mod$sample(
     data            = stan_data_2022,
     chains          = 4,
-    iter_sampling   = 2000,
-    iter_warmup     = 2000,
+    iter_sampling   = 4000,
+    iter_warmup     = 3000,
     parallel_chains = 4,
     seed            = 42,
-    adapt_delta     = 0.95,
+    adapt_delta     = 0.99,
     max_treedepth   = 14,
     refresh         = 200
   )

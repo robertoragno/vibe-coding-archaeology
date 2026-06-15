@@ -1,11 +1,12 @@
-# B_v2_taxonomy_remap.R
-# Remap experiment results (classified under v2 taxonomy) to v3 L3 labels
-# using fuzzy string matching, then re-run the Step 3 NB regression.
-#
-# The experiment responses were classified into v2 L3 labels. The v3 taxonomy
-# has different L3 labels (242 vs 225). Only 53 match exactly. This script
-# fuzzy-matches the remaining 155 v2 labels to their closest v3 counterpart,
-# then repeats the negative-binomial regression from archive/06_step3_llm_comparison.R (archived).
+# taxonomy_version_remap.R
+# Robustness check: does the Step 3 result survive an alternative taxonomy
+# version? An early experiment run was classified under the v2 taxonomy (225 L3
+# labels); the current data is classified directly against v3 (242). Only 53
+# labels match exactly, so this script fuzzy-matches the remaining 155 v2 labels
+# to their nearest v3 counterpart and re-runs the regression on that older run.
+# Built on the single-predictor NB (archive/06_step3_llm_comparison.R); the
+# two-predictor model in R/experiment/07_literature_vs_llm.R superseded it, so
+# this check is now confirmatory of the earlier v2-classified run only.
 
 suppressPackageStartupMessages({
   library(here)

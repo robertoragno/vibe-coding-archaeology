@@ -1,7 +1,9 @@
-# D_diversity_trajectory.R
-# Second-level model: regress posterior inv_simpson on year + post_llm
-# with measurement-error likelihood. Estimates group-level gamma (post-LLM
-# shift in diversity) and sigma_gamma (hierarchical SD of that shift).
+# diversity_trajectory_model.R
+# Complementary analysis: instead of working on individual method shares, model
+# the inverse Simpson diversity index directly at the L2 group level, with a
+# measurement-error likelihood that carries the posterior uncertainty from the
+# main fit. Estimates a group-level post-2023 shift (gamma) and its hierarchical
+# SD (sigma_gamma) — a second route to the convergence question.
 
 suppressPackageStartupMessages({
   library(here)
@@ -17,7 +19,8 @@ STAN_DATA_RDS <- here("data/output/stan_data.rds")
 STAN_FILE     <- here("stan/sensitivity/diversity_trajectory.stan")
 
 OUT_FIT  <- here("data/output/fit_diversity_trajectory.rds")
-OUT_PLOT <- here("R/sensitivity/diversity_gamma_by_group.png")
+OUT_PLOT <- here("data/output/figures/sensitivity/diversity_gamma_by_group.png")
+dir.create(dirname(OUT_PLOT), recursive = TRUE, showWarnings = FALSE)
 
 # 1. Load phi-free fit and extract inv_simpson posterior
 

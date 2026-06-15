@@ -1,7 +1,9 @@
-# A_count_threshold.R
-# Sensitivity variant of R/archive/06_step3_llm_comparison.R.
-# Restricts to L3 methods with >= MIN_COUNT papers in 2023-2025
-# (from the raw count data) before running the Bayesian NB regression.
+# rare_method_threshold.R
+# Robustness check: is the Step 3 result driven by rarely-used methods with
+# noisy gamma estimates? Restricts to L3 methods with >= MIN_COUNT papers in
+# 2023-2025, then re-runs the negative-binomial regression.
+# Built on the single-predictor NB (stan/archive/poisson_gamma_regression.stan),
+# which the two-predictor model in R/experiment/07_literature_vs_llm.R superseded.
 
 suppressPackageStartupMessages({
   library(here)

@@ -1,6 +1,6 @@
-# C_distributional_test.R
-# Distributional comparison: does the LLM recommendation vector resemble the
-# post-2023 method mix more than the pre-2023 mix?
+# distributional_similarity.R
+# Complementary analysis (not a robustness check): does the LLM recommendation
+# vector resemble the post-2023 method mix more than the pre-2023 mix?
 #
 # Instead of regressing on noisy individual gammas, we compare whole frequency
 # distributions using cosine similarity and KL divergence. If LLMs are driving
@@ -414,7 +414,7 @@ direction_hel <- ifelse(delta_hel > 0, "post-2023", "pre-2023")
 md <- c(
   "# Distributional Test — LLM Recommendations vs. Pre/Post-2023 Literature",
   "",
-  sprintf("Script: `R/sensitivity/C_distributional_test.R`  "),
+  sprintf("Script: `R/sensitivity/distributional_similarity.R`  "),
   sprintf("Run date: %s", Sys.Date()),
   "",
   "---",
