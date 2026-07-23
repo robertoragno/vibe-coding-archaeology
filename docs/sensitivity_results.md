@@ -95,6 +95,6 @@ All 25 group-level gamma credible intervals straddle zero.
 
 ### Interpretation
 
-The field reorients internally --- individual methods shift within sub-disciplines --- but does not measurably homogenise at the sub-discipline level. The pre-existing trend variation (sigma_beta = 0.677) is an order of magnitude larger than the post-2023 shift (sigma_gamma = 0.064). This corroborates the primary model's finding that sigma_gamma (0.102 at the technique level) is smaller than sigma_beta (0.265), and that 0 of 242 methods show a credible post-2023 shift.
+The field reorients internally --- individual methods shift within sub-disciplines --- but does not measurably homogenise at the sub-discipline level. The pre-existing trend variation (sigma_beta = 0.677) is an order of magnitude larger than the post-2023 shift (sigma_gamma = 0.064). This corroborates the primary model's finding that sigma_gamma (0.105 at the technique level) is smaller than sigma_beta (0.264), and that 0 of 242 methods show a credible post-2023 shift.
 
 The inverse Simpson index rose from approximately 88.4 (pre-2023 pooled) to 112.2 (post-2023 pooled) effective methods. The literature has been diversifying, and this trend continued uninterrupted through the post-LLM period.
