@@ -248,7 +248,8 @@ cat("Methods with 90% CI excluding zero (credible post-LLM shift):",
 
 sig_gamma <- gamma_df |> filter(sig)
 
-if (nrow(sig_gamma) == 0) {
+all_shown <- nrow(sig_gamma) == 0
+if (all_shown) {
   cat("WARNING: no significant gamma methods; showing all methods instead\n")
   sig_gamma <- gamma_df
 }
@@ -259,6 +260,12 @@ sig_gamma <- sig_gamma |>
     method_id = factor(method_id, levels = unique(method_id)),
     direction = ifelse(mean_gamma > 0, "positive", "negative")
   )
+
+dotplot_subtitle <- if (all_shown) {
+  "No method's 90% CI excludes zero; all methods shown; red = gaining share, blue = losing share"
+} else {
+  "Only methods where 90% CI excludes zero; red = gaining share, blue = losing share"
+}
 
 p3 <- ggplot(sig_gamma, aes(x = mean_gamma, y = method_id, colour = direction)) +
   geom_point(size = 1.5) +
@@ -271,7 +278,7 @@ p3 <- ggplot(sig_gamma, aes(x = mean_gamma, y = method_id, colour = direction)) 
     x        = "Posterior mean gamma (post-LLM differential slope)",
     y        = NULL,
     title    = "Differential post-2023 method slopes (gamma_method)",
-    subtitle = "Only methods where 90% CI excludes zero; red = gaining share, blue = losing share"
+    subtitle = dotplot_subtitle
   ) +
   theme_minimal(base_size = 8) +
   theme(

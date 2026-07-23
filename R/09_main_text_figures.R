@@ -329,25 +329,45 @@ plot_df7 <- bind_rows(
              parameter = "(B)~beta[gamma]~'(post-2023 momentum)'", model = "Gemma")
 )
 
+# Dummy legend keys: real ggdist geometry (interval bands, point, dashed
+# zero line) has no native legend, so proxy layers are added purely to
+# generate one. NA/off-panel coordinates so nothing extra is drawn.
+key_zero <- data.frame(key = "Zero")
+key_ci   <- data.frame(x = NA_real_, xend = NA_real_, y = NA_real_, yend = NA_real_,
+                        key = factor(c("50% CI", "90% CI"), levels = c("50% CI", "90% CI")))
+key_pt   <- data.frame(x = NA_real_, y = NA_real_, key = "Posterior mean")
+
 fig6 <- ggplot(plot_df7, aes(x = value, y = model, fill = model)) +
   stat_halfeye(
     .width         = c(0.50, 0.90),
     point_interval = "mean_qi",
     slab_alpha     = 0.6,
     linewidth      = 0.4,
-    point_size     = 1.5
+    point_size     = 1.5,
+    show.legend    = FALSE
   ) +
-  geom_vline(xintercept = 0, linetype = "dashed", linewidth = 0.3) +
+  geom_vline(data = key_zero, aes(xintercept = 0, linetype = key),
+             colour = "black", linewidth = 0.3) +
+  geom_segment(data = key_ci, aes(x = x, xend = xend, y = y, yend = yend, linewidth = key),
+               inherit.aes = FALSE, colour = "black", na.rm = TRUE) +
+  geom_point(data = key_pt, aes(x = x, y = y, shape = key),
+             inherit.aes = FALSE, colour = "black", size = 1.5, na.rm = TRUE) +
+  scale_linetype_manual(name = NULL, values = c("Zero" = "dashed")) +
+  scale_linewidth_manual(name = NULL, values = c("50% CI" = 2, "90% CI" = 0.6)) +
+  scale_shape_manual(name = NULL, values = c("Posterior mean" = 16)) +
   facet_wrap(~ parameter, scales = "free_x", ncol = 2, labeller = label_parsed) +
-  scale_fill_manual(values = c("Qwen3" = "grey35", "Gemma" = "grey70")) +
+  scale_fill_manual(values = c("Qwen3" = "grey35", "Gemma" = "grey70"), guide = "none") +
   labs(x = "Posterior coefficient", y = NULL,
        title = "What predicts LLM method choices?",
-       caption = expression(beta[pre]*" (left): how strongly a method's pre-2023 prevalence predicts how often it is recommended. "*beta[gamma]*" (right): whether methods that gained momentum after 2023 are recommended more. Dashed line: zero. Bands: 50% and 90% credible intervals; point: posterior mean.")) +
+       caption = "β_pre: how strongly a method's pre-2023 prevalence predicts how often it is recommended.\nβ_γ: whether momentum since 2023 predicts more recommendations.") +
+  guides(linetype = guide_legend(order = 1), linewidth = guide_legend(order = 2),
+         shape = guide_legend(order = 3)) +
   theme_paper +
-  theme(legend.position = "none")
+  theme(legend.position = "top", legend.title = element_blank(),
+        legend.box = "horizontal", legend.spacing.x = unit(0.3, "cm"))
 
 ggsave(file.path(OUT_DIR, "fig5_bpre_bgamma_posteriors.png"), fig6,
-       width = 7, height = 5, dpi = 300, bg = "white")
+       width = 8, height = 5, dpi = 300, bg = "white")
 cat("Fig. 5 saved.\n")
 
 # ═══════════════════════════════════════════════════════════════════════════

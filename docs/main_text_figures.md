@@ -132,7 +132,7 @@ published record so far).
 
 **Section:** Results (mean-collapse test, 4.4 / 3.4.2)
 
-**Manuscript caption:** Posterior distributions from a two-predictor count regression testing what drives LLM method recommendations. β_pre (left panel) measures how strongly a method's pre-2023 prevalence in the literature predicts how often it is recommended; β_γ (right panel) measures whether methods that gained momentum after 2023 are recommended more often. Results shown for both Qwen3 and Gemma. Dashed line: zero. Bands: 50% and 90% credible intervals; point: posterior mean.
+**Manuscript caption:** Posterior distributions from a two-predictor count regression testing what drives LLM method recommendations. β_pre measures how strongly a method's pre-2023 prevalence in the literature predicts how often it is recommended; β_γ measures whether methods that gained momentum after 2023 are recommended more often. Results shown for both Qwen3 and Gemma; see figure legend for the zero line, credible-interval bands, and posterior mean.
 
 **What it shows:** A two-predictor negative binomial regression that separates
 two possible drivers of LLM method concentration. The outcome is n_rec (how many
