@@ -190,3 +190,87 @@ draws_wide <- all_draws |>
   select(-draw_id)
 
 write.csv(draws_wide, OUT_DRAWS, row.names = FALSE)
+
+# Recirculation statistics (§3.4)
+# Counts how many distinct raw L4 method strings each LLM produced and how
+# many distinct L3 labels they collapsed onto, plus the out-of-taxonomy rate.
+# Deliberately uses ALL mapping attempts, not the l3_mapping_consistent ==
+# TRUE subset used above for the concentration/regression analyses: detecting
+# out-of-taxonomy items is a per-item parsing check, not something that
+# needs 3-run agreement to be meaningful.
+
+OUT_RECIRC <- here("data/output/recirculation_stats.csv")
+
+qwen_raw  <- read.csv(QWEN_CSV,  stringsAsFactors = FALSE)
+gemma_raw <- read.csv(GEMMA_CSV, stringsAsFactors = FALSE)
+valid_l3  <- l3_vocab$l3
+
+# l4_method strings differ only in case/whitespace far more often than they
+# differ in substance (e.g. "XRF" vs "xrf ", "Principal Component Analysis"
+# vs "principal component analysis"). Case/whitespace-folding before counting
+# distinct strings is what reproduces the manuscript's reported figures
+# (2,904 Qwen / 1,746 Gemma); exact string match over-counts these as
+# separate methods (2,982 / 1,765).
+normalize_method <- function(x) trimws(tolower(x))
+
+recirculation_stats <- function(df, valid_l3) {
+  df$l4_norm <- normalize_method(df$l4_method)
+  not_in_tax <- df[!(df$l3_mapping %in% valid_l3), ]
+  list(
+    n_attempts       = nrow(df),
+    n_distinct_raw   = length(unique(df$l4_method)),
+    n_distinct_norm  = length(unique(df$l4_norm)),
+    n_distinct_l3    = length(unique(df$l3_mapping[df$l3_mapping %in% valid_l3])),
+    n_out_of_taxonomy = nrow(not_in_tax),
+    out_of_taxonomy_rows = not_in_tax
+  )
+}
+
+qwen_recirc  <- recirculation_stats(qwen_raw,  valid_l3)
+gemma_recirc <- recirculation_stats(gemma_raw, valid_l3)
+
+cat("\n--- Recirculation statistics (§3.4) ---\n")
+cat(sprintf("Qwen:  %d attempts, %d distinct raw strings (%d after case/whitespace fold), collapsing onto %d/%d L3 labels, %d out-of-taxonomy\n",
+            qwen_recirc$n_attempts, qwen_recirc$n_distinct_raw, qwen_recirc$n_distinct_norm,
+            qwen_recirc$n_distinct_l3, K, qwen_recirc$n_out_of_taxonomy))
+cat(sprintf("Gemma: %d attempts, %d distinct raw strings (%d after case/whitespace fold), collapsing onto %d/%d L3 labels, %d out-of-taxonomy\n",
+            gemma_recirc$n_attempts, gemma_recirc$n_distinct_raw, gemma_recirc$n_distinct_norm,
+            gemma_recirc$n_distinct_l3, K, gemma_recirc$n_out_of_taxonomy))
+
+if (nrow(qwen_recirc$out_of_taxonomy_rows) > 0) {
+  cat("\nQwen out-of-taxonomy rows:\n")
+  print(qwen_recirc$out_of_taxonomy_rows[, c("l4_method", "l3_mapping")])
+}
+if (nrow(gemma_recirc$out_of_taxonomy_rows) > 0) {
+  cat("\nGemma out-of-taxonomy rows:\n")
+  print(gemma_recirc$out_of_taxonomy_rows[, c("l4_method", "l3_mapping")])
+}
+
+# Diagnostic: show every group of >=2 raw strings that the case/whitespace
+# fold merges together, so a human can scan for a merge that might be
+# hiding a real methodological distinction rather than a casing/whitespace
+# quirk (e.g. confirm "PCA" is not being merged with an unrelated method
+# that happens to normalize the same way -- it never does here, since
+# normalization only folds case and trims whitespace, it cannot equate two
+# strings that differ in any other character).
+report_merges <- function(df, label) {
+  raw_by_norm <- split(df$l4_method, normalize_method(df$l4_method))
+  merged <- raw_by_norm[vapply(raw_by_norm, function(v) length(unique(v)) > 1, logical(1))]
+  cat(sprintf("\n%s: %d normalized groups merge >=2 distinct raw strings\n", label, length(merged)))
+  for (nm in names(merged)) {
+    cat(sprintf("  [%s] <- %s\n", nm, paste(sprintf('"%s"', unique(merged[[nm]])), collapse = " | ")))
+  }
+}
+report_merges(qwen_raw,  "Qwen")
+report_merges(gemma_raw, "Gemma")
+
+recirc_summary <- data.frame(
+  model              = c("Qwen", "Gemma"),
+  n_attempts         = c(qwen_recirc$n_attempts, gemma_recirc$n_attempts),
+  n_distinct_raw     = c(qwen_recirc$n_distinct_raw, gemma_recirc$n_distinct_raw),
+  n_distinct_norm    = c(qwen_recirc$n_distinct_norm, gemma_recirc$n_distinct_norm),
+  n_distinct_l3      = c(qwen_recirc$n_distinct_l3, gemma_recirc$n_distinct_l3),
+  taxonomy_size      = c(K, K),
+  n_out_of_taxonomy  = c(qwen_recirc$n_out_of_taxonomy, gemma_recirc$n_out_of_taxonomy)
+)
+write.csv(recirc_summary, OUT_RECIRC, row.names = FALSE)

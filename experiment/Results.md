@@ -9,7 +9,7 @@ Scripts: `R/06–09*.R` | Run date: 2026-05-21
 | Metric | Qwen3 | Gemma | Pre-2023 lit. | Post-2023 lit. |
 |---|---|---|---|---|
 | Total recommendations | 6,651 | 5,252 | 8,495 | 6,660 |
-| Distinct L3 methods | 194 | 165 | — | — |
+| Distinct L3 methods | 190 | 165 | — | — |
 | Effective methods (inv. Simpson, overall) | 32 [30.5, 33.4] | 29 [28.0, 30.4] | 88 [85, 91] | 114 [111, 117] |
 | Effective methods — novice | 21 [20, 23] | 21 [19, 22] | — | — |
 | Effective methods — expert | 61 [57, 65] | 47 [44, 51] | — | — |
@@ -25,7 +25,7 @@ Brackets are 90% credible intervals. b_pre is credibly positive in all 8 conditi
 | Metric | Qwen3 | Gemma |
 |---|---|---|
 | Total recommendations (consistent L3 mappings) | 6,651 | 5,252 |
-| Distinct L3 methods covered | 194 | 165 |
+| Distinct L3 methods covered | 190 | 165 |
 | L3 methods with >= 1 rec. | 190 / 242 (78%) | 164 / 242 (68%) |
 | L3 mapping consistency rate | 96.2% | 96.5% |
 
@@ -36,6 +36,26 @@ Brackets are 90% credible intervals. b_pre is credibly positive in all 8 conditi
 | Expert | 2,126 | 165 | 1,865 | 150 |
 
 Responses were classified directly against the v3 L3 taxonomy; no v2-to-v3 remapping was needed. Gemma produces fewer recommendations per response (~7.1 novice vs Qwen3's ~9.9) but preserves the same profile gradient: novice lists more methods per response, expert covers more distinct methods.
+
+---
+
+## Recirculation check (§3.4)
+
+Script: `R/experiment/06_concentration.R` (recirculation block, run after the main concentration analysis).
+
+Unlike the tables above, this check uses **all** mapping attempts, not just the majority-consistent subset — detecting out-of-taxonomy items doesn't require cross-run agreement, so filtering to `l3_mapping_consistent == TRUE` would only throw away evidence.
+
+| Metric | Qwen3 | Gemma |
+|---|---|---|
+| Total mapping attempts | 6,915 | 5,441 |
+| Distinct raw `l4_method` strings (exact match) | 2,982 | 1,765 |
+| Distinct raw strings after case/whitespace fold (`trimws(tolower(x))`) | 2,904 | 1,746 |
+| Distinct L3 labels these collapsed onto | 194 / 242 | 167 / 242 |
+| Items failing to map to any valid L3 label | 0 | 1 |
+
+The single Gemma failure is `"L3-27"` (missing zero-padding; valid codes are `L3-0NN`) — a malformed code from the label-extraction cascade, not a genuine novel method. All ~2,900–4,700 distinct raw strings each model produced collapse onto well under half of the 242-label taxonomy, and effectively none of them fall outside it.
+
+Every merge the case/whitespace fold performs was manually reviewed (`report_merges()` in the script) and confirmed to be a casing/whitespace variant of the same method (e.g. `"K-Means"` / `"K-means"`, `"t-test"` / `"T-Test"`) — none merges two substantively different methods.
 
 ---
 
