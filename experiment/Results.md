@@ -9,7 +9,7 @@ Scripts: `R/06–09*.R` | Run date: 2026-05-21
 | Metric | Qwen3 | Gemma | Pre-2023 lit. | Post-2023 lit. |
 |---|---|---|---|---|
 | Total recommendations | 6,651 | 5,252 | 8,495 | 6,660 |
-| Distinct L3 methods | 194 | 165 | — | — |
+| Distinct L3 methods | 190 | 165 | — | — |
 | Effective methods (inv. Simpson, overall) | 32 [30.5, 33.4] | 29 [28.0, 30.4] | 88 [85, 91] | 114 [111, 117] |
 | Effective methods — novice | 21 [20, 23] | 21 [19, 22] | — | — |
 | Effective methods — expert | 61 [57, 65] | 47 [44, 51] | — | — |
@@ -25,7 +25,7 @@ Brackets are 90% credible intervals. b_pre is credibly positive in all 8 conditi
 | Metric | Qwen3 | Gemma |
 |---|---|---|
 | Total recommendations (consistent L3 mappings) | 6,651 | 5,252 |
-| Distinct L3 methods covered | 194 | 165 |
+| Distinct L3 methods covered | 190 | 165 |
 | L3 methods with >= 1 rec. | 190 / 242 (78%) | 164 / 242 (68%) |
 | L3 mapping consistency rate | 96.2% | 96.5% |
 
@@ -39,9 +39,29 @@ Responses were classified directly against the v3 L3 taxonomy; no v2-to-v3 remap
 
 ---
 
+## Recirculation check (§3.4)
+
+Script: `R/experiment/06_concentration.R` (recirculation block, run after the main concentration analysis).
+
+Unlike the tables above, this check uses **all** mapping attempts, not just the majority-consistent subset — detecting out-of-taxonomy items doesn't require cross-run agreement, so filtering to `l3_mapping_consistent == TRUE` would only throw away evidence.
+
+| Metric | Qwen3 | Gemma |
+|---|---|---|
+| Total mapping attempts | 6,915 | 5,441 |
+| Distinct raw `l4_method` strings (exact match) | 2,982 | 1,765 |
+| Distinct raw strings after case/whitespace fold (`trimws(tolower(x))`) | 2,904 | 1,746 |
+| Distinct L3 labels these collapsed onto | 194 / 242 | 167 / 242 |
+| Items failing to map to any valid L3 label | 0 | 1 |
+
+The single Gemma failure is `"L3-27"` (missing zero-padding; valid codes are `L3-0NN`) — a malformed code from the label-extraction cascade, not a genuine novel method. All ~2,900–4,700 distinct raw strings each model produced collapse onto well under half of the 242-label taxonomy, and effectively none of them fall outside it.
+
+Every merge the case/whitespace fold performs was manually reviewed (`report_merges()` in the script) and confirmed to be a casing/whitespace variant of the same method (e.g. `"K-Means"` / `"K-means"`, `"t-test"` / `"T-Test"`) — none merges two substantively different methods.
+
+---
+
 ## Exploratory descriptive analysis
 
-Scripts: `R/06_exploratory_graphs.R`, `R/06b_exploratory_gemma.R`
+Scripts (archived): `R/archive/06_exploratory_graphs.R`, `R/archive/06b_exploratory_gemma.R`
 
 ### Top recommended methods (L4 and L3)
 
@@ -114,9 +134,9 @@ Both LLMs produce recommendation distributions dramatically narrower than the li
 
 ## Single-predictor negative-binomial regression: n_rec ~ gamma
 
-Scripts: `R/archive/06_step3_llm_comparison.R (archived, superseded by 08)`, `R/archive/06b_step3_llm_comparison_gemma.R (archived, superseded by 08)`
+Scripts: `R/archive/06_step3_llm_comparison.R`, `R/archive/06b_step3_llm_comparison_gemma.R`
 
-> **Note:** This regression conflates training-corpus prevalence with post-2023 trajectory. The [two-predictor model below](#two-predictor-nb2-regression-prevalence-vs-trajectory) separates them and resolves the apparent negative direction.
+> **Note:** This single-predictor regression conflates training-corpus prevalence with post-2023 trajectory. The [two-predictor model below](#two-predictor-nb2-regression-prevalence-vs-trajectory) separates them and resolves the apparent negative direction.
 
 The model is a negative-binomial regression (NB2 parameterisation). The negative-binomial is a generalisation of the Poisson for count data that adds an overdispersion parameter (phi) to handle the fact that recommendation counts are more variable than a Poisson would predict — some methods get recommended far more often than others for reasons beyond their gamma alone (e.g. fame, training-corpus prominence). The NB2 form means the variance scales quadratically with the mean: Var = mu + mu²/phi.
 
@@ -153,9 +173,11 @@ The width of the posteriors reflects two structural limitations: (1) gamma is es
 
 ## Bayesian concentration posteriors
 
-Script: `R/07_experiment_concentration.R`
+Script: `R/experiment/06_concentration.R`
 
 The point-estimate inverse Simpson indices from the exploratory section are replaced with full posterior distributions via the conjugate Dirichlet update: Dir(1 + n_1, ..., 1 + n_K) over 242 methods, with inv_simpson = 1 / sum(p_k^2) computed on each draw.
+
+**Why conjugate inference rather than Stan.** The Dirichlet distribution is the *conjugate prior* for multinomial count data. Conjugacy means that the posterior belongs to the same distributional family as the prior — adding counts to the prior parameters yields the exact posterior, no approximation needed. This is a closed-form solution: a direct formula, not an iterative algorithm. The hierarchical diversity model (Step 2) cannot use this shortcut because its structure — L2 groups, yearly time steps, trend parameters, hierarchical shrinkage — couples the parameters in ways that have no closed-form posterior. Stan's MCMC sampler is required there to explore the joint posterior numerically. Both approaches are fully Bayesian (prior + likelihood → posterior); the difference is computational, not philosophical. The conjugate approach is exact where MCMC is approximate, but it is only available when the model is simple enough to admit a formula. In practice, the Dirichlet draws here are generated via the gamma-distribution identity: K independent draws g_k ~ Gamma(alpha_k, 1), normalised to sum to one, produce a single Dirichlet(alpha) sample. This is a standard sampling technique equivalent to Stan's `dirichlet` distribution, just without the overhead of a Markov chain.
 
 | Distribution | Median effective methods | 90% CI |
 |---|---|---|
@@ -179,11 +201,13 @@ The point-estimate inverse Simpson indices from the exploratory section are repl
 
 The profile gradient (novice < intermediate < expert) survives with full posterior uncertainty. The literature's own diversification (88 → 114) is credibly nonzero.
 
+**Note on within-response clustering.** The conjugate model treats each individual method recommendation as an independent multinomial draw. In practice, each LLM response produces ~7–10 recommendations that may be correlated (252 responses per profile), so the effective sample size is closer to 252 than ~2,000. A response-level bootstrap confirms that credible intervals would widen by approximately 1.5–2.5× with proper clustering adjustment. This does not affect any substantive conclusion: the LLM–literature gap (21–32 vs 88–114 effective methods) dwarfs the interval widening, and all posterior contrasts remain credible under the wider intervals. The same caveat applies symmetrically to the literature counts, where individual papers contribute multiple methods to the count array, though paper-level data is not retained in the aggregated Stan inputs and therefore cannot be corrected in the same way.
+
 ---
 
 ## Two-predictor NB2 regression: prevalence vs trajectory
 
-Script: `R/08_literature_vs_llm.R` | Stan model: `stan/nb2_prevalence_gamma.stan`
+Script: `R/experiment/07_literature_vs_llm.R` | Stan model: `stan/experiment_prevalence_nb.stan`
 
 ### The question
 

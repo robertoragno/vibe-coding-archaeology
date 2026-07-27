@@ -15,15 +15,19 @@ data/output_taxonomy_v2_backup/
 .Rproj.user/
 R.Rproj
 
-# Compiled Stan binaries
-stan/diversity_model
+# Compiled Stan binaries (cmdstan writes an extensionless executable next to
+# each .stan, including in subfolders like stan/archive and stan/sensitivity)
+stan/**/diversity_model
+stan/**/diversity_trajectory
+stan/**/bibliometric_dirichlet_multinomial
+stan/**/l1_l2_diversity_model
+stan/**/l1_l2_diversity_model_phi_free
+stan/**/poisson_gamma_regression
+stan/**/experiment_prevalence_nb
 stan/diversity_model.rds
-stan/diversity_model_phi_free
-stan/diversity_trajectory
-stan/l1_l2_diversity_model
-stan/l1_l2_diversity_model_phi_free
-stan/poisson_gamma_regression
-stan/nb2_prevalence_gamma
+
+# Stan fit completion markers (local build state)
+data/output/*.done
 
 # Logs and scratch
 logs/
@@ -38,6 +42,10 @@ data/output/figure*.png
 
 # Mining (separate pipeline)
 Mining_Script/
+
+# Local project context (not for the public repo)
+CONTEXT.md
+docs/Manuscript.txt
 
 # Misc
 *.pdf

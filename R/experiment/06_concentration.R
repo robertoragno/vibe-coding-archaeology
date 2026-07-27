@@ -1,0 +1,276 @@
+# 06_concentration.R
+# Conjugate Dirichlet posterior on inv_simpson for each model x profile.
+# Reads: experiment CSVs, vocab.rds. Writes: concentration summary/draws CSVs, plot.
+
+suppressPackageStartupMessages({
+  library(here)
+  library(dplyr)
+  library(tidyr)
+  library(ggplot2)
+  library(ggdist)
+})
+
+source(here("R/helpers.R"))  # inv_simpson, build_rec_vectors
+
+set.seed(42)
+N_DRAWS <- 4000
+
+# Paths
+
+QWEN_CSV  <- here("experiment/analysis/experiment_results_QWEN.csv")
+GEMMA_CSV <- here("experiment/analysis/experiment_results_GEMMA.csv")
+VOCAB_RDS <- here("data/output/vocab.rds")
+STAN_DATA <- here("data/output/stan_data.rds")
+
+OUT_DIR <- here("data/output/figures/concentration")
+dir.create(OUT_DIR, recursive = TRUE, showWarnings = FALSE)
+
+OUT_DRAWS   <- here("data/output/concentration_inv_simpson_draws.csv")
+OUT_SUMMARY <- here("data/output/concentration_inv_simpson_summary.csv")
+OUT_PLOT    <- file.path(OUT_DIR, "plot_concentration_posteriors.png")
+
+# Load vocab and literature counts
+
+vocab     <- readRDS(VOCAB_RDS)
+stan_data <- readRDS(STAN_DATA)
+l3_vocab  <- vocab$l3_vocab |> arrange(g, k_local)
+
+K <- nrow(l3_vocab)
+cat("L3 methods in vocabulary:", K, "\n")
+
+# Pre-2023 and post-2023 literature count vectors (summed across L2 groups)
+year_levels <- vocab$year_levels
+pre_idx  <- which(year_levels < 2023)
+post_idx <- which(year_levels >= 2023)
+
+lit_pre  <- numeric(K)
+lit_post <- numeric(K)
+row_idx  <- 0
+for (g in seq_len(stan_data$N_groups)) {
+  for (k in seq_len(stan_data$K_g[g])) {
+    row_idx <- row_idx + 1
+    lit_pre[row_idx]  <- sum(stan_data$counts[g, pre_idx, k])
+    lit_post[row_idx] <- sum(stan_data$counts[g, post_idx, k])
+  }
+}
+
+# Build count vectors for each model x profile
+
+l3_levels <- l3_vocab$l3
+qwen_counts  <- build_rec_vectors(QWEN_CSV, l3_levels)
+gemma_counts <- build_rec_vectors(GEMMA_CSV, l3_levels)
+
+# Conjugate Dirichlet posterior draws
+# Multinomial counts + uniform Dirichlet(1) prior → exact posterior Dir(1+counts).
+# No MCMC needed: the conjugate form gives the posterior in closed form.
+#
+# Caveat: each LLM response lists ~7-10 methods at once and each paper
+# contributes several, so the counts are not independent and these intervals
+# are too narrow. The cluster bootstrap in
+# R/sensitivity/concentration_cluster_bootstrap.R quantifies the effect:
+# resampling whole responses (rather than individual recommendations) widens
+# the intervals by up to ~2.9x for Qwen3 under low guidance, but barely at all
+# (~1x) for Gemma and the literature, where each cluster carries few methods.
+# Even at the largest widening the LLM-literature gap (21-32 vs 88-114
+# effective methods) is untouched.
+
+dirichlet_inv_simpson <- function(counts, n_draws = N_DRAWS) {
+  # Posterior: Dirichlet(1 + counts) — uniform prior updated by observed frequencies.
+  alpha <- 1 + counts
+  # Standard identity: K independent Gamma(alpha_k, 1) draws, normalised to sum to 1,
+  # yield a single Dirichlet(alpha) sample. Equivalent to rdirichlet().
+  draws <- matrix(NA_real_, nrow = n_draws, ncol = length(alpha))
+  for (k in seq_along(alpha)) {
+    draws[, k] <- rgamma(n_draws, shape = alpha[k], rate = 1)
+  }
+  row_sums <- rowSums(draws)
+  draws <- draws / row_sums
+  apply(draws, 1, inv_simpson)
+}
+
+# Compute posteriors
+# Each source is fitted independently (not hierarchically) because profiles are
+# deliberately contrasting experimental conditions, not exchangeable groups.
+
+sources <- list(
+  "Pre-2023 literature"  = lit_pre,
+  "Post-2023 literature" = lit_post,
+  "Qwen3 — overall"      = qwen_counts$overall,
+  "Qwen3 — novice"       = qwen_counts$novice,
+  "Qwen3 — intermediate" = qwen_counts$intermediate,
+  "Qwen3 — expert"       = qwen_counts$expert,
+  "Gemma — overall"      = gemma_counts$overall,
+  "Gemma — novice"       = gemma_counts$novice,
+  "Gemma — intermediate" = gemma_counts$intermediate,
+  "Gemma — expert"       = gemma_counts$expert
+)
+
+draws_list <- lapply(names(sources), function(nm) {
+  d <- dirichlet_inv_simpson(sources[[nm]])
+  cat(sprintf("  %-25s  median = %5.1f  90%% CI [%5.1f, %5.1f]\n",
+              nm, median(d), quantile(d, 0.05), quantile(d, 0.95)))
+  data.frame(source = nm, draw = seq_along(d), inv_simpson = d)
+})
+
+all_draws <- bind_rows(draws_list)
+
+# Summary table
+
+summary_df <- all_draws |>
+  group_by(source) |>
+  summarise(
+    median  = median(inv_simpson),
+    lo90    = quantile(inv_simpson, 0.05),
+    hi90    = quantile(inv_simpson, 0.95),
+    lo95    = quantile(inv_simpson, 0.025),
+    hi95    = quantile(inv_simpson, 0.975),
+    .groups = "drop"
+  )
+
+print(summary_df, n = 20)
+
+# Posterior contrasts
+# Each source has an independent posterior, so its draws are mutually
+# independent. Differencing them elementwise therefore yields valid draws from
+# the posterior of the difference (the index pairing is arbitrary, not paired).
+qwen_ov <- all_draws |> filter(source == "Qwen3 — overall") |> pull(inv_simpson)
+gemma_ov <- all_draws |> filter(source == "Gemma — overall") |> pull(inv_simpson)
+delta_ov <- qwen_ov - gemma_ov
+cat(sprintf("\nQwen3 - Gemma (overall): median = %.1f, 90%% CI [%.1f, %.1f], P(Qwen > Gemma) = %.3f\n",
+            median(delta_ov), quantile(delta_ov, 0.05), quantile(delta_ov, 0.95),
+            mean(delta_ov > 0)))
+
+qwen_nov <- all_draws |> filter(source == "Qwen3 — novice") |> pull(inv_simpson)
+gemma_nov <- all_draws |> filter(source == "Gemma — novice") |> pull(inv_simpson)
+delta_nov <- qwen_nov - gemma_nov
+cat(sprintf("Qwen3 - Gemma (novice):  median = %.1f, 90%% CI [%.1f, %.1f], P(Qwen > Gemma) = %.3f\n",
+            median(delta_nov), quantile(delta_nov, 0.05), quantile(delta_nov, 0.95),
+            mean(delta_nov > 0)))
+
+lit_post_draws <- all_draws |> filter(source == "Post-2023 literature") |> pull(inv_simpson)
+delta_lit_qwen <- lit_post_draws - qwen_ov
+delta_lit_gemma <- lit_post_draws - gemma_ov
+cat(sprintf("\nPost-2023 lit - Qwen3:   median = %.1f, P(lit > Qwen) = %.3f\n",
+            median(delta_lit_qwen), mean(delta_lit_qwen > 0)))
+cat(sprintf("Post-2023 lit - Gemma:   median = %.1f, P(lit > Gemma) = %.3f\n",
+            median(delta_lit_gemma), mean(delta_lit_gemma > 0)))
+
+# Plot
+
+source_order <- summary_df |> arrange(median) |> pull(source)
+all_draws$source <- factor(all_draws$source, levels = source_order)
+
+p <- ggplot(all_draws, aes(x = inv_simpson, y = source)) +
+  stat_halfeye(
+    .width         = c(0.90, 0.95),
+    point_interval = "median_qi",
+    fill           = "#0072B2",
+    colour         = "#004466",
+    alpha          = 0.6
+  ) +
+  labs(
+    x     = "Effective number of methods (Inverse Simpson)",
+    y     = NULL,
+    title = "Recommendation concentration: posterior distributions",
+    subtitle = "Dirichlet conjugate posterior. Higher = more diverse. Literature vs. two LLMs across profiles."
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(axis.text.y = element_text(size = 9))
+
+ggsave(OUT_PLOT, p, width = 9, height = 6, dpi = 300, bg = "white")
+# Save outputs
+
+write.csv(summary_df, OUT_SUMMARY, row.names = FALSE)
+
+draws_wide <- all_draws |>
+  select(-draw) |>
+  group_by(source) |>
+  mutate(draw_id = row_number()) |>
+  pivot_wider(names_from = source, values_from = inv_simpson) |>
+  select(-draw_id)
+
+write.csv(draws_wide, OUT_DRAWS, row.names = FALSE)
+
+# Recirculation statistics (§3.4)
+# Counts how many distinct raw L4 method strings each LLM produced and how
+# many distinct L3 labels they collapsed onto, plus the out-of-taxonomy rate.
+# Deliberately uses ALL mapping attempts, not the l3_mapping_consistent ==
+# TRUE subset used above for the concentration/regression analyses: detecting
+# out-of-taxonomy items is a per-item parsing check, not something that
+# needs 3-run agreement to be meaningful.
+
+OUT_RECIRC <- here("data/output/recirculation_stats.csv")
+
+qwen_raw  <- read.csv(QWEN_CSV,  stringsAsFactors = FALSE)
+gemma_raw <- read.csv(GEMMA_CSV, stringsAsFactors = FALSE)
+valid_l3  <- l3_vocab$l3
+
+# l4_method strings differ only in case/whitespace far more often than they
+# differ in substance (e.g. "XRF" vs "xrf ", "Principal Component Analysis"
+# vs "principal component analysis"). Case/whitespace-folding before counting
+# distinct strings is what reproduces the manuscript's reported figures
+# (2,904 Qwen / 1,746 Gemma); exact string match over-counts these as
+# separate methods (2,982 / 1,765).
+normalize_method <- function(x) trimws(tolower(x))
+
+recirculation_stats <- function(df, valid_l3) {
+  df$l4_norm <- normalize_method(df$l4_method)
+  not_in_tax <- df[!(df$l3_mapping %in% valid_l3), ]
+  list(
+    n_attempts       = nrow(df),
+    n_distinct_raw   = length(unique(df$l4_method)),
+    n_distinct_norm  = length(unique(df$l4_norm)),
+    n_distinct_l3    = length(unique(df$l3_mapping[df$l3_mapping %in% valid_l3])),
+    n_out_of_taxonomy = nrow(not_in_tax),
+    out_of_taxonomy_rows = not_in_tax
+  )
+}
+
+qwen_recirc  <- recirculation_stats(qwen_raw,  valid_l3)
+gemma_recirc <- recirculation_stats(gemma_raw, valid_l3)
+
+cat("\n--- Recirculation statistics (§3.4) ---\n")
+cat(sprintf("Qwen:  %d attempts, %d distinct raw strings (%d after case/whitespace fold), collapsing onto %d/%d L3 labels, %d out-of-taxonomy\n",
+            qwen_recirc$n_attempts, qwen_recirc$n_distinct_raw, qwen_recirc$n_distinct_norm,
+            qwen_recirc$n_distinct_l3, K, qwen_recirc$n_out_of_taxonomy))
+cat(sprintf("Gemma: %d attempts, %d distinct raw strings (%d after case/whitespace fold), collapsing onto %d/%d L3 labels, %d out-of-taxonomy\n",
+            gemma_recirc$n_attempts, gemma_recirc$n_distinct_raw, gemma_recirc$n_distinct_norm,
+            gemma_recirc$n_distinct_l3, K, gemma_recirc$n_out_of_taxonomy))
+
+if (nrow(qwen_recirc$out_of_taxonomy_rows) > 0) {
+  cat("\nQwen out-of-taxonomy rows:\n")
+  print(qwen_recirc$out_of_taxonomy_rows[, c("l4_method", "l3_mapping")])
+}
+if (nrow(gemma_recirc$out_of_taxonomy_rows) > 0) {
+  cat("\nGemma out-of-taxonomy rows:\n")
+  print(gemma_recirc$out_of_taxonomy_rows[, c("l4_method", "l3_mapping")])
+}
+
+# Diagnostic: show every group of >=2 raw strings that the case/whitespace
+# fold merges together, so a human can scan for a merge that might be
+# hiding a real methodological distinction rather than a casing/whitespace
+# quirk (e.g. confirm "PCA" is not being merged with an unrelated method
+# that happens to normalize the same way -- it never does here, since
+# normalization only folds case and trims whitespace, it cannot equate two
+# strings that differ in any other character).
+report_merges <- function(df, label) {
+  raw_by_norm <- split(df$l4_method, normalize_method(df$l4_method))
+  merged <- raw_by_norm[vapply(raw_by_norm, function(v) length(unique(v)) > 1, logical(1))]
+  cat(sprintf("\n%s: %d normalized groups merge >=2 distinct raw strings\n", label, length(merged)))
+  for (nm in names(merged)) {
+    cat(sprintf("  [%s] <- %s\n", nm, paste(sprintf('"%s"', unique(merged[[nm]])), collapse = " | ")))
+  }
+}
+report_merges(qwen_raw,  "Qwen")
+report_merges(gemma_raw, "Gemma")
+
+recirc_summary <- data.frame(
+  model              = c("Qwen", "Gemma"),
+  n_attempts         = c(qwen_recirc$n_attempts, gemma_recirc$n_attempts),
+  n_distinct_raw     = c(qwen_recirc$n_distinct_raw, gemma_recirc$n_distinct_raw),
+  n_distinct_norm    = c(qwen_recirc$n_distinct_norm, gemma_recirc$n_distinct_norm),
+  n_distinct_l3      = c(qwen_recirc$n_distinct_l3, gemma_recirc$n_distinct_l3),
+  taxonomy_size      = c(K, K),
+  n_out_of_taxonomy  = c(qwen_recirc$n_out_of_taxonomy, gemma_recirc$n_out_of_taxonomy)
+)
+write.csv(recirc_summary, OUT_RECIRC, row.names = FALSE)

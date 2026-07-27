@@ -192,7 +192,7 @@ The mapping must be performed with the **same taxonomy** used in the original to
 
 The L3 taxonomy was revised during the project. The v2 taxonomy had 225 methods; the v3 taxonomy has 242. Many method labels were renamed, split, or reorganised between versions. The Bayesian model on the literature corpus uses v3 throughout.
 
-The early experiment run classified LLM responses against the v2 taxonomy. When compared to the v3-based Bayesian model, only 53/242 methods matched exactly — the remaining v2 labels had no direct v3 counterpart. Sensitivity B (`R/sensitivity/08_step3_v2_remapped.R`) tested whether fuzzy string matching to remap v2 labels onto v3 changed the Step 3 result; it did not (overall beta = -0.339, P(>0) = 0.368).
+The early experiment run classified LLM responses against the v2 taxonomy. When compared to the v3-based Bayesian model, only 53/242 methods matched exactly — the remaining v2 labels had no direct v3 counterpart. Sensitivity B (`R/archive/taxonomy_version_remap.R`) tested whether fuzzy string matching to remap v2 labels onto v3 changed the Step 3 result; it did not (overall beta = -0.339, P(>0) = 0.368).
 
 The current experiment data (`experiment_results_QWEN.csv`, `experiment_results_GEMMA.csv`) was reclassified directly against the v3 taxonomy, eliminating the mismatch entirely. The v2→v3 remapping is no longer needed for the primary analysis — it exists only as a sensitivity check confirming that the earlier taxonomy mismatch did not affect the qualitative result.
 

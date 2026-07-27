@@ -1,7 +1,7 @@
 # Step 3 Remapped — v2 Experiment → v3 Taxonomy
 
-Script: `R/sensitivity/08_step3_v2_remapped.R`  
-Run date: 2026-05-11
+Script: `R/archive/taxonomy_version_remap.R`  
+Run date: 2026-06-05
 
 ---
 
@@ -30,19 +30,19 @@ The full mapping table is saved to `data/output/step3_v2_to_v3_mapping.csv`.
 
 | Profile | β mean | 90% CI | P(β > 0) |
 |---|---|---|---|
-| Overall | -0.339 | [-1.874, 1.145] | 0.368 |
-| Novice | -0.275 | [-1.793, 1.276] | 0.390 |
-| Intermediate | -0.157 | [-1.685, 1.356] | 0.419 |
-| Expert | -0.198 | [-1.760, 1.310] | 0.416 |
+| Overall | -0.327 | [-1.838, 1.220] | 0.356 |
+| Novice | -0.206 | [-1.721, 1.352] | 0.408 |
+| Intermediate | -0.143 | [-1.732, 1.470] | 0.438 |
+| Expert | -0.216 | [-1.760, 1.326] | 0.408 |
 
 ### Convergence
 
 | Profile | Max Rhat | Min n_eff |
 |---|---|---|
-| Overall | 1.0028 | 3941 |
-| Novice | 1.0007 | 3580 |
-| Intermediate | 1.0051 | 3813 |
-| Expert | 1.0024 | 3845 |
+| Overall | 1.0014 | 3862 |
+| Novice | 1.0016 | 3894 |
+| Intermediate | 1.0010 | 3648 |
+| Expert | 1.0015 | 4185 |
 
 ---
 
@@ -68,8 +68,4 @@ The full mapping table is saved to `data/output/step3_v2_to_v3_mapping.csv`.
 
 ## Interpretation
 
-The remapping raised the match rate from 22% to 85%, recovering almost all of the experiment data. The results are consistent with the direct-match analysis: all β posteriors are negative with CIs crossing zero. The negative direction is not an artifact of the taxonomy mismatch — it persists with full coverage.
-
-**What this means for Step 3:** The LLM (Qwen3) does not preferentially recommend the methods that gained share post-2023. If anything, it leans slightly toward methods that lost share, consistent with recommending from its training corpus (which reflects pre-2023 prevalence) rather than tracking recent shifts. The mean-collapse hypothesis — that LLMs drive convergence by recommending methods that are gaining share — is not supported by these data.
-
-**What this means for the paper:** Steps 1–2 show weak evidence of post-2023 reshuffling (σ_γ = 0.110, above zero but uncertain). Step 3, with proper taxonomy matching, finds no link between that reshuffling and LLM recommendations. The three steps are not directionally aligned: some reshuffling exists, but LLMs are not driving it. The honest conclusion is that LLMs have not produced measurable methodological convergence in computational archaeology.
+*(Auto-generated; update after reviewing results.)*

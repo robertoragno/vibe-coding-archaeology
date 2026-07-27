@@ -2,7 +2,7 @@
 
 *Last updated: 2026-05-21*
 
-These checks implement a subset of the workflow from Gelman et al. (2020, arXiv:2011.01808), run from `R/04_workflow_checks.R` using the fitted phi-free model. No refitting is done except for the fake-data simulation (single group, fast).
+These checks implement a subset of the workflow from Gelman et al. (2020, arXiv:2011.01808), run from `R/bibliometric/04_workflow_checks.R` using the fitted Dirichlet-Multinomial model. No refitting is done except for the fake-data simulation (single group, fast).
 
 ### Coverage of Gelman et al. (2020)
 
@@ -85,6 +85,6 @@ The posterior contracts toward the true value relative to the Exp(4) prior, conf
 
 The early fixed-phi specifications (phi = 10, phi = 50) were replaced by the phi-free model, which estimates phi from data using a lognormal(log(100), 1.0) prior. This eliminated the main prior-sensitivity axis.
 
-**Result:** phi posterior concentrates at ~1133 [605, 2088], far above both fixed values. The data favour a near-Multinomial likelihood with minimal overdispersion. The fixed phi = 10 model was overly conservative, attributing structural variation to noise.
+**Result:** phi posterior concentrates at ~1092 [571, 2025], far above both fixed values. The data favour a near-Multinomial likelihood with minimal overdispersion. The fixed phi = 10 model was overly conservative, attributing structural variation to noise.
 
 This supersedes the phi = 10 vs phi = 50 sensitivity comparison from the original workflow. The relevant sensitivity question is now whether the lognormal prior on phi matters — the posterior is concentrated enough (90% CI spans a factor of ~3.5) that it is data-driven rather than prior-driven.
