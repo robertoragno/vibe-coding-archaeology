@@ -124,7 +124,9 @@ read_llm <- function(csv_path, model_name) {
 
 build_literature <- function() {
   scopus <- read_excel(SCOPUS_XLSX) |> select(eid, Year = year)
-  tax    <- read.csv(TAXONOMY_CSV, stringsAsFactors = FALSE) |> select(eid, l2, l3)
+  tax    <- read.csv(TAXONOMY_CSV, stringsAsFactors = FALSE) |>
+    filter(is_garbage == "False") |>
+    select(eid, l2, l3)
   scopus |>
     inner_join(tax, by = "eid") |>
     filter(Year >= 2010, Year <= 2025) |>

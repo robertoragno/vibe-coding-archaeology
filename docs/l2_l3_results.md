@@ -54,13 +54,13 @@ g indexes L2 sub-disciplines; k indexes L3 techniques within each sub-discipline
 
 | Parameter | Value |
 |---|---|
-| phi posterior mean | 1092 |
-| phi 90% CI | [571, 2025] |
-| sigma_gamma mean | 0.105 |
-| sigma_gamma 90% CI | [0.011, 0.217] |
-| sigma_beta mean | 0.264 |
-| Rhat (all params) | < 1.004 |
-| ESS (sigma_gamma) | 887 |
+| phi posterior mean | 1102 |
+| phi 90% CI | [564, 2073] |
+| sigma_gamma mean | 0.106 |
+| sigma_gamma 90% CI | [0.01, 0.218] |
+| sigma_beta mean | 0.249 |
+| Rhat (all params) | < 1.002 |
+| ESS (sigma_gamma) | 640 |
 | Divergences | 0 |
 
 Rhat < 1.01 and ESS > 400 are the thresholds for acceptable convergence. Zero divergences is required.
@@ -101,7 +101,7 @@ Note: change = (exp(gamma) − 1) × 100. No individual estimates are credible a
 
 ## Taxonomy v3 notes
 
-**Taxonomy v3** uses a two-level hierarchy (L2 → L3 only; no L1 grouping). The Qwen classifier was retrained to produce L2 and L3 labels directly from abstracts, yielding 25 L2 sub-disciplines and 242 L3 techniques across 7,360 papers (2010–2025). No singleton L2 groups (K_g = 1) exist in this taxonomy, so no groups are dropped.
+**Taxonomy v3** uses a two-level hierarchy (L2 → L3 only; no L1 grouping). The Qwen classifier was retrained to produce L2 and L3 labels directly from abstracts, yielding 25 L2 sub-disciplines and 241 analysed L3 techniques (242 produced, one discarded at Phase 4.5) across 7,355 papers (2010–2025). No singleton L2 groups (K_g = 1) exist in this taxonomy, so no groups are dropped.
 
 Compared to the prior taxonomy (v2, which had 51 L2 groups and 225 L3 methods), the key changes are: fewer but larger L2 groups, a denser L3 vocabulary, and no L1 layer. The model structure is unchanged. Script `R/03_l1_l2_analysis.R` (L1→L2 sensitivity) is not applicable under v3.
 

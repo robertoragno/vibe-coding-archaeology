@@ -46,6 +46,7 @@ Mining_Script/
 # Local project context (not for the public repo)
 CONTEXT.md
 docs/Manuscript.txt
+docs/esm_structure.md
 
 # Misc
 *.pdf

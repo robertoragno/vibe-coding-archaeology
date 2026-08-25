@@ -14,6 +14,7 @@ scopus_raw <- read_excel(SCOPUS_FILE) |>
   select(eid, Year = year)
 
 taxonomy <- read.csv(TAXONOMY_FILE) |>
+  filter(is_garbage == "False") |>
   select(eid, l2, l3)
 
 scopus_processed <- scopus_raw |>
