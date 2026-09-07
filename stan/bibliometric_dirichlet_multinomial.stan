@@ -44,7 +44,7 @@ transformed parameters {
 
 model {
   // Prior on log_phi: N(log(100), 1.0)
-  // => phi ~ lognormal(log(100), 1.0): median=100, 90% CI ~[14, 716]
+  // => phi ~ lognormal(log(100), 1.0): median=100, 95% CI ~[14, 710]
   // Sampling on log scale avoids boundary effects and improves HMC geometry.
   log_phi ~ normal(log(100), 1.0);
 

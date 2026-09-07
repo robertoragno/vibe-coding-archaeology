@@ -34,9 +34,9 @@ effect on the literature side is too subtle to detect without modelling.
 and sigma_gamma (post-LLM shift variation). sigma_gamma credibly above zero is
 the global-level answer to "did methods diverge unevenly after 2023?"
 
-**Results:** sigma_beta = 0.264 [90% CI: 0.225, 0.304] — substantial heterogeneity
-in baseline growth rates across L3 methods. sigma_gamma = 0.105 [90% CI: 0.011,
-0.217] — the entire posterior mass lies above zero, confirming that
+**Results:** sigma_beta = 0.249 [90% CI: 0.210, 0.289] — substantial heterogeneity
+in baseline growth rates across L3 methods. sigma_gamma = 0.106 [90% CI: 0.010,
+0.219] — the entire posterior mass lies above zero, confirming that
 post-2023 shifts are unevenly distributed across methods. The effect is roughly
 one-third the magnitude of baseline trend variation.
 
@@ -109,16 +109,16 @@ posterior median with 90% credible interval.
 
 | Source | Profile | Median | 90% CI |
 |--------|---------|-------:|--------|
-| Literature pre-2023 | — | 88.4 | [85.4, 91.4] |
-| Literature post-2023 | — | 112.2 | [108.7, 115.7] |
-| Qwen3 | Novice | 21.4 | [20.0, 22.9] |
-| Qwen3 | Intermediate | 30.9 | [28.7, 33.3] |
-| Qwen3 | Expert | 60.9 | [56.8, 65.0] |
-| Qwen3 | Overall | 31.9 | [30.5, 33.4] |
-| Gemma | Novice | 20.8 | [19.5, 22.4] |
-| Gemma | Intermediate | 29.8 | [27.6, 32.1] |
-| Gemma | Expert | 47.2 | [43.8, 50.5] |
-| Gemma | Overall | 29.2 | [27.9, 30.5] |
+| Literature pre-2023 | — | 87.6 | [84.6, 90.6] |
+| Literature post-2023 | — | 111.2 | [107.7, 114.7] |
+| Qwen3 | Novice | 20.9 | [19.5, 22.4] |
+| Qwen3 | Intermediate | 30.5 | [28.3, 33.0] |
+| Qwen3 | Expert | 60.7 | [56.8, 64.7] |
+| Qwen3 | Overall | 31.6 | [30.2, 33.0] |
+| Gemma | Novice | 20.5 | [19.0, 21.9] |
+| Gemma | Intermediate | 29.5 | [27.3, 31.7] |
+| Gemma | Expert | 46.8 | [43.4, 50.2] |
+| Gemma | Overall | 28.8 | [27.6, 30.0] |
 
 **Key contrasts for manuscript:** Even the most diverse LLM configuration
 (Qwen3 expert) covers roughly half as many effective methods as the pre-2023
@@ -145,11 +145,11 @@ simply echo what was common in their training data, b_pre should be positive.
 If LLMs additionally track which methods are gaining momentum post-2023
 (mean-collapse amplification), b_gamma should also be positive.
 
-**Results:** b_pre is credibly positive for both models: Qwen3 = 0.658
-[90% CI: 0.504, 0.803], Gemma = 0.580 [0.411, 0.754]. Methods that appear
+**Results:** b_pre is credibly positive for both models: Qwen3 = 0.657
+[90% CI: 0.509, 0.806], Gemma = 0.576 [0.400, 0.751]. Methods that appear
 more often in the pre-2023 literature are recommended more often — LLMs echo
 what was prevalent in their training corpus. b_gamma is centred near zero for
-both models: Qwen3 = 0.083 [-1.470, 1.656], Gemma = 0.146 [-1.422, 1.724].
+both models: Qwen3 = 0.115 [-1.391, 1.701], Gemma = 0.191 [-1.354, 1.759].
 The concentration collapse documented in Fig. 5 is real, but its mechanism is
 training-corpus echo (b_pre), not post-2023 momentum amplification (b_gamma).
 LLMs concentrate on popular methods because those methods dominated the
@@ -183,7 +183,7 @@ prevalent in the training corpus (b_pre), not what is newly gaining ground.
    effect* varies by profile. The hypothesis: novice prompts are unconstrained,
    so any echo of recent trends should be strongest there. Result: b_gamma ≈ 0
    for all profiles. If anything, expert point estimates are marginally higher
-   (Qwen3 expert: 0.224 vs novice: 0.107) — the opposite of the hypothesis —
+   (Qwen3 expert: 0.212 vs novice: 0.089) — the opposite of the hypothesis —
    though all intervals span zero. This reversal may reflect that constraining
    the output to one L2 category forces the model into a smaller vocabulary where
    post-2023 patterns have proportionally more leverage.
@@ -197,8 +197,8 @@ in the manuscript: the gun is not loaded yet in the literature, and the LLMs
 are not trying to fire it either.
 
 **Results:** b_gamma remains centred near zero across all profile-model
-combinations: novice (Qwen3: 0.107; Gemma: 0.087), intermediate (Qwen3: 0.035;
-Gemma: 0.032), expert (Qwen3: 0.224; Gemma: 0.218). All 90% credible intervals
+combinations: novice (Qwen3: 0.089; Gemma: 0.131), intermediate (Qwen3: 0.070;
+Gemma: 0.098), expert (Qwen3: 0.212; Gemma: 0.235). All 90% credible intervals
 comfortably span zero.
 
 ![Fig. 6](../data/output/figures/main_text/fig6_bgamma_by_profile.png)

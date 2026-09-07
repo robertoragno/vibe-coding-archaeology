@@ -47,6 +47,11 @@ Mining_Script/
 CONTEXT.md
 docs/Manuscript.txt
 docs/esm_structure.md
+docs/build_esm.py
+docs/build_esm_tex.py
+docs/ESM_merged_draft.tex
+docs/ESM_merged_draft.toc
+*.docx
 
 # Misc
 *.pdf
@@ -59,6 +64,8 @@ Python/*/*.txt
 Python/*/*.json
 Python/*/*.html
 Python/*/*.npy
+__pycache__/
+*.py[cod]
 
 *.gguf
 

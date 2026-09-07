@@ -75,7 +75,7 @@ Recovered mean    = 0.168
 True value inside CI: YES
 ```
 
-The posterior contracts toward the true value relative to the Exp(4) prior, confirming sigma_gamma is identifiable from this data structure. The posterior is wide because a single group with 3 post-LLM years provides limited information — in the full model, aggregation across 25 groups sharpens the estimate (posterior: 0.110 [0.010, 0.222]).
+The posterior contracts toward the true value relative to the Exp(4) prior, confirming sigma_gamma is identifiable from this data structure. The posterior is wide because a single group with 3 post-LLM years provides limited information — in the full model, aggregation across 25 groups sharpens the estimate (posterior: 0.106 [0.010, 0.219]).
 
 ![Fake data recovery](../data/output/figures/workflow/plot_fake_data_recovery.png)
 
@@ -85,6 +85,6 @@ The posterior contracts toward the true value relative to the Exp(4) prior, conf
 
 The early fixed-phi specifications (phi = 10, phi = 50) were replaced by the phi-free model, which estimates phi from data using a lognormal(log(100), 1.0) prior. This eliminated the main prior-sensitivity axis.
 
-**Result:** phi posterior concentrates at ~1092 [571, 2025], far above both fixed values. The data favour a near-Multinomial likelihood with minimal overdispersion. The fixed phi = 10 model was overly conservative, attributing structural variation to noise.
+**Result:** phi posterior concentrates at ~1102 [564, 2073], far above both fixed values. The data favour a near-Multinomial likelihood with minimal overdispersion. The fixed phi = 10 model was overly conservative, attributing structural variation to noise.
 
 This supersedes the phi = 10 vs phi = 50 sensitivity comparison from the original workflow. The relevant sensitivity question is now whether the lognormal prior on phi matters — the posterior is concentrated enough (90% CI spans a factor of ~3.5) that it is data-driven rather than prior-driven.
