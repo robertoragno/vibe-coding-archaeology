@@ -166,6 +166,8 @@ and saves a figure slot.)
 source, derived from a Dirichlet conjugate posterior. Each estimate is the
 posterior median with 90% credible interval.
 
+**Manuscript caption (Table 3 in the text):** Effective number of L3 methods (inverse Simpson index) for the pre- and post-2023 literature and for the Qwen3 and Gemma recommendation sets, broken down by researcher profile for the LLM sources. Each value is the posterior median with 90% credible interval, computed from a Dirichlet conjugate posterior fitted to the L3 frequency counts of each source (§3.4.1). Higher values indicate recommendations spread more evenly across methods; lower values indicate concentration on a few.
+
 > Numbers from the 2025 refit (2010–2025 window). Final.
 
 | Source | Profile | Median | 90% CI |
@@ -190,7 +192,8 @@ published record so far).
 **Placement:** Immediately after the concentration paragraph ending "...rather
 than simply an incidental outcome derived from our prompt design
 (Jiang et al., 2025)." Repoint the earlier reference "(ESM, Table §S9.1)" in the
-preceding paragraph to "(Table 1)".
+preceding paragraph to "(Table 3)" (this table is Table 1 in this planning doc
+but Table 3 in the manuscript, after the taxonomy and profile tables).
 
 ---
 
