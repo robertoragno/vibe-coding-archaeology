@@ -1,5 +1,6 @@
 # 09_main_text_figures.R
-# Generates all 8 main-text figures in greyscale academic style.
+# Generates the manuscript main-text figures (Fig. 2-7) plus one ESM figure,
+# in greyscale academic style.
 
 suppressPackageStartupMessages({
   library(here)
@@ -40,7 +41,7 @@ gamma_csv <- here("data/output/phi_free/gamma_results.csv")
 gamma_df  <- read.csv(gamma_csv, stringsAsFactors = FALSE)
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Fig. 1 — Raw method counts over time
+# Fig. 2 — Raw method counts over time
 # ═══════════════════════════════════════════════════════════════════════════
 
 K <- nrow(l3_vocab)
@@ -85,12 +86,12 @@ fig1 <- ggplot(plot_df1, aes(x = year, y = n)) +
   theme_paper +
   theme(strip.text = element_text(size = 6.5))
 
-ggsave(file.path(OUT_DIR, "fig1_raw_counts.png"), fig1,
+ggsave(file.path(OUT_DIR, "fig2_raw_counts.png"), fig1,
        width = 9, height = 11, dpi = 300, bg = "white")
-cat("Fig. 1 saved.\n")
+cat("Fig. 2 saved.\n")
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Fig. 2 — Sigma posteriors
+# Fig. 3 — Sigma posteriors
 # ═══════════════════════════════════════════════════════════════════════════
 
 fit <- readRDS(here("data/output/fit_phi_free.rds"))
@@ -115,12 +116,12 @@ fig2 <- ggplot(sigma_df, aes(x = value, y = after_stat(density))) +
        caption = "Posterior entirely above zero for σγ indicates uneven post-2023 divergence across methods.") +
   theme_paper
 
-ggsave(file.path(OUT_DIR, "fig2_sigma_posteriors.png"), fig2,
+ggsave(file.path(OUT_DIR, "fig3_sigma_posteriors.png"), fig2,
        width = 8, height = 3.5, dpi = 300, bg = "white")
-cat("Fig. 2 saved.\n")
+cat("Fig. 3 saved.\n")
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Fig. 3 — Method share by L2: literature vs both LLMs
+# Fig. 4 — Method share by L2: literature vs both LLMs
 # ═══════════════════════════════════════════════════════════════════════════
 
 pre_idx  <- which(year_levels < 2023)
@@ -204,12 +205,12 @@ fig3 <- ggplot(plot_df3, aes(x = share, y = l2_clean, fill = source)) +
   theme_paper +
   theme(axis.text.y = element_text(size = 7.5))
 
-ggsave(file.path(OUT_DIR, "fig3_l2_triple_bar.png"), fig3,
+ggsave(file.path(OUT_DIR, "fig4_l2_triple_bar.png"), fig3,
        width = 8, height = 7, dpi = 300, bg = "white")
-cat("Fig. 3 saved.\n")
+cat("Fig. 4 saved.\n")
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Fig. 4 — Top 10 L3: Qwen3 vs Gemma
+# Fig. 5 — Top 10 L3: Qwen3 vs Gemma
 # ═══════════════════════════════════════════════════════════════════════════
 
 qwen_all <- qwen_con |>
@@ -266,12 +267,12 @@ fig4 <- ggplot(plot_df4, aes(x = share, y = l3_clean, fill = model)) +
   theme_paper +
   theme(axis.text.y = element_text(size = 7.5))
 
-ggsave(file.path(OUT_DIR, "fig4_top10_qwen_vs_gemma.png"), fig4,
+ggsave(file.path(OUT_DIR, "fig5_top10_qwen_vs_gemma.png"), fig4,
        width = 8, height = 5.5, dpi = 300, bg = "white")
-cat("Fig. 4 saved.\n")
+cat("Fig. 5 saved.\n")
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Fig. 5 — Concentration posteriors (inv Simpson)
+# ESM — Concentration posteriors (inv Simpson)
 # ═══════════════════════════════════════════════════════════════════════════
 
 conc_draws <- read.csv(here("data/output/concentration_inv_simpson_draws.csv"),
@@ -364,9 +365,9 @@ fig6 <- ggplot(plot_df7, aes(x = value, y = model, fill = model)) +
   theme(legend.position = "top", legend.title = element_blank(),
         legend.box = "horizontal", legend.spacing.x = unit(0.3, "cm"))
 
-ggsave(file.path(OUT_DIR, "fig5_bpre_bgamma_posteriors.png"), fig6,
+ggsave(file.path(OUT_DIR, "fig6_bpre_bgamma_posteriors.png"), fig6,
        width = 8, height = 5, dpi = 300, bg = "white")
-cat("Fig. 5 saved.\n")
+cat("Fig. 6 saved.\n")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Fig. 7 — b_gamma by profile and model
@@ -399,8 +400,8 @@ fig7 <- ggplot(prev_summary, aes(y = model)) +
        caption = "Point: posterior mean. Thick bar: 50% CI; thin bar: 90% CI. Dashed line: zero.") +
   theme_paper
 
-ggsave(file.path(OUT_DIR, "fig6_bgamma_by_profile.png"), fig7,
+ggsave(file.path(OUT_DIR, "fig7_bgamma_by_profile.png"), fig7,
        width = 7, height = 5.5, dpi = 300, bg = "white")
-cat("Fig. 6 saved.\n")
+cat("Fig. 7 saved.\n")
 
 cat("\nAll main-text figures saved to:", OUT_DIR, "\n")
