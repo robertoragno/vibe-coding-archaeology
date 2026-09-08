@@ -51,6 +51,12 @@ docs/build_esm.py
 docs/build_esm_tex.py
 docs/ESM_merged_draft.tex
 docs/ESM_merged_draft.toc
+docs/ESM_merged_draft.aux
+docs/ESM_merged_draft.log
+docs/ESM_merged_draft.out
+docs/*.aux
+docs/*.log
+docs/*.out
 *.docx
 
 # Misc
