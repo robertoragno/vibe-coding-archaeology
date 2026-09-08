@@ -52,6 +52,8 @@ Mining_Script/
 # Local project context (not for the public repo)
 CONTEXT.md
 docs/Manuscript.txt
+docs/Cover_Letter.tex
+docs/Cover_Letter.pdf
 docs/esm_structure.md
 docs/build_esm.py
 docs/build_esm_tex.py
