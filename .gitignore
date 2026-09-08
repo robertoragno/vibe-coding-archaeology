@@ -33,8 +33,14 @@ data/output/*.done
 logs/
 old_scripts/
 gzfile
-telegram_stan_bot.R
 data/output/figure*.png
+
+# Superseded / archived code, kept locally but not published
+telegram_stan_bot.R
+R/archive/
+stan/archive/
+experiment/analysis/archive/
+Python/*/archive/
 
 # OS / editor
 .DS_Store
